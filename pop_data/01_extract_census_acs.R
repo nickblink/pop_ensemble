@@ -49,12 +49,12 @@ ma_ce<-ma_ce[order(ma_ce$GEOID),]
 ## 3. PEP estimated DATA ##
 ###########################
 
-ma_pep <- 
-  get_estimates(geography = "county", 
-                product = "population", 
-                year = 2010)
+ma_pep <- get_estimates(
+  geography = "county",
+  product = "population",
+  time_series = TRUE) %>% filter(DATE == 3) %>% filter(variable == "POP")
 ma_pep<-as.data.frame(ma_pep)
-
+ma_pep<-ma_pep[order(ma_pep$GEOID),]
 
 ##################################
 ## 4. merge ACS and census data ##
@@ -66,7 +66,12 @@ ma_pep<-as.data.frame(ma_pep)
 # load('ce_data2206.RData')
 # 
 # ## merge them by fips code, race, age, and sex ##
-adat<-merge(ma_acs, ma_ce,by=c('GEOID','NAME','agecat','sex'))
+adat<-merge(ma_acs, ma_ce, by=c('GEOID','NAME'), all = TRUE) %>%
+  merge(ma_pep, by=c('GEOID','NAME'), all = TRUE)
+
+
+
+
 # 
 # save(adat,file='merged_denom_cov_data2206.RData')
 
