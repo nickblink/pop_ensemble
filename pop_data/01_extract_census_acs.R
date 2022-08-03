@@ -64,10 +64,41 @@ ma_pep<-ma_pep[order(ma_pep$GEOID),]
 # load('acs_data2206.RData')
 # 
 # load('ce_data2206.RData')
-# 
-# ## merge them by fips code, race, age, and sex ##
+
+ma_acs <- ma_acs %>%
+  select(GEOID, NAME, acs = estimate)
+ma_ce <- ma_ce %>%
+  select(GEOID, NAME, census = value)
+ma_pep <- ma_pep %>%
+  select(GEOID, NAME, pep = value)
+
+## Fixing mismatched names
+ma_pep$NAME <- gsub('Petersburg Borough, Alaska', 'Petersburg Census Area, Alaska', ma_pep$NAME)
+ma_pep$NAME <- gsub('LaSalle Parish, Louisiana', 'La Salle Parish, Louisiana', ma_pep$NAME)
+ma_pep$NAME[grep('Ana County, New Mexico', ma_pep$NAME)] <- 'Dona Ana County, New Mexico'
+
+ma_acs$NAME[grep('Ana County, New Mexico', ma_acs$NAME)] <- 'Dona Ana County, New Mexico'
+# this county was renamed in 2015
+ind <- grep('Shannon County, South Dakota', ma_acs$NAME)
+ma_acs$GEOID[ind] <- '46102'
+ma_acs$NAME[ind] <- 'Oglala Lakota County, South Dakota'
+
+ind <- grep('Shannon County, South Dakota', ma_ce$NAME)
+ma_ce$GEOID[ind] <- '46102'
+ma_ce$NAME[ind] <- 'Oglala Lakota County, South Dakota'
+
+# this county was also renamed in 2015
+ind <- grep('Wade Hampton Census Area, Alaska', ma_acs$NAME)
+ma_acs$GEOID[ind] <- '02158'
+ma_acs$NAME[ind] <- 'Kusilvak Census Area, Alaska'
+
+ind <- grep('Wade Hampton Census Area, Alaska', ma_ce$NAME)
+ma_ce$GEOID[ind] <- '02158'
+ma_ce$NAME[ind] <- 'Kusilvak Census Area, Alaska'
+
 adat<-merge(ma_acs, ma_ce, by=c('GEOID','NAME'), all = TRUE) %>%
-  merge(ma_pep, by=c('GEOID','NAME'), all = TRUE)
+  merge(ma_pep, by=c('GEOID','NAME'), all = TRUE) %>%
+  na.omit() # omits one row with "bedford city"
 
 
 
