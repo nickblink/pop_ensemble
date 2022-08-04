@@ -20,6 +20,7 @@ adat$acs_prop_bas = adat$acs_bias/adat$census
 adat$pep_bias = adat$pep - adat$census
 adat$pep_prop_bas = adat$pep_bias/adat$census
 
+adat$sd = apply(adat, 1, function(xx) sd(xx[3:5]))
 
 # ggplot(data = adat) + 
 #   geom_point(aes(x = census, y = acs_bias)) +
@@ -30,3 +31,14 @@ ggplot(data = adat) +
   geom_point(aes(x = census, y = abs(acs_bias))) +
   scale_x_continuous(trans='log2') +
   scale_y_continuous(trans='pseudo_log')
+
+ggplot(data = adat) +
+  geom_point(aes(x = census, y = abs(pep_bias))) +
+  scale_x_continuous(trans='log2') +
+  scale_y_continuous(trans='pseudo_log')
+
+ggplot(data = adat) +  
+  geom_point(aes(x = census, y = sd))  +
+  scale_x_continuous(trans='log2') +
+  scale_y_continuous(trans='log2')
+
