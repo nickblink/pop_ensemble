@@ -113,13 +113,20 @@ ma_pep <- get_estimates(geography = "county",
 ma_pep<-as.data.frame(ma_pep)
 ma_pep<-ma_pep[order(ma_pep$GEOID),]
 
+# ma_pep <- get_estimates(
+#   geography = "county",
+#   product = "population",
+#   time_series = TRUE) %>% filter(DATE == 1) %>% filter(variable == "POP")
+# ma_pep<-as.data.frame(ma_pep)
+# ma_pep<-ma_pep[order(ma_pep$GEOID),]
+# # DATE = 1 is identical to the census
+
 ma_pep <- get_estimates(
   geography = "county",
   product = "population",
-  time_series = TRUE) %>% filter(DATE == 1) %>% filter(variable == "POP")
+  time_series = TRUE) %>% filter(DATE == 3) %>% filter(variable == "POP")
 ma_pep<-as.data.frame(ma_pep)
 ma_pep<-ma_pep[order(ma_pep$GEOID),]
-# DATE = 1 is identical to the census
 
 
 ##################################
