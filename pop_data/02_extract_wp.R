@@ -13,9 +13,15 @@
 #args<-commandArgs(TRUE)
 #for (i in 1:length(args)) { eval (parse (text = args[[i]] )) }
 
+#library(raster)
+#library(rgdal)
+library(sf)
+library(sp)
 library(raster)
-library(rgdal)
-
+library(ggplot2)
+#library(USAboundaries)
+library(tigris)
+options(tigris_use_cache = FALSE)
 
 current_path <- rstudioapi::getActiveDocumentContext()$path
 setwd(dirname(current_path))
@@ -71,17 +77,23 @@ if (file.exists('us_wp.tif')){
 }
 
 
-# Aggregating the data to the county level
+##### Aggregate the WP data into counties #####
+wp <- raster('data/usa_ppp_2010_1km_Aggregated.tif')
 
-wp<-raster('data/usa_ppp_2010.tif')
-
-# very slow! Could take ~ 5-7 hours, I would geuss
 wp_pts <- rasterToPoints(wp, spatial = T)
 
-# get tracts and counties in the country
-us_counties <- tigris::counties(year = 2010)
-us_tracts <- tigris::tracts(year = 2010)
+# get states list and filter to only contiguous/continental US
+states <- tigris::states() 
+states <- states[!(states$NAME %in% c("Alaska", "American Samoa", "Commonwealth of the Northern Mariana Islands", "Guam", "Hawaii", "Puerto Rico", "United States Virgin Islands")),]
 
+# get counties and filter to only contiguous US
+counties <- tigris::counties() 
+counties <- counties[counties$STATEFP %in% states$STATEFP,]
+counties <- as(counties, 'Spatial')
+counties <- spTransform(counties, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
 
-rgeos::over?
-sp::over
+sum_overct <- sp::over(counties, wp_pts, fn=sum)
+
+counties$WP_1km_estimate <- sum_overct[,1]
+
+save(wp_pts, sum_overct, counties, file = 'data/wp_1km_county_aggregate_2010.RData')
