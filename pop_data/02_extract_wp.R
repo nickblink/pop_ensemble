@@ -45,10 +45,10 @@ if (file.exists('us_wp.tif')){
   cropbox<-extent(xmin,xmax,ymin,ymax)
   
   ## read in raster ##
-  rname<- "https://data.worldpop.org/GIS/Population/Global_2000_2020/2010/USA/usa_ppp_2010.tif"
-  download.file(url=rname,destfile='/n/home02/liyr8/pop_ensemble/usa_ppp_2010.tif')
+  #rname<- "https://data.worldpop.org/GIS/Population/Global_2000_2020/2010/USA/usa_ppp_2010.tif"
+  #download.file(url=rname,destfile='/n/home02/liyr8/pop_ensemble/usa_ppp_2010.tif')
   
-  wp<-raster('/n/home02/liyr8/pop_ensemble/usa_ppp_2010.tif')
+  wp<-raster('/n/home02/liyr8/pop_ensemble/usa_ppp_2010_1km_Aggregated.ti')
   
   ## view attributes ##
   wp
@@ -60,12 +60,24 @@ if (file.exists('us_wp.tif')){
   writeRaster(us_pop, 'us_wp.tif', overwrite=TRUE)
   
   ## delete big raster file ##
-  file.remove('/n/home02/liyr8/pop_ensemble/usa_ppp_2010.tif')
+  #file.remove('/n/home02/liyr8/pop_ensemble/usa_ppp_2010.tif')
   
 }
 
 
+wp <- raster('us_wp.tif')
+wp_pts <- rasterToPoints(wp, spatial = T)
 
+# get states list and filter to only contiguous/continental US
+states <- tigris::states()
+states <- states[!(states$NAME %in% c("Alaska", "American Samoa", "Commonwealth of the Northern Mariana Islands", "Guam", "Hawaii", "Puerto Rico", "United States Virgin Islands")),]
+
+# get counties and filter to only contiguous US
+counties <- tigris::counties(year=2010)
+counties <- counties[counties$STATEFP %in% states$STATEFP,]
+counties <- spTransform(counties, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+
+sum_overct <- over(counties, wp_pts, fn=sum)
 
 
 
