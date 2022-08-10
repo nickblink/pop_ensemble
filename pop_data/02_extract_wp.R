@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 ####################################################
 ## THIS CODE PROCESSES RAW WORLDPOP DATA FROM URL ##
 ## NEEDS TO BE RUN ON CANNON IN PARALLEL          ##
@@ -81,3 +82,92 @@ sum_overct <- over(counties, wp_pts, fn=sum)
 
 
 
+=======
+####################################################
+## THIS CODE PROCESSES RAW WORLDPOP DATA FROM URL ##
+## NEEDS TO BE RUN ON CANNON IN PARALLEL          ##
+####################################################
+
+## at command line run the following for interactive R job
+## module load gcc/7.1.0-fasrc01 R/3.3.3-fasrc01 udunits/2.2.26-fasrc01 gdal/2.3.0-fasrc01 proj/5.0.1-fasrc01 geos/3.6.2-fasrc01
+## export R_LIBS_USER=$HOME/apps/R:$R_LIBS_USER
+## srun -p test --pty --mem 10000 -t 0-02:00 /bin/bash
+## R --quiet
+
+## read command line arguments ##
+#args<-commandArgs(TRUE)
+#for (i in 1:length(args)) { eval (parse (text = args[[i]] )) }
+
+library(raster)
+library(rgdal)
+
+
+current_path <- rstudioapi::getActiveDocumentContext()$path
+setwd(dirname(current_path))
+setwd('..')
+
+## years of data:2010 ##
+
+# setwd('/n/home02/liyr8/pop_ensemble')
+
+if (file.exists('us_wp.tif')){
+}else{
+  
+  ## MA lat/long boundaries ##
+  # xmin<-(-73.508142)
+  # ymin<-41.237964
+  # xmax<-(-69.928393)
+  # ymax<-42.886589
+  
+  ## US lat/long boundaries ##
+  xmin<-(-124.736342) # Westernmost -179.1479
+  ymin<- 24.521208 #Southernmost 18.91042
+  xmax<-(-66.945392) #Easternmost 179.7779
+  ymax<-49.382808 #Northernmost 71.39042
+  
+  
+  # xmin<-(-179.1479)
+  # ymin<- 18.91042
+  # xmax<-179.7779
+  # ymax<-71.39042
+  # 
+  
+  cropbox<-extent(xmin,xmax,ymin,ymax)
+  
+  ## read in raster ##
+  rname<- "https://data.worldpop.org/GIS/Population/Global_2000_2020/2010/USA/usa_ppp_2010.tif"
+  #download.file(url=rname,destfile='/n/home02/liyr8/pop_ensemble/usa_ppp_2010.tif')
+  # download.file(url=rname,destfile='data/usa_ppp_2010.tif')
+  
+  wp<-raster('data/usa_ppp_2010.tif')
+  
+  ## view attributes ##
+  wp
+  
+  ## crop to MA boundaries ##
+  us_pop<-crop(wp,cropbox)
+  
+  ## export MA raster ##
+  writeRaster(us_pop, 'us_wp.tif', overwrite=TRUE)
+  
+  ## delete big raster file ##
+  file.remove('/n/home02/liyr8/pop_ensemble/usa_ppp_2010.tif')
+  
+}
+
+
+# Aggregating the data to the county level
+
+wp<-raster('data/usa_ppp_2010.tif')
+
+# very slow! Could take ~ 5-7 hours, I would geuss
+wp_pts <- rasterToPoints(wp, spatial = T)
+
+# get tracts and counties in the country
+us_counties <- tigris::counties(year = 2010)
+us_tracts <- tigris::tracts(year = 2010)
+
+
+rgeos::over?
+sp::over
+>>>>>>> e2366d6faef5a200201cf443d0bc600a9d2af612
