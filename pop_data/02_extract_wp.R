@@ -29,7 +29,7 @@ setwd('..')
 
 ## years of data:2010 ##
 
-# setwd('/n/home02/liyr8/pop_ensemble')
+setwd('/n/home02/liyr8/pop_ensemble')
 
 if (file.exists('us_wp.tif')){
 }else{
@@ -56,11 +56,10 @@ if (file.exists('us_wp.tif')){
   cropbox<-extent(xmin,xmax,ymin,ymax)
   
   ## read in raster ##
-  rname<- "https://data.worldpop.org/GIS/Population/Global_2000_2020/2010/USA/usa_ppp_2010.tif"
+  #rname<- "https://data.worldpop.org/GIS/Population/Global_2000_2020/2010/USA/usa_ppp_2010.tif"
   #download.file(url=rname,destfile='/n/home02/liyr8/pop_ensemble/usa_ppp_2010.tif')
-  # download.file(url=rname,destfile='data/usa_ppp_2010.tif')
   
-  wp<-raster('data/usa_ppp_2010.tif')
+  wp<-raster('/n/home02/liyr8/pop_ensemble/usa_ppp_2010_1km_Aggregated.ti')
   
   ## view attributes ##
   wp
@@ -72,7 +71,7 @@ if (file.exists('us_wp.tif')){
   writeRaster(us_pop, 'us_wp.tif', overwrite=TRUE)
   
   ## delete big raster file ##
-  file.remove('/n/home02/liyr8/pop_ensemble/usa_ppp_2010.tif')
+  #file.remove('/n/home02/liyr8/pop_ensemble/usa_ppp_2010.tif')
   
 }
 
