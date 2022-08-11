@@ -29,8 +29,6 @@ setwd('..')
 
 ## years of data:2010 ##
 
-setwd('/n/home02/liyr8/pop_ensemble')
-
 if (file.exists('us_wp.tif')){
 }else{
   
