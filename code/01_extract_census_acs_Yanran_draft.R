@@ -10,6 +10,7 @@ library(stringr)
 library(haven)
 library(reshape2)
 library(rstudioapi)
+library(dplyr)
 
 current_path <- getActiveDocumentContext()$path
 setwd(dirname(current_path))
@@ -49,8 +50,7 @@ ma_ce<-ma_ce[order(ma_ce$GEOID),]
 ## 3. PEP estimated DATA ##
 ###########################
 
-ma_pep <- get_estimates(
-  geography = "county",
+ma_pep <- get_estimates(geography = "county",
   product = "population",
   time_series = TRUE) %>% filter(DATE == 3) %>% filter(variable == "POP")
 ma_pep<-as.data.frame(ma_pep)
@@ -101,27 +101,8 @@ adat<-merge(ma_acs, ma_ce, by=c('GEOID','NAME'), all = TRUE) %>%
   na.omit() # omits one row with "bedford city"
 
 
-
-
 # 
-# save(adat,file='merged_denom_cov_data2206.RData')
-
-
-
-# ## merge in the ice for race from the census (P003002-P003003)/P001001 ##
-# ice<-get_decennial(geography = "tract",
-#                    variables=c('P001001','P003002','P003003'),
-#                    state = "MA",year=2010,sumfile='sf1',output = 'wide')
-# ice<-as.data.frame(ice)
-# ice<-data.frame('GEOID'=ice$GEOID,'ce_ice_racewb'=(ice$P003002-ice$P003003)/ice$P001001)
-# 
-# ma_ce<-merge(ma_ce,ice,by='GEOID')
-# 
-# ma_ce<-ma_ce[order(ma_ce$GEOID),]
-# 
-# save(ma_ce,file='ce_data2206.RData')
-# 
-# rm(list=ls())
+# save(adat,file='../data/merged_denom_cov_data2206.RData')
 
 
 
