@@ -57,7 +57,7 @@ if (file.exists('us_wp.tif')){
   #rname<- "https://data.worldpop.org/GIS/Population/Global_2000_2020/2010/USA/usa_ppp_2010.tif"
   #download.file(url=rname,destfile='/n/home02/liyr8/pop_ensemble/usa_ppp_2010.tif')
   
-  wp<-raster('/n/home02/liyr8/pop_ensemble/usa_ppp_2010_1km_Aggregated.ti')
+  wp<-raster('/n/home02/liyr8/pop_ensemble/usa_ppp_2010_1km_Aggregated.tif')
   
   ## view attributes ##
   wp

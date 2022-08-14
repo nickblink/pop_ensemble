@@ -1,0 +1,264 @@
+<VRTDataset rasterXSize="1288699" rasterYSize="188714">
+  <SRS>GEOGCS["WGS 84",DATUM["WGS_1984",SPHEROID["WGS 84",6378137,298.257223563,AUTHORITY["EPSG","7030"]],AUTHORITY["EPSG","6326"]],PRIMEM["Greenwich",0],UNIT["degree",0.0174532925199433],AUTHORITY["EPSG","4326"]]</SRS>
+  <GeoTransform> -1.7830291666666668e+02,  2.7777777777799993e-04,  0.0000000000000000e+00,  7.1330416666666665e+01,  0.0000000000000000e+00, -2.7777777777799993e-04</GeoTransform>
+  <VRTRasterBand dataType="Float64" band="1">
+    <NoDataValue>nan</NoDataValue>
+    <ColorInterp>Gray</ColorInterp>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="1">population_usa18_-100_2019-07-01.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="16704" RasterYSize="11072" DataType="Float64" BlockXSize="256" BlockYSize="256" />
+      <SrcRect xOff="0" yOff="0" xSize="16704" ySize="11072" />
+      <DstRect xOff="281862" yOff="152684" xSize="16704" ySize="11072" />
+      <NODATA>nan</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="1">population_usa18_-110_2019-07-01.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="2176" RasterYSize="2688" DataType="Float64" BlockXSize="256" BlockYSize="256" />
+      <SrcRect xOff="0" yOff="0" xSize="2176" ySize="2688" />
+      <DstRect xOff="279722" yOff="152712" xSize="2176" ySize="2688" />
+      <NODATA>nan</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="1">population_usa18_-160_2019-07-01.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="17920" RasterYSize="11968" DataType="Float64" BlockXSize="256" BlockYSize="256" />
+      <SrcRect xOff="0" yOff="0" xSize="17920" ySize="11968" />
+      <DstRect xOff="66656" yOff="176746" xSize="17920" ySize="11968" />
+      <NODATA>nan</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="1">population_usa18_-170_2019-07-01.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="576" RasterYSize="704" DataType="Float64" BlockXSize="256" BlockYSize="256" />
+      <SrcRect xOff="0" yOff="0" xSize="576" ySize="704" />
+      <DstRect xOff="65026" yOff="177710" xSize="576" ySize="704" />
+      <NODATA>nan</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="1">population_usa18_-180_2019-07-01.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="64" RasterYSize="64" DataType="Float64" BlockXSize="256" BlockYSize="256" />
+      <SrcRect xOff="0" yOff="0" xSize="64" ySize="64" />
+      <DstRect xOff="0" yOff="154541" xSize="64" ySize="64" />
+      <NODATA>nan</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="1">population_usa18_-90_2019-07-01.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="10432" RasterYSize="15808" DataType="Float64" BlockXSize="256" BlockYSize="256" />
+      <SrcRect xOff="0" yOff="0" xSize="10432" ySize="15808" />
+      <DstRect xOff="343358" yOff="152709" xSize="10432" ySize="15808" />
+      <NODATA>nan</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="1">population_usa28_-100_2019-07-01.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="36032" RasterYSize="36032" DataType="Float64" BlockXSize="256" BlockYSize="256" />
+      <SrcRect xOff="0" yOff="0" xSize="36032" ySize="36032" />
+      <DstRect xOff="281874" yOff="116697" xSize="36032" ySize="36032" />
+      <NODATA>nan</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="1">population_usa28_-110_2019-07-01.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="36032" RasterYSize="36032" DataType="Float64" BlockXSize="256" BlockYSize="256" />
+      <SrcRect xOff="0" yOff="0" xSize="36032" ySize="36032" />
+      <DstRect xOff="245874" yOff="116697" xSize="36032" ySize="36032" />
+      <NODATA>nan</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="1">population_usa28_-120_2019-07-01.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="36032" RasterYSize="27328" DataType="Float64" BlockXSize="256" BlockYSize="256" />
+      <SrcRect xOff="0" yOff="0" xSize="36032" ySize="27328" />
+      <DstRect xOff="209874" yOff="116689" xSize="36032" ySize="27328" />
+      <NODATA>nan</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="1">population_usa28_-130_2019-07-01.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="13376" RasterYSize="18048" DataType="Float64" BlockXSize="256" BlockYSize="256" />
+      <SrcRect xOff="0" yOff="0" xSize="13376" ySize="18048" />
+      <DstRect xOff="196534" yOff="116697" xSize="13376" ySize="18048" />
+      <NODATA>nan</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="1">population_usa28_-80_2019-07-01.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="17856" RasterYSize="22592" DataType="Float64" BlockXSize="256" BlockYSize="256" />
+      <SrcRect xOff="0" yOff="0" xSize="17856" ySize="22592" />
+      <DstRect xOff="353873" yOff="116696" xSize="17856" ySize="22592" />
+      <NODATA>nan</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="1">population_usa28_-90_2019-07-01.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="36032" RasterYSize="36032" DataType="Float64" BlockXSize="256" BlockYSize="256" />
+      <SrcRect xOff="0" yOff="0" xSize="36032" ySize="36032" />
+      <DstRect xOff="317874" yOff="116697" xSize="36032" ySize="36032" />
+      <NODATA>nan</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="1">population_usa38_-100_2019-07-01.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="36032" RasterYSize="36032" DataType="Float64" BlockXSize="256" BlockYSize="256" />
+      <SrcRect xOff="0" yOff="0" xSize="36032" ySize="36032" />
+      <DstRect xOff="281874" yOff="80697" xSize="36032" ySize="36032" />
+      <NODATA>nan</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="1">population_usa38_-110_2019-07-01.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="36032" RasterYSize="36032" DataType="Float64" BlockXSize="256" BlockYSize="256" />
+      <SrcRect xOff="0" yOff="0" xSize="36032" ySize="36032" />
+      <DstRect xOff="245874" yOff="80697" xSize="36032" ySize="36032" />
+      <NODATA>nan</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="1">population_usa38_-120_2019-07-01.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="36032" RasterYSize="36032" DataType="Float64" BlockXSize="256" BlockYSize="256" />
+      <SrcRect xOff="0" yOff="0" xSize="36032" ySize="36032" />
+      <DstRect xOff="209874" yOff="80697" xSize="36032" ySize="36032" />
+      <NODATA>nan</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="1">population_usa38_-130_2019-07-01.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="17088" RasterYSize="36032" DataType="Float64" BlockXSize="256" BlockYSize="256" />
+      <SrcRect xOff="0" yOff="0" xSize="17088" ySize="36032" />
+      <DstRect xOff="192820" yOff="80697" xSize="17088" ySize="36032" />
+      <NODATA>nan</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="1">population_usa38_-70_2019-07-01.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="11008" RasterYSize="22400" DataType="Float64" BlockXSize="256" BlockYSize="256" />
+      <SrcRect xOff="0" yOff="0" xSize="11008" ySize="22400" />
+      <DstRect xOff="389876" yOff="85926" xSize="11008" ySize="22400" />
+      <NODATA>nan</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="1">population_usa38_-80_2019-07-01.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="36032" RasterYSize="27968" DataType="Float64" BlockXSize="256" BlockYSize="256" />
+      <SrcRect xOff="0" yOff="0" xSize="36032" ySize="27968" />
+      <DstRect xOff="353875" yOff="88770" xSize="36032" ySize="27968" />
+      <NODATA>nan</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="1">population_usa38_-90_2019-07-01.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="36032" RasterYSize="33728" DataType="Float64" BlockXSize="256" BlockYSize="256" />
+      <SrcRect xOff="0" yOff="0" xSize="36032" ySize="33728" />
+      <DstRect xOff="317874" yOff="83015" xSize="36032" ySize="33728" />
+      <NODATA>nan</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="1">population_usa48_-100_2019-07-01.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="18944" RasterYSize="1728" DataType="Float64" BlockXSize="256" BlockYSize="256" />
+      <SrcRect xOff="0" yOff="0" xSize="18944" ySize="1728" />
+      <DstRect xOff="281867" yOff="79011" xSize="18944" ySize="1728" />
+      <NODATA>nan</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="1">population_usa48_-110_2019-07-01.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="36032" RasterYSize="384" DataType="Float64" BlockXSize="256" BlockYSize="256" />
+      <SrcRect xOff="0" yOff="0" xSize="36032" ySize="384" />
+      <DstRect xOff="245882" yOff="80359" xSize="36032" ySize="384" />
+      <NODATA>nan</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="1">population_usa48_-120_2019-07-01.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="35840" RasterYSize="384" DataType="Float64" BlockXSize="256" BlockYSize="256" />
+      <SrcRect xOff="0" yOff="0" xSize="35840" ySize="384" />
+      <DstRect xOff="209901" yOff="80358" xSize="35840" ySize="384" />
+      <NODATA>nan</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="1">population_usa48_-130_2019-07-01.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="11008" RasterYSize="384" DataType="Float64" BlockXSize="256" BlockYSize="256" />
+      <SrcRect xOff="0" yOff="0" xSize="11008" ySize="384" />
+      <DstRect xOff="198746" yOff="80355" xSize="11008" ySize="384" />
+      <NODATA>nan</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="1">population_usa48_-140_2019-07-01.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="28288" RasterYSize="15296" DataType="Float64" BlockXSize="256" BlockYSize="256" />
+      <SrcRect xOff="0" yOff="0" xSize="28288" ySize="15296" />
+      <DstRect xOff="145567" yOff="44694" xSize="28288" ySize="15296" />
+      <NODATA>nan</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="1">population_usa48_177_2019-07-01.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="7680" RasterYSize="512" DataType="Float64" BlockXSize="256" BlockYSize="256" />
+      <SrcRect xOff="0" yOff="0" xSize="7680" ySize="512" />
+      <DstRect xOff="1281019" yOff="69347" xSize="7680" ySize="512" />
+      <NODATA>nan</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="1">population_usa58_-140_2019-07-01.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="19648" RasterYSize="5120" DataType="Float64" BlockXSize="256" BlockYSize="256" />
+      <SrcRect xOff="0" yOff="0" xSize="19648" ySize="5120" />
+      <DstRect xOff="137886" yOff="39602" xSize="19648" ySize="5120" />
+      <NODATA>nan</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="1">population_usa58_-150_2019-07-01.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="36032" RasterYSize="34176" DataType="Float64" BlockXSize="256" BlockYSize="256" />
+      <SrcRect xOff="0" yOff="0" xSize="36032" ySize="34176" />
+      <DstRect xOff="101862" yOff="8690" xSize="36032" ySize="34176" />
+      <NODATA>nan</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="1">population_usa58_-160_2019-07-01.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="33216" RasterYSize="34176" DataType="Float64" BlockXSize="256" BlockYSize="256" />
+      <SrcRect xOff="0" yOff="0" xSize="33216" ySize="34176" />
+      <DstRect xOff="68683" yOff="9470" xSize="33216" ySize="34176" />
+      <NODATA>nan</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="1">population_usa58_-170_2019-07-01.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="21760" RasterYSize="9984" DataType="Float64" BlockXSize="256" BlockYSize="256" />
+      <SrcRect xOff="0" yOff="0" xSize="21760" ySize="9984" />
+      <DstRect xOff="44046" yOff="8946" xSize="21760" ySize="9984" />
+      <NODATA>nan</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="1">population_usa68_-150_2019-07-01.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="31296" RasterYSize="4928" DataType="Float64" BlockXSize="256" BlockYSize="256" />
+      <SrcRect xOff="0" yOff="0" xSize="31296" ySize="4928" />
+      <DstRect xOff="103014" yOff="3787" xSize="31296" ySize="4928" />
+      <NODATA>nan</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="1">population_usa68_-160_2019-07-01.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="26816" RasterYSize="6528" DataType="Float64" BlockXSize="256" BlockYSize="256" />
+      <SrcRect xOff="0" yOff="0" xSize="26816" ySize="6528" />
+      <DstRect xOff="73172" yOff="0" xSize="26816" ySize="6528" />
+      <NODATA>nan</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="1">population_usa68_-170_2019-07-01.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="10752" RasterYSize="3264" DataType="Float64" BlockXSize="256" BlockYSize="256" />
+      <SrcRect xOff="0" yOff="0" xSize="10752" ySize="3264" />
+      <DstRect xOff="55059" yOff="2472" xSize="10752" ySize="3264" />
+      <NODATA>nan</NODATA>
+    </ComplexSource>
+  </VRTRasterBand>
+</VRTDataset>
