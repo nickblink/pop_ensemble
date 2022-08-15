@@ -57,3 +57,35 @@ for(i in 1:12){
 res
 
 # ok so it's almost certainly based on the census
+
+##### Trying the PEP API #####
+library(httr)
+library(jsonlite)
+library(censusapi)
+
+
+url <- 'https://api.census.gov/data/2000/pep/int_population'
+
+api_call <- httr::GET(url)
+
+api_char <- rawToChar(api_call$content)
+
+api_JSON <- jsonlite::fromJSON(api_char, flatten = T)
+
+# hmm not sure this gives me anything though. I tried all the links and nothing is showing up
+
+df <- listCensusApis()
+
+
+grep('population_estimat', df$title, value = T, ignore.case = T)
+
+df %>% 
+  filter(title == '2000 Population Estimates - 2000-2010 Intercensal Estimates: Population')
+
+tt <- getCensus(name = 'pep/int_population', key = api_census_key, vars = 'test')
+
+makeVarlist(name = 'pep/int_population')
+# oh boy
+
+listCensusMetadata(name = 'pep/int_population')
+# not available
