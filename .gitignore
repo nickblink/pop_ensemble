@@ -6,6 +6,9 @@
 .Renviron
 .DS_Store
 
+# Apple icloud files
+.icloud
+
 # large data files
 usa_ppp_2010.tif
 usa_ppp_2010_1km_Aggregated.tif

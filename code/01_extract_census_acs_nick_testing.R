@@ -175,22 +175,49 @@ adat[apply(adat, 1, function(xx) any(is.na(xx))), ]
 # 
 # save(adat,file='merged_denom_cov_data2206.RData')
 
+##################################
+## 5. merge in county centroids ##
+##################################
+load('merged_denom_cov_data2206.RData')
 
+centroids <- housingData::geoCounty 
+centroids$fips <- as.character(centroids$fips)
+# will need to fix shannon county in centroids
 
-# ## merge in the ice for race from the census (P003002-P003003)/P001001 ##
-# ice<-get_decennial(geography = "tract",
-#                    variables=c('P001001','P003002','P003003'),
-#                    state = "MA",year=2010,sumfile='sf1',output = 'wide')
-# ice<-as.data.frame(ice)
-# ice<-data.frame('GEOID'=ice$GEOID,'ce_ice_racewb'=(ice$P003002-ice$P003003)/ice$P001001)
-# 
-# ma_ce<-merge(ma_ce,ice,by='GEOID')
-# 
-# ma_ce<-ma_ce[order(ma_ce$GEOID),]
-# 
-# save(ma_ce,file='ce_data2206.RData')
-# 
-# rm(list=ls())
+centroids$fips[centroids$fips == '46113'] <- '46102'
 
+# test <- adat %>% filter(!(GEOID %in% centroids$fips))
+##  Alaska, Hawaii, South Dakota, and Virginia
 
+adat <- merge(adat, 
+              centroids %>% select(fips, lon, lat),
+              by.x = 'GEOID', by.y = 'fips', 
+              all = T)
 
+##################################
+## 6. Filter to be mainland US ##
+##################################
+
+# get fips codes data
+tg <- tigris::fips_codes
+tg$fips <- paste0(tg$state_code, tg$county_code)
+
+# look at unique state codes
+unique(tg[,c('state','state_code')])
+
+# remove non-mainland states
+tg <- tg %>% 
+  filter(!(state_code %in% c('02','15', '60','66','69','72','74','78')))
+
+# diff <- adat[!(adat$GEOID %in% tg$fips),]
+
+# filter adat to only be mainland states
+adat <- adat %>%
+  filter(GEOID %in% tg$fips)
+
+# looking at where there is still missing data
+na.rows <- apply(adat, 1, function(xx) any(is.na(xx)))
+View(adat[na.rows,])
+# so Virgina is still an issue. I'm not sure what's going on here. 
+
+save(adat, file = 'merged_denom_cov_data220822.RData')

@@ -105,4 +105,49 @@ adat<-merge(ma_acs, ma_ce, by=c('GEOID','NAME'), all = TRUE) %>%
 # save(adat,file='../data/merged_denom_cov_data2206.RData')
 
 
+##################################
+## 5. merge in county centroids ##
+##################################
+load('../data/merged_denom_cov_data2206.RData')
 
+centroids <- housingData::geoCounty 
+centroids$fips <- as.character(centroids$fips)
+# will need to fix shannon county in centroids
+
+centroids$fips[centroids$fips == '46113'] <- '46102'
+
+# test <- adat %>% filter(!(GEOID %in% centroids$fips))
+##  Alaska, Hawaii, South Dakota, and Virginia
+
+adat <- merge(adat, 
+              centroids %>% select(fips, lon, lat),
+              by.x = 'GEOID', by.y = 'fips', 
+              all = T)
+
+##################################
+## 6. Filter to be mainland US ##
+##################################
+
+# get fips codes data
+tg <- tigris::fips_codes
+tg$fips <- paste0(tg$state_code, tg$county_code)
+
+# look at unique state codes
+unique(tg[,c('state','state_code')])
+
+# remove non-mainland states
+tg <- tg %>% 
+  filter(!(state_code %in% c('02','15', '60','66','69','72','74','78')))
+
+# diff <- adat[!(adat$GEOID %in% tg$fips),]
+
+# filter adat to only be mainland states
+adat <- adat %>%
+  filter(GEOID %in% tg$fips)
+
+# looking at where there is still missing data
+na.rows <- apply(adat, 1, function(xx) any(is.na(xx)))
+View(adat[na.rows,])
+# so Virgina is still an issue. I'm not sure what's going on here. 
+
+# save(adat, file = '../data/merged_denom_cov_data220822.RData')
