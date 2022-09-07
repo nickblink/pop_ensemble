@@ -124,6 +124,8 @@ adat <- merge(adat,
               by.x = 'GEOID', by.y = 'fips', 
               all = T)
 
+View(adat[ind <- apply(adat, 1, function(xx) any(is.na(xx))),])
+
 ##################################
 ## 6. Filter to be mainland US ##
 ##################################

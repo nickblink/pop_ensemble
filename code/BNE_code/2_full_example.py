@@ -3,6 +3,21 @@
 
 # # Default Configs
 
+# In[1]
+
+import pdb
+import os
+# os.getcwd()
+# set cwd to the pop_ensemble directory
+os.chdir('C:/Users/nickl/Documents/pop_ensemble')
+
+exec(open("code/BNE_code/bne_0_a_load_modules.py").read())
+exec(open("code/BNE_code/bne_0_b_wrapper_functions.py").read())
+exec(open("code/BNE_code/bne_0_c_core_model_functions.py").read())
+exec(open("code/BNE_code/bne_0_d_utility_functions.py").read())
+exec(open("code/BNE_code/bne_0_e_simulation_functions.py").read())
+
+
 # In[46]:
 
 
@@ -116,7 +131,6 @@ kernel_names = [kernel.name for kernel in kernels]
 
 # In[70]:
 
-
 models = [
   get_base_prediction(X_base, Y_base, X_train, kernel=k) for k in kernels]
 
@@ -224,13 +238,14 @@ bma_model_config.update(bma_gp_config)
 
 # Check if the model graph is specified correctly.
 bma_prior.resolve_graph()
-
+# what is this supposed to look like?
 
 # ### Run MCMC
 
 # In[109]:
 
-
+# list of dim [1][128]. The second number has something to do with hidden
+# GP layers, which I don't really get here, but it's some approximation of the GP.
 bma_gp_w_samples = run_posterior_inference(model_dist=bma_prior, 
                                            model_config=bma_model_config,
                                            Y=Y_train, 
@@ -264,8 +279,11 @@ plt.figure(figsize=(12, 6))
 plot_base_models(base_preds_test, kernel_names,
                  X_test, Y_test, X_train, Y_train, X_base, Y_base)
 
-for sample in bma_y_samples:
-  plt.plot(X_test, sample, alpha=0.01, c='k')
+#for sample in bma_y_samples:
+for i in range(100):
+    sample = bma_y_samples[i]
+    #pdb.set_trace()
+    plt.plot(X_test, sample, alpha=0.01, c='k')
 
 plt.ylim([-1, 15])
 plt.title('Posterior Predictive, Bayesian Model Averaging')
@@ -286,7 +304,8 @@ for model_id, model_name in enumerate(kernel_names):
                    X_test, Y_test, X_train, Y_train, X_base, Y_base,
                    ax=ax)
 
-  samples = bma_ensemble_weights[:, :, model_id]
+  #samples = bma_ensemble_weights[:, :, model_id]
+  samples = bma_ensemble_weights[:100, :, model_id]
   sample_mean = tf.reduce_mean(samples, axis=0)
 
   # Plot posterior predictive samples of ensemble weights.
@@ -303,6 +322,9 @@ for model_id, model_name in enumerate(kernel_names):
 
 plt.show()
 
+
+# which is doing the best? I can't tell what the results are supposed to look
+# like anyway
 
 # ### Prepare Data for BAE/BNE
 

@@ -1,11 +1,20 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+import pdb
+import os
+# os.getcwd()
+# set cwd to the pop_ensemble directory
+os.chdir('C:/Users/nickl/Documents/pop_ensemble')
+
+exec(open("code/BNE_code/bne_0_a_load_modules.py").read())
+exec(open("code/BNE_code/bne_0_b_wrapper_functions.py").read())
+exec(open("code/BNE_code/bne_0_c_core_model_functions.py").read())
+exec(open("code/BNE_code/bne_0_d_utility_functions.py").read())
+exec(open("code/BNE_code/bne_0_e_simulation_functions.py").read())
+
 # In[22]:
 
-
-import os
-os.getcwd()
 
 
 # # Default Configs
@@ -123,6 +132,9 @@ plt.ylim([-5., 5.])
 
 # In[18]:
 
+# rfgp in bne_0_2_core_model_functions.
+# creates and RBF Gaussian Process
+
 
 gp_prior, gp_config = rfgp_dist(
     X, lengthscale=1.0, y_noise_std=0.1, l2_regularizer=0.1)
@@ -179,3 +191,8 @@ plt.scatter(X, Y, c='r')
 plt.ylim([-5., 5.])
 plt.show()
 
+# So this shows how outside of the training window, the predictions go crazy. 
+# I still don't get what sort of model fitting is really done here.
+# We have a prior on the spread of Y from a GP, but that's not gonna do well
+# for points far from the observed ones anyway. And then do we run some kind
+# of feature regression or is it just a GP? Not sure this is super important to understand.
