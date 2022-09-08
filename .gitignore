@@ -1,10 +1,10 @@
 # History files
-.Rhistory
-.Rapp.history
+*.Rhistory
+*.Rapp.history
 
 # R Environment Variables
-.Renviron
-.DS_Store
+*.Renviron
+*.DS_Store
 
 # Apple icloud files
 *.icloud
