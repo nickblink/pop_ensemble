@@ -93,4 +93,4 @@ sum_overct <- sp::over(counties, wp_pts, fn=sum)
 
 counties$WP_1km_estimate <- sum_overct[,1]
 
-save(wp_pts, sum_overct, counties, file = 'data/wp_1km_county_aggregate_2010.RData')
+# save(wp_pts, sum_overct, counties, file = 'data/wp_1km_county_aggregate_2010.RData')

@@ -102,7 +102,7 @@ adat<-merge(ma_acs, ma_ce, by=c('GEOID','NAME'), all = TRUE) %>%
 
 
 # 
-# save(adat,file='../data/merged_denom_cov_data2206.RData')
+# save(adat,file='../data/census_products_data2206.RData')
 
 
 ##################################
@@ -152,4 +152,4 @@ na.rows <- apply(adat, 1, function(xx) any(is.na(xx)))
 View(adat[na.rows,])
 # so Virgina is still an issue. I'm not sure what's going on here. 
 
-# save(adat, file = '../data/merged_denom_cov_data220822.RData')
+# save(adat, file = '../data/census_products_data220822.RData')
