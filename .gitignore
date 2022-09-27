@@ -1,13 +1,13 @@
 # History files
-.Rhistory
-.Rapp.history
+*.Rhistory
+*.Rapp.history
 
 # R Environment Variables
-.Renviron
-.DS_Store
+*.Renviron
+*.DS_Store
 
 # Apple icloud files
-.icloud
+*.icloud
 
 # large data files
 usa_ppp_2010.tif
