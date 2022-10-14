@@ -51,6 +51,8 @@ us_acs<-ggplot(us_shp, aes(fill = exp_acs)) +
         panel.grid.major = element_line(colour = 'transparent'),
         panel.grid.minor = element_line(colour = 'transparent'),
         legend.title=element_blank(),text=element_text(size=18))
+us_acs
+pdf('../pic/us_acs.pdf',width=7,height=6)
 
 
 ## race-stratified expected counts, MA ##
@@ -66,7 +68,8 @@ us_pep<-ggplot(us_shp, aes(fill = exp_pep)) +
         panel.grid.major = element_line(colour = 'transparent'),
         panel.grid.minor = element_line(colour = 'transparent'),
         legend.title=element_blank(),text=element_text(size=18))
-
+us_pep
+pdf('../pic/us_pep.pdf',width=7,height=6)
 
 ## race-stratified expected counts, MA ##
 us_worldpop<-ggplot(us_shp, aes(fill = exp_worldpop)) +
@@ -81,6 +84,8 @@ us_worldpop<-ggplot(us_shp, aes(fill = exp_worldpop)) +
         panel.grid.major = element_line(colour = 'transparent'),
         panel.grid.minor = element_line(colour = 'transparent'),
         legend.title=element_blank(),text=element_text(size=18))
+us_worldpop
+pdf('../pic/us_worldpop.pdf',width=7,height=6)
 
 ## race-stratified expected counts, MA ##
 us_fb<-ggplot(us_shp, aes(fill = exp_fb)) +
@@ -95,9 +100,8 @@ us_fb<-ggplot(us_shp, aes(fill = exp_fb)) +
         panel.grid.major = element_line(colour = 'transparent'),
         panel.grid.minor = element_line(colour = 'transparent'),
         legend.title=element_blank(),text=element_text(size=18))
-
-
-#pdf('us_fb.pdf',width=7,height=6)
+us_fb
+pdf('../pic/us_fb.pdf',width=7,height=6)
 
 
 
