@@ -37,6 +37,56 @@ tf.test.gpu_device_name()
 
 os.getcwd()
 
+## Default Configs
+# GP configs.
+y_noise_std = 0.1  # @param
+hidden_units = 128  # @param
+lengthscale=1.  # @param
+l2_regularizer=0.1  # @param
+
+DEFAULT_GP_CONFIG = dict(lengthscale=lengthscale,
+                         l2_regularizer=l2_regularizer, 
+                         hidden_units=hidden_units, 
+                         y_noise_std=y_noise_std)
+
+
+# BNE model configs.
+estimate_mean = "True" # @param ["True", "False"]
+estimate_variance = "False" # @param ["True", "False"]
+estimate_skewness = "False" # @param ["True", "False"]
+variance_prior_mean=0. # @param
+skewness_prior_mean=0. # @param
+
+estimate_mean = eval(estimate_mean)
+estimate_variance = eval(estimate_variance)
+estimate_skewness = eval(estimate_skewness)
+
+DEFAULT_BNE_CONFIG = dict(estimate_mean=estimate_mean,
+                          estimate_variance=estimate_variance,
+                          estimate_skewness=estimate_skewness,
+                          variance_prior_mean=variance_prior_mean,
+                          skewness_prior_mean=skewness_prior_mean)
+
+# MAP configs.
+map_step_size=0.1 # @param
+map_num_steps=10_000 # @param
+
+DEFAULT_MAP_CONFIG = dict(learning_rate=map_step_size,
+                          num_steps=map_num_steps)
+
+# MCMC configs.
+mcmc_step_size=0.1 # @param
+mcmc_sample_size=500 # @param
+mcmc_num_steps=10_000 # @param
+mcmc_burnin=2_500 # @param
+mcmc_nchain=10 # @param
+mcmc_seed=0 # @param
+
+DEFAULT_MCMC_CONFIG = dict(step_size=mcmc_step_size, 
+                           num_steps=mcmc_sample_size, 
+                           burnin=mcmc_burnin, 
+                           nchain=mcmc_nchain, 
+                           seed=mcmc_seed)
 
 
 ## High-level Wrapper Functions
