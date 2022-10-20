@@ -5,6 +5,8 @@
 # R Environment Variables
 *.Renviron
 *.DS_Store
+*DS_Store
+.DS_Store
 
 # Apple icloud files
 *.icloud

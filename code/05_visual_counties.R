@@ -15,7 +15,9 @@ current_path <- rstudioapi::getActiveDocumentContext()$path
 setwd(dirname(current_path))
 load("../data/merged_fb_census_data_280922.RData")
 
-write.csv(df,"../data/merged_fb_census_data_280922.csv", row.names = FALSE)
+# df$GEOID = as.character(df$GEOID)
+# 
+# write.csv(df,"../data/merged_fb_census_data_280922.csv", row.names = FALSE)
 
 
 ## extract CT shapefile ##
