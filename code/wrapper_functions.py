@@ -6,6 +6,7 @@ import gc
 import time
 import pickle
 import functools
+import scipy
 #import pyreadr
 
 import multiprocessing as mp
