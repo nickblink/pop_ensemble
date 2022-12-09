@@ -19,6 +19,8 @@ import tensorflow as tf
 
 import pandas as pd
 
+import plotly.express as px
+
 import matplotlib.pyplot as plt
 import seaborn as sns
 import edward2 as ed
@@ -1219,14 +1221,14 @@ def run_chain(init_state: List[tf.Tensor],
         "('simple', 'dual_averaging').")
 
   def trace_fn(_, pkr): 
-    if kernel_type is 'hmc':
+    if kernel_type == 'hmc':
       step_size = pkr.inner_results.accepted_results.step_size
     else:
       step_size = pkr.inner_results.step_size
 
     return (step_size, pkr.inner_results.log_accept_ratio)
 
-  if kernel_type is 'hmc':
+  if kernel_type == 'hmc':
     kernel = tfp.mcmc.HamiltonianMonteCarlo(
         target_log_prob_fn=target_log_prob_fn,
         num_leapfrog_steps=5,
@@ -1242,7 +1244,7 @@ def run_chain(init_state: List[tf.Tensor],
         step_size_getter_fn=lambda pkr: pkr.step_size,
         log_accept_prob_getter_fn=lambda pkr: pkr.log_accept_ratio,)
 
-  if step_adaptor_type is 'simple':
+  if step_adaptor_type == 'simple':
     kernel = tfp.mcmc.SimpleStepSizeAdaptation(
       inner_kernel=kernel, 
       num_adaptation_steps=burnin)
