@@ -1221,14 +1221,14 @@ def run_chain(init_state: List[tf.Tensor],
         "('simple', 'dual_averaging').")
 
   def trace_fn(_, pkr): 
-    if kernel_type == 'hmc':
+    if kernel_type is 'hmc':
       step_size = pkr.inner_results.accepted_results.step_size
     else:
       step_size = pkr.inner_results.step_size
 
     return (step_size, pkr.inner_results.log_accept_ratio)
 
-  if kernel_type == 'hmc':
+  if kernel_type is 'hmc':
     kernel = tfp.mcmc.HamiltonianMonteCarlo(
         target_log_prob_fn=target_log_prob_fn,
         num_leapfrog_steps=5,
@@ -1244,7 +1244,7 @@ def run_chain(init_state: List[tf.Tensor],
         step_size_getter_fn=lambda pkr: pkr.step_size,
         log_accept_prob_getter_fn=lambda pkr: pkr.log_accept_ratio,)
 
-  if step_adaptor_type == 'simple':
+  if step_adaptor_type is 'simple':
     kernel = tfp.mcmc.SimpleStepSizeAdaptation(
       inner_kernel=kernel, 
       num_adaptation_steps=burnin)
@@ -1255,6 +1255,7 @@ def run_chain(init_state: List[tf.Tensor],
       target_accept_prob=0.75,
       **step_adaptation_kwargs)
 
+  print(num_steps)
   # Execute sampling.
   chain_state, sampler_stat = tfp.mcmc.sample_chain(
       num_results=num_steps,
@@ -1341,6 +1342,8 @@ def run_mcmc(init_state: Optional[List[tf.Tensor]] = None,
     # By default, sample first parameter of a two-parameter model (W, y).
     init_state, target_log_prob_fn = prepare_mcmc(
         model_dist, y, nchain=nchain)
+  else:
+    nchain = init_state.shape[0]
     
   # Perform MCMC.
   chain_samples, sampler_stat = run_chain(
@@ -1353,11 +1356,14 @@ def run_mcmc(init_state: Optional[List[tf.Tensor]] = None,
       **mcmc_kwargs)
   # Clear tf.function cache.
   try:
-    run_chain._stateful_fn._function_cache.clear()
+    try:
+      run_chain._stateful_fn._function_cache.clear()
+    except:
+      run_chain._stateful_fn._function_cache.primary.clear()
   except:
-    run_chain._stateful_fn._function_cache.primary.clear()
+    print('no cache clearing')
 
-  # Thining.
+  # Thinning.
   sample_size_per_chain = int(sample_size / nchain)
   sample_ids = np.linspace(
       0, num_steps-1, sample_size_per_chain).astype(int)
@@ -1375,7 +1381,7 @@ def run_mcmc(init_state: Optional[List[tf.Tensor]] = None,
   if debug_mode:
     return mixed_samples, chain_samples, sampler_stat
   return mixed_samples, sampler_stat
-
+  
 # @title MAP: Main API.
 def run_map(target_log_prob_fn, gp_config,
             learning_rate=0.1, 
