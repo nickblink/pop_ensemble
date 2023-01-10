@@ -1,4 +1,5 @@
 ## libraries
+from distutils.log import debug
 from typing import Any, Callable, Dict, List, Optional, Union, Tuple
 
 import os
@@ -6,7 +7,6 @@ import gc
 import time
 import pickle
 import functools
-#import pyreadr
 
 import multiprocessing as mp
 
@@ -23,15 +23,15 @@ import seaborn as sns
 import edward2 as ed
 import tensorflow_probability as tfp
 
+from sklearn.model_selection import KFold 
+from sklearn.linear_model import LinearRegression
+
 tfd = tfp.distributions
 tfb = tfp.bijectors
 
 dtype = tf.float32
 import gpflow as gpf
 import logging
-
-from sklearn.model_selection import KFold 
-from sklearn.linear_model import LinearRegression
 
 logging.getLogger('tensorflow').setLevel(logging.ERROR)  # suppress pfor warnings
 # Verify versions.
@@ -44,7 +44,7 @@ os.getcwd()
 ## Default Configs
 # GP configs.
 y_noise_std = 0.1  # @param
-hidden_units = 128  # @param
+hidden_units = 1024  # @param
 lengthscale=1.  # @param
 l2_regularizer=0.1  # @param
 
@@ -247,27 +247,23 @@ goldstein = lambda x, y: (
     1. + (x + y + 1.)**2 * (19. - 14.*x + 3.*x**2 - 14.*y + 6*x*y + 3. * y**2)
     ) * (30. + (2.*x - 3.*y)**2 * (18. - 32.*x + 12.*x**2 + 48.*y - 36.*x*y + 27.*y**2))
 
-
-
-
-
 # @title Wrapper: run_posterior_inference
-def run_posterior_inference(model_dist: tfd.Distribution, 
-                            Y: tf.Tensor, 
-                            mcmc_config: Dict[str, Any], 
-                            map_config: Optional[Dict[str, Any]] = None, 
+def run_posterior_inference(model_dist: tfd.Distribution,
+                            Y: tf.Tensor,
+                            mcmc_config: Dict[str, Any],
+                            map_config: Optional[Dict[str, Any]] = None,
                             model_config: Optional[Dict[str, Any]] = None,
                             initialize_from_map: bool = True):
   """Wrapper function for running MCMC with MAP initialization."""
-  # Defines posterior log likelihood function, and also a 
+  # Defines posterior log likelihood function, and also a
   # randomly-sampled initial state from model prior.
   nchain = mcmc_config['nchain']
-  init_state, target_log_prob_fn = prepare_mcmc(model_dist, Y, nchain=nchain)  
-  
+  init_state, target_log_prob_fn = prepare_mcmc(model_dist, Y, nchain=nchain)
+
   if initialize_from_map:
     # Initializes at MAP, shape (num_chains, param_shape_0, param_shape_1).
     print('Running MAP:', end='\t')
-    init_state = run_map(target_log_prob_fn=target_log_prob_fn, 
+    init_state = run_map(target_log_prob_fn=target_log_prob_fn,
                          gp_config=model_config,
                          **map_config)
 
@@ -277,9 +273,47 @@ def run_posterior_inference(model_dist: tfd.Distribution,
   print('Running MCMC:', end='\t')
   gp_w_samples, _ = run_mcmc(init_state=init_state,
                              target_log_prob_fn=target_log_prob_fn,
-                             **mcmc_config)  
-  
+                             **mcmc_config)
+
   return gp_w_samples
+
+
+
+
+# # @title Wrapper: run_posterior_inference
+# def run_posterior_inference(model_dist: tfd.Distribution, 
+#                             Y: tf.Tensor, 
+#                             mcmc_config: Dict[str, Any], 
+#                             map_config: Optional[Dict[str, Any]] = None, 
+#                             model_config: Optional[Dict[str, Any]] = None,
+#                             initialize_from_map: bool = True):
+#   """Wrapper function for running MCMC with MAP initialization."""
+#   # Defines posterior log likelihood function, and also a 
+#   # randomly-sampled initial state from model prior.
+#   nchain = mcmc_config['nchain']
+#   #print(mcmc_config["debug_mode"])
+#   init_state, target_log_prob_fn = prepare_mcmc(model_dist, Y, nchain=nchain)  
+  
+#   if initialize_from_map:
+#     # Initializes at MAP, shape (num_chains, param_shape_0, param_shape_1).
+#     print('Running MAP:', end='\t')
+#     init_state = run_map(target_log_prob_fn=target_log_prob_fn, 
+#                          gp_config=model_config,
+#                          **map_config)
+
+#     init_state = tf.stack([init_state] * mcmc_nchain, axis=0)
+
+#   # Run MCMC, shape (param_shape_0, param_shape_1, num_chains).
+#   print('Running MCMC:', end='\t')
+#   # if mcmc_config["debug_mode"]:
+#   #   gp_w_samples, chain_samples, sampler_stat = run_mcmc(init_state=init_state,
+#   #                            target_log_prob_fn=target_log_prob_fn,
+#   #                            **mcmc_config)
+#   #   return gp_w_samples, chain_samples, sampler_stat
+#   gp_w_samples, _ = run_mcmc(init_state=init_state,
+#                              target_log_prob_fn=target_log_prob_fn,
+#                              **mcmc_config)  
+#   return gp_w_samples
 
 # @title Wrapper: run_base_models
 def run_base_models(X_base, X_train, X_test, 
@@ -714,6 +748,8 @@ def make_random_feature(X: tf.Tensor,
                         hidden_units: int = 512, 
                         seed: int = 0, 
                         return_Wb: bool = False, 
+                        use_orf: bool = False,
+                        activation: str = 'cosine',
                         **unused_kwargs) -> Union[tf.Tensor, Tuple[tf.Tensor]]:
   """Makes random feature for scalable RBF kernel approximation.
 
@@ -757,14 +793,21 @@ def make_random_feature(X: tf.Tensor,
 
   # Sample random features.
   tf.random.set_seed(seed)
-  W_dist = ed.initializers.OrthogonalRandomFeatures(stddev=1.)
-  b_dist = tf.initializers.RandomUniform(0, 2*np.pi)
+  W_init = (ed.initializers.OrthogonalRandomFeatures if use_orf
+            else tf.initializers.RandomNormal)
+
+  W_dist = W_init(stddev=1., seed=seed)
+  b_dist = tf.initializers.RandomUniform(0, 2*np.pi, seed=seed)
   W = W_dist(W_shape).numpy()
   b = b_dist(b_shape).numpy()
 
   multiplier = tf.sqrt(2./hidden_units)
+  # if activation == 'cosine':
+  #   random_feature = multiplier * tf.math.cos(tf.matmul(X, W) + b) # activation function (default cos can change to Relu)
+  if activation == 'relu':
+    random_feature = multiplier * tf.nn.relu(tf.matmul(X, W) + b)
   random_feature = multiplier * tf.math.cos(tf.matmul(X, W) + b)
-  
+
   if return_Wb:
     return W, b
   return random_feature
@@ -780,7 +823,8 @@ def rfgp_dist(inputs: tf.Tensor,
               posterior_mode: bool = False,
               posterior_sample: Optional[tf.Tensor] = None,
               return_joint_dist: bool = True,
-              verbose: bool = False
+              verbose: bool = False,
+              activation: str = None,
               ) -> Tuple[Union[tfd.Distribution, List[tfd.Distribution]], 
                          Dict[str, Any]]:
   """Specifies a random-feature-based Gaussian process (RFGP) distribution.
@@ -834,7 +878,8 @@ def rfgp_dist(inputs: tf.Tensor,
   # Latent random features.
   random_features = make_random_feature(inputs, 
                                         lengthscale=lengthscale, 
-                                        hidden_units=hidden_units, 
+                                        hidden_units=hidden_units,
+                                        activation=activation,  
                                         seed=seed)
     
   # Parameter Distributions.
@@ -902,6 +947,8 @@ def bma_dist(inputs: tf.Tensor,
              sample_intermediate_variables: bool = False,
              return_joint_dist: bool = True,
              debug_mode: bool = False,
+             activation: str = None,
+             activation_func: str = None,
              **gp_kwargs):
   """Specifies an adaptive Bayesian model averaging (BMA) model.
   
@@ -957,6 +1004,7 @@ def bma_dist(inputs: tf.Tensor,
       posterior_sample=posterior_sample,
       return_joint_dist=False,
       verbose=debug_mode,
+      activation=activation,
       **gp_kwargs)
 
   gp_features = gp_config.pop('random_features')
@@ -964,21 +1012,21 @@ def bma_dist(inputs: tf.Tensor,
 
   # Specifies Bayesian model averaging model.
   joint_dist = dict()
-
+  print("activation function used", activation_func)
   joint_dist["gp_weights"] = gp_weight_dist
   if posterior_mode and sample_intermediate_variables:
     # Generates posterior of all intermediate variables.
     joint_dist["gps"] = lambda gp_weights: tfd.Deterministic(
         loc=build_ensemble_weight_logits(gp_weights, gp_features))
     joint_dist["ensemble_weights"] = lambda gps: tfd.Deterministic(
-        loc=build_ensemble_weights(gps))
+        loc=build_ensemble_weights(gps, activation=activation_func))
     joint_dist["y"] = lambda ensemble_weights: tfd.Normal(
         loc=ensemble_prediction(ensemble_weights, base_model_preds), 
         scale=y_noise_std)
   else:
     # Use collapsed joint distribution for easy MCMC sampling.
     joint_dist["y"] = lambda gp_weights: tfd.Normal(
-        loc=ensemble_mean(gp_weights, base_model_preds, gp_features), 
+        loc=ensemble_mean(gp_weights, base_model_preds, gp_features, activation_func), 
         scale=y_noise_std)
   
   if return_joint_dist:
@@ -996,18 +1044,31 @@ def build_ensemble_weight_logits(gp_weights, gp_features):
   """Builds Gaussian process prediction from random-feature weights."""
   return tf.linalg.matmul(gp_features, gp_weights) 
 
-def build_ensemble_weights(logits):
-  """Builds ensemble weights from Gaussian process prediction."""
-  return tf.keras.activations.softmax(logits)
+def build_ensemble_weights(logits, activation='softmax'):
+ """Builds ensemble weights from Gaussian process prediction."""
+ if activation == 'none':
+   return logits
+ elif activation == 'swish':
+   return tf.keras.activations.swish(logits)
+ elif activation == 'relu':
+   return tf.keras.activations.relu(logits)
+ elif activation == 'exponential':
+   return tf.keras.activations.exponential(logits)
+ elif activation == 'sigmoid':
+   return tf.keras.activations.sigmoid(logits)
+ elif activation == 'softmax':
+   return tf.keras.activations.softmax(logits)
+ else:
+   raise ValueError(f'Activation function {activation} not supported.')
 
 def ensemble_prediction(weights, base_model_preds):
   """Builds final ensemble prediction from ensemble weights and base models."""
   return tf.reduce_sum(base_model_preds * weights, axis=-1, keepdims=True)
 
-def ensemble_mean(gp_weights, base_model_preds, gp_features):
+def ensemble_mean(gp_weights, base_model_preds, gp_features, activation_func):
   """Computes final ensemble prediction directly from random-feature weights"""
   logits = build_ensemble_weight_logits(gp_weights, gp_features)
-  ensemble_weights = build_ensemble_weights(logits)
+  ensemble_weights = build_ensemble_weights(logits, activation=activation_func)
   return ensemble_prediction(ensemble_weights, base_model_preds)
 
 # @title Model: Bayesian Nonparametric Ensemble
@@ -1800,8 +1861,11 @@ def get_bma_result(data_dict, bma_config):
   data_dict['means_train_mcmc'] = means_train_mcmc
   data_dict['means_test_mcmc'] = means_test_mcmc
   data_dict['bma_mean_samples'] = bma_joint_samples['y']
+  # data_dict['bma_mean_samples_original'] = bma_joint_samples['mean_original']
+  # data_dict['bma_mean_samples_resid'] = bma_joint_samples['resid']
+  # data_dict['bma_weight_samples'] = bma_joint_samples['weights']
 
-  return data_dict
+  return data_dict, bma_joint_samples
 
 # @title Simulation: get_bne_result
 def get_bne_result(data_dict, moment_mode, bne_config):
@@ -1818,8 +1882,9 @@ def get_bne_result(data_dict, moment_mode, bne_config):
                                 moment_mode=moment_mode,
                                 **bne_config)
   
-  data_dict[f'{model_name}_samples'] = joint_samples['y']
-  return data_dict
+  #data_dict[f'{model_name}_samples'] = joint_samples['y']
+  #return data_dict
+  return joint_samples
 
 
 # @title Visualization: posterior_heatmap_2d
@@ -1920,18 +1985,31 @@ def make_color_norm(color_data, method="percentile"):
 
     return BoundaryNorm(levels, 256)
 
-
-
 # Metrics
 
 def rmse(y_obs, y_pred):
     return np.sqrt(np.mean((y_obs - y_pred) ** 2))
 
+def calc_prediction_std(y_pred, y):
+  """
+  This function takes two arguments:
+  y_pred: a TensorFlow tensor containing the predicted values of the response variable
+  y: a TensorFlow tensor containing the observed values of the response variable
+  The function calculates the residuals, mean, variance, and standard deviation of the residuals using TensorFlow operations and returns the standard deviation as a TensorFlow tensor.
+  To use this function, you will need to pass in the appropriate tensors as arguments and execute the TensorFlow graph to calculate the standard deviation.
+  """
+  # Calculate the residuals
+  residuals = y - y_pred
 
+  # Calculate the mean of the residuals
+  mean = tf.reduce_mean(residuals)
+  # change tf.int32 to tf.float32
+  mean = tf.cast(mean, tf.float32)
+  df = tf.cast(tf.size(residuals) - 1, tf.float32)
+  # Calculate the variance of the residuals
+  variance = tf.reduce_sum(tf.square(residuals - mean)) / df
+  
+  # Calculate the standard deviation of the residuals
+  std = tf.sqrt(variance)
 
-
-
-
-
-
-
+  return std
