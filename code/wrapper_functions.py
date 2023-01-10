@@ -97,6 +97,32 @@ DEFAULT_MCMC_CONFIG = dict(step_size=mcmc_step_size,
 
 
 ## High-level Wrapper Functions
+
+# subset data by state
+def subset_data_by_state(data, adjacency, state, abbrev = None):
+    str_vals = data['NAME'].str.find(state)
+    indices = [i for i in range(len(data)) if str_vals[i] > -1]
+    
+    str_vals2 = adjacency.index.str.find(state)
+    indices2 = [i for i in range(len(adjacency)) if str_vals2[i] > -1]
+    
+    if not indices == indices2:
+        raise Exception('indices of the data names and adjacency names do not match')
+        
+    if abbrev != None:
+        str_vals3 = adjacency.columns.str.find(abbrev)
+        indices3 = [i for i in range(len(adjacency)) if str_vals3[i] > -1]
+        if not indices == indices3:
+            missing = [i for i in range(len(indices)) if indices[i] != indices3[i]]
+            #print(missing)
+            #print(indices[29:31])
+            #print(indices3[29:31])
+            raise Exception('indices of the data names and adjacency column names do not match')
+
+    data2 = data.iloc[indices, :]
+    adjacency2 = adjacency.iloc[indices, indices]
+    return data2, adjacency2
+    
 # @title Wrapper: generate_data_1d
 OutcomeDistribution = Callable[[np.ndarray, np.ndarray], Any]
 
@@ -1937,24 +1963,83 @@ def rmse(y_obs, y_pred):
     return np.sqrt(np.mean((y_obs - y_pred) ** 2))
 
 
-
-
 ##### CAR functions
 
+# This function was taken from online
+# Generate samples from a multi-variate normal distribution with provided precision matrix WITHOUT inverting
+def mv_normal_sample(mu=0, precision_matrix=None, num_models=1):
+
+    # Precision matrix must be a square matrix
+    assert precision_matrix.shape[0] == precision_matrix.shape[1], 'Precision matrix must be a square matrix'
+
+    dim = precision_matrix.shape[0]
+
+    chol_U = scipy.linalg.cholesky(precision_matrix, lower=False)
+
+    # Create num_models iid standard normal vectors
+    z_vector_matrix = np.random.normal(loc=0, scale=1, size=[num_models, dim])
+
+    # Sample from the MV normal with precision matrix by solving the Cholesky decomp for each normal vector
+    samples = np.squeeze(np.array(
+        [scipy.linalg.solve_triangular(a=chol_U, b=z_vector_matrix[i, :], unit_diagonal=False) + mu for i in
+         range(num_models)]))
+
+    return (np.transpose(samples))
+    
 #### Makes the MCMC sampler (with the log probability function!)
-def prepare_mcmc_CAR():
+def prepare_mcmc_CAR(data, adjacency, nchain, models = ['acs', 'pep', 'worldpop']):
   """prepares the initial state and log prob function"""
-  Q = (1/tau2)*(np.diag(county_adj.sum(axis=1)) - rho*county_adj)
+  tau2 = 100
+  rho = 0.3
+  print('fixing tau2 and rho')
+
+  Q = (1/tau2)*(np.diag(adjacency.sum(axis=1)) - rho*adjacency)
   Q = tf.constant(Q, dtype = tf.float32)
   init_state = tf.constant(np.array([mv_normal_sample(precision_matrix = Q, num_models = 3) for i in range(nchain)]),
                            dtype = tf.float32)
+
+  # define log likelihood function
+  def target_log_prob_fn_CAR(phi):
+    Q = (1/tau2)*(np.diag(adjacency.sum(axis=1)) - rho*adjacency)
+    Q = tf.constant(Q, dtype = tf.float32)
+        
+    ll = tf.Variable(0.)
+    for chain in range(phi.shape[0]):
+        # (1) Prob of the CAR random effect values
+        ll_chain = -0.5*tf.reduce_mean(tf.linalg.diag_part(
+            tf.linalg.matmul(phi[chain,:,:],tf.linalg.matmul(Q, phi[chain,:,:]), transpose_a = True))) 
+        ll = ll + ll_chain
+    
+    # add in determinant values
+    log_det = tf.constant(np.linalg.slogdet(Q)[1], dtype = tf.float32)
+    #log_det = tf.linalg.logdet(Q)[1], dtype = tf.float32
+    ll = ll + 0.5*phi.shape[0]*len(models)*log_det
+    
+    # get exponentiated values and sum across models
+    exp_phi = tf.math.exp(phi)
+    exp_phi_rows = tf.reduce_sum(exp_phi, 2)
+    
+    # get model weights and calculate mean estimate
+    u = exp_phi/exp_phi_rows[...,None]
+      
+    tmp = data[models].values*u
+    n = tf.reduce_sum(tmp, axis = 2)
+    
+    # update the log likelihood 
+    ll = ll + tf.reduce_sum([np.sum(data['census']*np.log(n[chain,:]) - n[chain,:]) for chain in range(phi.shape[0])])
+    
+    return(ll)                         
 
   return init_state, target_log_prob_fn_CAR
 
 def run_mcmc_CAR(init_state: Optional[List[tf.Tensor]] = None,
              target_log_prob_fn: Optional[Callable[..., tf.Tensor]] = None, 
-             model_dist: Optional[List[tfd.Distribution]] = None,      
-             y: Optional[tf.Tensor] = None,
+             data: Optional[pd.DataFrame] = None,      
+             adjacency: Optional[pd.DataFrame] = None,
+             #models: Optional[List] = None,
+             #data: Optional = None,
+             #adjacency: Optional = None,
+             models: Optional = None,
              sample_size: int = 500, 
              nchain: int = 10,             
              num_steps: int = 500, 
@@ -1997,8 +2082,7 @@ def run_mcmc_CAR(init_state: Optional[List[tf.Tensor]] = None,
   # Prepares initial states and model log likelihoods for MCMC.
   if init_state is None or target_log_prob_fn is None:
     # By default, sample first parameter of a two-parameter model (W, y).
-    init_state, target_log_prob_fn = prepare_mcmc_CAR(
-        model_dist, y, nchain=nchain)
+    init_state, target_log_prob_fn = prepare_mcmc_CAR(data, adjacency, nchain, models)
   else:
     nchain = init_state.shape[0]
     
@@ -2065,6 +2149,8 @@ def run_chain_CAR(init_state: List[tf.Tensor],
     chain_state: Posterior sample from all MCMC chains.
     sampler stat: Sampling statistics, currently (step_size, acceptance ratio).
   """
+  print('kernel type is ' + kernel_type)
+  
   if kernel_type not in ('hmc', 'nuts'):
     raise ValueError(
         f"kernel_type {kernel_type} must be one of ('hmc', 'nuts').")
@@ -2075,14 +2161,14 @@ def run_chain_CAR(init_state: List[tf.Tensor],
         "('simple', 'dual_averaging').")
 
   def trace_fn(_, pkr): 
-    if kernel_type is 'hmc':
+    if kernel_type == 'hmc':
       step_size = pkr.inner_results.accepted_results.step_size
     else:
       step_size = pkr.inner_results.step_size
 
     return (step_size, pkr.inner_results.log_accept_ratio)
 
-  if kernel_type is 'hmc':
+  if kernel_type == 'hmc':
     kernel = tfp.mcmc.HamiltonianMonteCarlo(
         target_log_prob_fn=target_log_prob_fn,
         num_leapfrog_steps=5,
@@ -2098,7 +2184,7 @@ def run_chain_CAR(init_state: List[tf.Tensor],
         step_size_getter_fn=lambda pkr: pkr.step_size,
         log_accept_prob_getter_fn=lambda pkr: pkr.log_accept_ratio,)
 
-  if step_adaptor_type is 'simple':
+  if step_adaptor_type == 'simple':
     kernel = tfp.mcmc.SimpleStepSizeAdaptation(
       inner_kernel=kernel, 
       num_adaptation_steps=burnin)
