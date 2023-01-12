@@ -2196,6 +2196,7 @@ def run_chain_CAR(init_state: List[tf.Tensor],
       **step_adaptation_kwargs)
 
   print(num_steps)
+  print(trace_fn)
   # Execute sampling.
   chain_state, sampler_stat = tfp.mcmc.sample_chain(
       num_results=num_steps,
