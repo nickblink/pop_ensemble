@@ -2155,13 +2155,15 @@ def run_chain_CAR(init_state: List[tf.Tensor],
     raise ValueError(
         f"kernel_type {kernel_type} must be one of ('hmc', 'nuts').")
 
-  if step_adaptor_type not in ('simple', 'dual_averaging'):
+  if step_adaptor_type not in ('simple', 'dual_averaging', 'none'):
     raise ValueError(
         f"step_adaptor_type {step_adaptor_type} must be one of "
-        "('simple', 'dual_averaging').")
+        "('simple', 'dual_averaging', 'none').")
 
   def trace_fn(_, pkr): 
-    if kernel_type == 'hmc':
+    if step_adaptor_type == 'none':
+      step_size = 0.1
+    elif kernel_type == 'hmc':
       step_size = pkr.inner_results.accepted_results.step_size
     else:
       step_size = pkr.inner_results.step_size
@@ -2171,7 +2173,7 @@ def run_chain_CAR(init_state: List[tf.Tensor],
   if kernel_type == 'hmc':
     kernel = tfp.mcmc.HamiltonianMonteCarlo(
         target_log_prob_fn=target_log_prob_fn,
-        num_leapfrog_steps=5,
+        num_leapfrog_steps=3,
         step_size=step_size)
     step_adaptation_kwargs = dict()
   else:
@@ -2185,15 +2187,21 @@ def run_chain_CAR(init_state: List[tf.Tensor],
         log_accept_prob_getter_fn=lambda pkr: pkr.log_accept_ratio,)
 
   if step_adaptor_type == 'simple':
+    print('simple step size')
     kernel = tfp.mcmc.SimpleStepSizeAdaptation(
       inner_kernel=kernel, 
-      num_adaptation_steps=burnin)
-  else:
+      num_adaptation_steps= int(burnin  * 0.8),
+      #num_adaptation_steps = 1000,
+      target_accept_prob=0.4)
+  elif step_adaptor_type == 'dual_averaging':
+    print('dual averaging step size')
     kernel = tfp.mcmc.DualAveragingStepSizeAdaptation(
       inner_kernel=kernel,
-      num_adaptation_steps=burnin,
-      target_accept_prob=0.75,
+      num_adaptation_steps= int(burnin  * 0.8),
+      target_accept_prob=0.4,
       **step_adaptation_kwargs)
+  else:
+    print('no step adaptor. Step size = ' +  str(step_size))
 
   print(num_steps)
   print(trace_fn)
