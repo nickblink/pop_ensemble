@@ -1986,22 +1986,51 @@ def mv_normal_sample(mu=0, precision_matrix=None, num_models=1):
 
     return (np.transpose(samples))
     
+# @title MAP: Main API.
+def run_map_CAR(target_log_prob_fn, 
+            init_state,
+            learning_rate=0.1, 
+            num_steps=20_000, print_every=1_000, seed=None):
+  """Executes MAP estimation using Adam optimizer."""
+  # Prepares input variable.
+  phi = tf.Variable(initial_value=init_state)
+
+  # Prepares loss function (negative log-likelihood).
+  @tf.function
+  def loss():
+    nll = -target_log_prob_fn(phi)
+    return tf.reduce_mean(nll)
+
+  # Runs optimization loop using Adam optimizer.
+  opt = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+
+  for iter in range(num_steps):
+    if iter % print_every == 0:
+      print(f'{loss().numpy()}...', end='')
+    _ = opt.minimize(loss, [phi])
+  print('Done.')
+
+  return tf.constant(phi)
+
 #### Makes the MCMC sampler (with the log probability function!)
-def prepare_mcmc_CAR(data, adjacency, nchain, models = ['acs', 'pep', 'worldpop']):
+def prepare_mcmc_CAR(data, 
+                     adjacency, 
+                     nchain, 
+                     models = ['acs', 'pep', 'worldpop'], 
+                     run_MAP = True,
+                     map_config: Optional[Dict[str, Any]] = None):
   """prepares the initial state and log prob function"""
-  tau2 = 100
+  tau2 = 1
   rho = 0.3
   print('fixing tau2 and rho')
 
   Q = (1/tau2)*(np.diag(adjacency.sum(axis=1)) - rho*adjacency)
   Q = tf.constant(Q, dtype = tf.float32)
-  init_state = tf.constant(np.array([mv_normal_sample(precision_matrix = Q, num_models = 3) for i in range(nchain)]),
-                           dtype = tf.float32)
 
   # define log likelihood function
   def target_log_prob_fn_CAR(phi):
-    Q = (1/tau2)*(np.diag(adjacency.sum(axis=1)) - rho*adjacency)
-    Q = tf.constant(Q, dtype = tf.float32)
+    #Q = (1/tau2)*(np.diag(adjacency.sum(axis=1)) - rho*adjacency)
+    #Q = tf.constant(Q, dtype = tf.float32)
         
     ll = tf.Variable(0.)
     for chain in range(phi.shape[0]):
@@ -2028,7 +2057,12 @@ def prepare_mcmc_CAR(data, adjacency, nchain, models = ['acs', 'pep', 'worldpop'
     # update the log likelihood 
     ll = ll + tf.reduce_sum([np.sum(data['census']*np.log(n[chain,:]) - n[chain,:]) for chain in range(phi.shape[0])])
     
-    return(ll)                         
+    return(ll)  
+
+  init_state = tf.constant(np.array([mv_normal_sample(precision_matrix = Q, num_models = 3) for i in range(nchain)]),
+                           dtype = tf.float32)
+  if run_map:
+    init_state = run_map_CAR(target_log_prob_fn_CAR, init_state)
 
   return init_state, target_log_prob_fn_CAR
 
