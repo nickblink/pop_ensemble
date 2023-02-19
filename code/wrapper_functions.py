@@ -2006,6 +2006,7 @@ def run_map_CAR(target_log_prob_fn,
 
   for iter in range(num_steps):
     if iter % print_every == 0:
+      print(iter)
       print(f'{loss().numpy()}...', end='')
     _ = opt.minimize(loss, [phi])
   print('Done.')
@@ -2023,6 +2024,7 @@ def prepare_mcmc_CAR(data,
   tau2 = 1
   rho = 0.3
   print('fixing tau2 and rho')
+  print('when adding in tau2 and rho, need to update the likelihood function!')
 
   Q = (1/tau2)*(np.diag(adjacency.sum(axis=1)) - rho*adjacency)
   Q = tf.constant(Q, dtype = tf.float32)
@@ -2040,6 +2042,7 @@ def prepare_mcmc_CAR(data,
         ll = ll + ll_chain
     
     # add in determinant values
+    #log_det = tf.constant(np.linalg.slogdet(Q.numpy)[1], dtype = tf.float32)
     log_det = tf.constant(np.linalg.slogdet(Q)[1], dtype = tf.float32)
     #log_det = tf.linalg.logdet(Q)[1], dtype = tf.float32
     ll = ll + 0.5*phi.shape[0]*len(models)*log_det
@@ -2059,8 +2062,8 @@ def prepare_mcmc_CAR(data,
     
     return(ll)  
 
-  init_state = tf.constant(np.array([mv_normal_sample(precision_matrix = Q, num_models = 3) for i in range(nchain)]),
-                           dtype = tf.float32)
+  init_state = tf.constant(np.array([mv_normal_sample(precision_matrix = Q, num_models = 3) for i in range(nchain)]), dtype = tf.float32)
+  
   if run_map:
     init_state = run_map_CAR(target_log_prob_fn_CAR, init_state)
 
@@ -2226,13 +2229,13 @@ def run_chain_CAR(init_state: List[tf.Tensor],
       inner_kernel=kernel, 
       num_adaptation_steps= int(burnin  * 0.8),
       #num_adaptation_steps = 1000,
-      target_accept_prob=0.4)
+      target_accept_prob=0.7)
   elif step_adaptor_type == 'dual_averaging':
     print('dual averaging step size')
     kernel = tfp.mcmc.DualAveragingStepSizeAdaptation(
       inner_kernel=kernel,
       num_adaptation_steps= int(burnin  * 0.8),
-      target_accept_prob=0.4,
+      target_accept_prob=0.7,
       **step_adaptation_kwargs)
   else:
     print('no step adaptor. Step size = ' +  str(step_size))
