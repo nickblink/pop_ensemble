@@ -1990,7 +1990,10 @@ def mv_normal_sample(mu=0, precision_matrix=None, num_models=1):
 def run_map_CAR(target_log_prob_fn, 
             init_state,
             learning_rate=0.1, 
-            num_steps=20_000, print_every=1_000, seed=None):
+            num_steps=20_000, 
+            print_every=1_000, 
+            seed=None,
+            return_all = False):
   """Executes MAP estimation using Adam optimizer."""
   # Prepares input variable.
   phi = tf.Variable(initial_value=init_state)
@@ -2004,14 +2007,27 @@ def run_map_CAR(target_log_prob_fn,
   # Runs optimization loop using Adam optimizer.
   opt = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
-  for iter in range(num_steps):
-    if iter % print_every == 0:
-      print(iter)
-      print(f'{loss().numpy()}...', end='')
-    _ = opt.minimize(loss, [phi])
-  print('Done.')
+  if return_all:
+    loss_list = []
+    for iter in range(num_steps):
+      if iter % print_every == 0:
+        print(iter)
+        print(f'{loss().numpy()}...', end='')
+        _ = opt.minimize(loss, [phi])
+      loss_list.append(target_log_prob_fn(phi).numpy())
+    print('Done.')
+    
+    return loss_list
+   
+  else:
+    for iter in range(num_steps):
+      if iter % print_every == 0:
+        print(iter)
+        print(f'{loss().numpy()}...', end='')
+        _ = opt.minimize(loss, [phi])
+    print('Done.')
 
-  return tf.constant(phi)
+    return tf.constant(phi)
 
 #### Makes the MCMC sampler (with the log probability function!)
 def prepare_mcmc_CAR(data, 
