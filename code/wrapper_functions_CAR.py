@@ -136,7 +136,6 @@ def subset_data_by_state(data, adjacency, state, abbrev = None):
     data2 = data.iloc[indices, :]
     adjacency2 = adjacency.iloc[indices, indices]
     return data2, adjacency2
-    
 
 
 ##### CAR functions
@@ -218,7 +217,6 @@ def prepare_mcmc_CAR(data,
   rho = 0.3
   print('fixing tau2 and rho')
   print('when adding in tau2 and rho, need to update the likelihood function!')
-  print(models)
 
   Q = (1/tau2)*(np.diag(adjacency.sum(axis=1)) - rho*adjacency)
   Q = tf.constant(Q, dtype = tf.float32)
@@ -271,7 +269,8 @@ def prepare_mcmc_CAR(data,
     nm = 2
   init_state = tf.constant(np.array([mv_normal_sample(precision_matrix = Q, num_models = nm) for i in range(nchain)]), dtype = tf.float32)
   
-  if run_map:
+  print(run_MAP)
+  if run_MAP:
     init_state = run_map_CAR(target_log_prob_fn_CAR, init_state)
 
   return init_state, target_log_prob_fn_CAR
@@ -292,6 +291,7 @@ def run_mcmc_CAR(init_state: Optional[List[tf.Tensor]] = None,
              num_steps: int = 500, 
              burnin: int = 100, 
              step_size: float = .1, 
+             run_MAP = True,
              seed: int = 0, 
              debug_mode: bool = False,
              **mcmc_kwargs):
@@ -329,7 +329,7 @@ def run_mcmc_CAR(init_state: Optional[List[tf.Tensor]] = None,
   # Prepares initial states and model log likelihoods for MCMC.
   if init_state is None or target_log_prob_fn is None:
     # By default, sample first parameter of a two-parameter model (W, y).
-    init_state, target_log_prob_fn = prepare_mcmc_CAR(data, adjacency, nchain, pivot, models)
+    init_state, target_log_prob_fn = prepare_mcmc_CAR(data, adjacency, nchain, pivot, models, run_MAP)
   else:
     nchain = init_state.shape[0]
     
@@ -558,5 +558,29 @@ def run_chain_CAR(init_state: List[tf.Tensor],
   return chain_state, sampler_stat
 
 
+def mix_chain_samples(samples: Union[tf.Tensor, List[tf.Tensor]]):
+  """Mix MCMC samplers from different chains.
+  
+    Given a posterior sample with shape [num_sample, num_chain, ...], 
+    collapse the samples from different chains by reshaping it as 
+    [..., num_sample * num_chain].
 
+  Args:
+    samples: The posterior sample from multiple chains.
+
+  Returns:
+    The collapsed posterior samples.
+  """
+  if not isinstance(samples, list):
+    samples = [samples]
+
+  mixed_samples = []
+  for sample in samples:
+    sample_shape = list(tf.shape(sample).numpy())
+    sample = tf.reshape(sample, [-1] + sample_shape[2:])
+    sample = tf.transpose(sample, [1, 2, 0])
+
+    mixed_samples.append(sample)
+
+  return mixed_samples
 
