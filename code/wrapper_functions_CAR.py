@@ -264,10 +264,14 @@ def prepare_mcmc_CAR(data,
     return(ll)  
 
   if(pivot == -1):
-    nm = 3
+    nm = len(models)
   else:
-    nm = 2
+    nm = len(models) - 1
   init_state = tf.constant(np.array([mv_normal_sample(precision_matrix = Q, num_models = nm) for i in range(nchain)]), dtype = tf.float32)
+  
+  # adding in an extra dimension
+  if nm == 1:
+     init_state = init_state[:,:,np.newaxis]
   
   print(run_MAP)
   if run_MAP:
