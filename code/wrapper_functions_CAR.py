@@ -137,7 +137,29 @@ def subset_data_by_state(data, adjacency, state, abbrev = None):
     adjacency2 = adjacency.iloc[indices, indices]
     return data2, adjacency2
 
+# Convert phi values to u ensemble weights by computing the softmax
+# If pivot is non-negative, first introduce the pivot into the data
 
+def phi_to_u(phi, pivot = -1):
+    # get the index of last dimension
+    dim_n = len(phi.shape) - 1
+    
+    # add in the pivot
+    if pivot > -1:
+        phi = tf.constant(np.insert(phi, pivot, 0., axis = dim_n))
+    
+    # exponentiate values
+    exp_phi = tf.math.exp(phi)
+    
+    # get sums of exponentiated phi values at each index
+    exp_phi_rows = tf.reduce_sum(exp_phi, dim_n)
+    
+    # get the model weights by taking the softmax!
+    u = exp_phi/exp_phi_rows[...,None]
+    
+    return u
+    
+    
 ##### CAR functions
 
 # This function was taken from online
