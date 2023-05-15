@@ -112,6 +112,67 @@ DEFAULT_MCMC_CONFIG = dict(step_size=mcmc_step_size,
 
 ## High-level Wrapper Functions
 
+# simulate the data
+def simulate_data(data, adjacency,pivot = -1, sim_numbers = False, one_model = False, models = ['acs', 'pep', 'worldpop']):
+    """Simulated data for the CAR model. 
+    
+    Args:
+        data: The input data file.
+        adjacency: the adjacency matrix for the data.
+        pivot: The column to be used as the pivot for the softmax ensemble weights. -1 indicates no pivot.
+        sim_numbers: whether to simulate data values for the models. If false, the true values are used.
+        one_model: whether to only have one model determine the output. Worldpop is the default if this is chosen.
+    """
+    if sim_numbers:
+        data['acs'] = np.random.normal(80.0, 10.0, data.shape[0])
+        data['pep'] = np.random.normal(100.0, 10.0, data.shape[0])
+        data['worldpop'] = np.random.normal(120.0, 10.0, data.shape[0])
+    
+    if one_model:
+        data['census'] = np.random.poisson(data['worldpop'].to_numpy())
+        
+        return _, _, data
+    else:
+        tau2 = 1
+        rho = 0.3
+        print('fixing tau2 and rho')
+        nchain = 1
+        
+        Q = (1/tau2)*(np.diag(adjacency.sum(axis=1)) - rho*adjacency)
+        Q = tf.constant(Q, dtype = tf.float32)
+
+        if(pivot == -1):
+            phi_true = tf.constant(np.array([mv_normal_sample(precision_matrix = Q, 
+                                                          num_models = len(models)) for i in range(nchain)]),
+                               dtype = tf.float32)
+
+        elif(pivot in range(len(models))):
+            nm = len(models) - 1 
+            phi_np = np.array([mv_normal_sample(precision_matrix = Q,
+                                          num_models = nm) for i in range(nchain)])
+            # fix the added dimension if one is dropped
+            if nm == 1:
+                phi_np = phi_np[:,:,np.newaxis]
+            phi_np = np.insert(phi_np, pivot, 0., axis = 2)
+            phi_true = tf.constant(phi_np, dtype = tf.float32)
+
+        else:
+            raise Exception('Pivot needs to be -1, 0, 1, or 2')
+
+        # get exponentiated values and sum across models
+        exp_phi = tf.math.exp(phi_true)
+        exp_phi_rows = tf.reduce_sum(exp_phi, 2)
+
+        # get model weights and calculate mean estimate
+        u_true = exp_phi/exp_phi_rows[...,None]
+
+        tmp = data[models].values*u_true
+        n = tf.reduce_sum(tmp, axis = 2)
+
+        data['census'] = np.random.poisson(n)[0]
+
+    return phi_true, u_true, data
+
 # subset data by state
 def subset_data_by_state(data, adjacency, state, abbrev = None):
     str_vals = data['NAME'].str.find(state)
