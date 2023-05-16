@@ -113,7 +113,7 @@ DEFAULT_MCMC_CONFIG = dict(step_size=mcmc_step_size,
 ## High-level Wrapper Functions
 
 # simulate the data
-def simulate_data(data, adjacency,pivot = -1, sim_numbers = False, one_model = False, models = ['acs', 'pep', 'worldpop']):
+def simulate_data(data_OG, adjacency, pivot = -1, sim_numbers = False, scale_down = 1, poisson_noise = False, one_model = False, models = ['acs', 'pep', 'worldpop']):
     """Simulated data for the CAR model. 
     
     Args:
@@ -121,12 +121,25 @@ def simulate_data(data, adjacency,pivot = -1, sim_numbers = False, one_model = F
         adjacency: the adjacency matrix for the data.
         pivot: The column to be used as the pivot for the softmax ensemble weights. -1 indicates no pivot.
         sim_numbers: whether to simulate data values for the models. If false, the true values are used.
+        scale_down: value to scale down the models data by.
+        poisson_noise: Whether to add noise to input models by simulating a poisson from each
         one_model: whether to only have one model determine the output. Worldpop is the default if this is chosen.
     """
+    # make copy of day so that the original data is not corruptedb
+    data = data_OG[:]
+    
     if sim_numbers:
         data['acs'] = np.random.normal(80.0, 10.0, data.shape[0])
         data['pep'] = np.random.normal(100.0, 10.0, data.shape[0])
         data['worldpop'] = np.random.normal(120.0, 10.0, data.shape[0])
+    
+    # scale down the values of the data 
+    data[models] = data[models][:]/scale_down
+    
+    if poisson_noise:
+        for m in models:
+            data[m] = np.random.poisson(data[m])
+        
     
     if one_model:
         data['census'] = np.random.poisson(data['worldpop'].to_numpy())
@@ -169,7 +182,8 @@ def simulate_data(data, adjacency,pivot = -1, sim_numbers = False, one_model = F
         tmp = data[models].values*u_true
         n = tf.reduce_sum(tmp, axis = 2)
 
-        data['census'] = np.random.poisson(n)[0]
+        #data['census'] = np.random.poisson(n)[0]
+        data.loc[:,'census'] = np.random.poisson(n)[0]
 
     return phi_true, u_true, data
 
