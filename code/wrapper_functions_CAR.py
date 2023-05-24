@@ -140,7 +140,6 @@ def simulate_data(data_OG, adjacency, pivot = -1, sim_numbers = False, scale_dow
         for m in models:
             data[m] = np.random.poisson(data[m])
         
-    
     if one_model:
         data['census'] = np.random.poisson(data['worldpop'].to_numpy())
         
