@@ -180,9 +180,16 @@ def simulate_data(data_OG, adjacency, pivot = -1, sim_numbers = False, scale_dow
 
         tmp = data[models].values*u_true
         n = tf.reduce_sum(tmp, axis = 2)
+        
+        print(n)
+        data['census_exp'] = n
 
         #data['census'] = np.random.poisson(n)[0]
         data.loc[:,'census'] = np.random.poisson(n)[0]
+        
+        # add in the u values
+        u_df = pd.DataFrame(u_true[0].numpy(), columns = ['u_' + m for m in models])
+        data = pd.concat([data.reset_index(drop = True)[:], u_df], axis = 1)
 
     return phi_true, u_true, data
 
