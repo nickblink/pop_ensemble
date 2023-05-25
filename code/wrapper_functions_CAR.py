@@ -182,7 +182,7 @@ def simulate_data(data_OG, adjacency, pivot = -1, sim_numbers = False, scale_dow
         n = tf.reduce_sum(tmp, axis = 2)
         
         print(n)
-        data['census_exp'] = n
+        data['census_exp'] = n[0]
 
         #data['census'] = np.random.poisson(n)[0]
         data.loc[:,'census'] = np.random.poisson(n)[0]
