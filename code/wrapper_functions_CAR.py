@@ -181,7 +181,6 @@ def simulate_data(data_OG, adjacency, pivot = -1, sim_numbers = False, scale_dow
         tmp = data[models].values*u_true
         n = tf.reduce_sum(tmp, axis = 2)
         
-        print(n)
         data['census_exp'] = n[0]
 
         #data['census'] = np.random.poisson(n)[0]
@@ -397,6 +396,7 @@ def run_mcmc_CAR(init_state: Optional[List[tf.Tensor]] = None,
              nchain: int = 10,             
              num_steps: int = 500, 
              burnin: int = 100, 
+             num_adaptation_steps: int = None,
              step_size: float = .1, 
              run_MAP = True,
              seed: int = 0, 
@@ -447,6 +447,7 @@ def run_mcmc_CAR(init_state: Optional[List[tf.Tensor]] = None,
       target_log_prob_fn=target_log_prob_fn,
       num_steps=num_steps, 
       burnin=burnin, 
+      num_adaptation_steps=num_adaptation_steps,
       seed=seed,
       **mcmc_kwargs)
   # Clear tf.function cache.
@@ -477,100 +478,6 @@ def run_mcmc_CAR(init_state: Optional[List[tf.Tensor]] = None,
     return mixed_samples, chain_samples, sampler_stat
   return mixed_samples, sampler_stat
 
-@tf.function(experimental_compile=True)
-def run_chain_CAR_testing(init_state: List[tf.Tensor], 
-              step_size: float, 
-              target_log_prob_fn: Callable[..., tf.Tensor], 
-              num_steps: int = 500, 
-              burnin: int = 100, 
-              seed: int = 0,
-              kernel_type: str = "hmc",
-              step_adaptor_type: str = "simple"
-              ) -> Union[List[tf.Tensor], Tuple[tf.Tensor]]:
-  """Low-level function that runs MCMC sampling for a given model posterior.
-  
-  Args:
-    init_state: The initial state for the MCMC sampler.
-    step_size: The step size of a Hamiltonian Monte Carlo step.
-    target_log_prob_fn: The log likelihood function for model posterior.
-    num_steps: The number of total MCMC samples to return.
-    burnin: The length of the burn-in period for MCMC warmup.
-    seed: The random seed for MCMC sampling.
-    kernel_type: Type of MCMC kernel to use, either ('hmc', 'nuts').
-    step_adaptor_type: Type of MCMC kernel to use, one of 
-      ('simple', 'dual_averaging').
-
-  Returns:
-    chain_state: Posterior sample from all MCMC chains.
-    sampler stat: Sampling statistics, currently (step_size, acceptance ratio).
-  """
-  print('kernel type is ' + kernel_type)
-  
-  if kernel_type not in ('hmc', 'nuts'):
-    raise ValueError(
-        f"kernel_type {kernel_type} must be one of ('hmc', 'nuts').")
-
-  if step_adaptor_type not in ('simple', 'dual_averaging', 'none'):
-    raise ValueError(
-        f"step_adaptor_type {step_adaptor_type} must be one of "
-        "('simple', 'dual_averaging', 'none').")
-
-  def trace_fn(_, pkr): 
-    if step_adaptor_type == 'none':
-      step_size = 0.1
-    elif kernel_type == 'hmc':
-      step_size = pkr.inner_results.accepted_results.step_size
-    else:
-      step_size = pkr.inner_results.step_size
-
-    return (step_size, pkr.inner_results.log_accept_ratio)
-
-  if kernel_type == 'hmc':
-    kernel = tfp.mcmc.HamiltonianMonteCarlo(
-        target_log_prob_fn=target_log_prob_fn,
-        num_leapfrog_steps=3,
-        step_size=step_size)
-    step_adaptation_kwargs = dict()
-  else:
-    kernel = tfp.mcmc.NoUTurnSampler(
-        target_log_prob_fn=target_log_prob_fn,
-        step_size=step_size)
-    step_adaptation_kwargs = dict(
-        step_size_setter_fn=lambda pkr, new_step_size: pkr._replace(
-            step_size=new_step_size),
-        step_size_getter_fn=lambda pkr: pkr.step_size,
-        log_accept_prob_getter_fn=lambda pkr: pkr.log_accept_ratio,)
-
-  if step_adaptor_type == 'simple':
-    print('simple step size')
-    kernel = tfp.mcmc.SimpleStepSizeAdaptation(
-      inner_kernel=kernel, 
-      num_adaptation_steps= int(burnin  * 0.8),
-      #num_adaptation_steps = 1000,
-      target_accept_prob=0.7)
-  elif step_adaptor_type == 'dual_averaging':
-    print('dual averaging step size')
-    kernel = tfp.mcmc.DualAveragingStepSizeAdaptation(
-      inner_kernel=kernel,
-      num_adaptation_steps= int(burnin  * 0.8),
-      target_accept_prob=0.7,
-      **step_adaptation_kwargs)
-  else:
-    print('no step adaptor. Step size = ' +  str(step_size))
-
-  print(num_steps)
-  print(trace_fn)
-  # Execute sampling.
-  chain_state, sampler_stat = tfp.mcmc.sample_chain(
-      num_results=num_steps,
-      num_burnin_steps=burnin,
-      current_state=init_state,
-      kernel=kernel,
-      trace_fn=trace_fn,
-      seed=seed)
-    
-  return chain_state, sampler_stat
-
 def run_chain_CAR(init_state: List[tf.Tensor], 
               step_size: float, 
               target_log_prob_fn: Callable[..., tf.Tensor], 
@@ -578,7 +485,8 @@ def run_chain_CAR(init_state: List[tf.Tensor],
               burnin: int = 100, 
               seed: int = 0,
               kernel_type: str = "hmc",
-              step_adaptor_type: str = "simple"
+              step_adaptor_type: str = "simple",
+              num_adaptation_steps: int = None
               ) -> Union[List[tf.Tensor], Tuple[tf.Tensor]]:
   """Low-level function that runs MCMC sampling for a given model posterior.
   
@@ -607,6 +515,9 @@ def run_chain_CAR(init_state: List[tf.Tensor],
     raise ValueError(
         f"step_adaptor_type {step_adaptor_type} must be one of "
         "('simple', 'dual_averaging', 'none').")
+
+  if num_adaptation_steps is None:
+    num_adaptation_steps = int(burnin  * 0.8)
 
   def trace_fn(_, pkr): 
     if step_adaptor_type == 'none':
@@ -638,14 +549,14 @@ def run_chain_CAR(init_state: List[tf.Tensor],
     print('simple step size')
     kernel = tfp.mcmc.SimpleStepSizeAdaptation(
       inner_kernel=kernel, 
-      num_adaptation_steps= int(burnin  * 0.8),
+      num_adaptation_steps= num_adaptation_steps,
       #num_adaptation_steps = 1000,
       target_accept_prob=0.7)
   elif step_adaptor_type == 'dual_averaging':
     print('dual averaging step size')
     kernel = tfp.mcmc.DualAveragingStepSizeAdaptation(
       inner_kernel=kernel,
-      num_adaptation_steps= int(burnin  * 0.8),
+      num_adaptation_steps= num_adaptation_steps,
       target_accept_prob=0.7,
       **step_adaptation_kwargs)
   else:
@@ -691,3 +602,67 @@ def mix_chain_samples(samples: Union[tf.Tensor, List[tf.Tensor]]):
 
   return mixed_samples
 
+
+def pull_gradient(phis, log_prob_fn, skip_val = 100):
+    """ Given a set of phis and the log probability function, pull the log likelihood values and gradients
+    Args:
+        phis: A set of phi values from one simulation run
+        log_prob_fn: The log probability function
+        skip_val: Skipping between likelihood and gradient calculation
+        
+    Returns:
+        the iterations calculated, the likelihoods, and the gradients
+    """
+    n = phis.shape[0]
+    iter = 1
+    iter_counts = []
+    likelihoods = []
+    gradients = list()
+    while iter < n:
+        # store the iter counts
+        iter_counts.append(iter)
+        
+        # get the phi values at this chain sample
+        phi = phis[iter,:,:,:]
+        
+        # get the likelihoods
+        likelihoods.append(log_prob_fn(phi).numpy())
+        
+        # get the gradients
+        with tf.GradientTape() as g:
+          g.watch(phi)
+          y = log_prob_fn(phi)
+        gradients.append(g.gradient(y, phi))
+        
+        iter = iter + skip_val
+        
+    return iter_counts, likelihoods, gradients
+
+
+
+def pull_gradient_wrapper(phis, log_prob_fn, skip_val = 100):
+    """ A wrapper function to call "pull gradient"
+    Args:
+        phis: A set of phi values from one simulation run
+        log_prob_fn: The log probability function
+        skip_val: Skipping between likelihood and gradient calculation
+        
+    Returns:
+        A data frame with the iterations, log likelihoods, and average phi gradients across all chains
+    """
+    res = pull_gradient(phis, log_prob_fn, skip_val = skip_val)
+    
+    chain_abs_grads = []
+    for i in range(len(res[2])):
+        tt = res[2][i].numpy()
+        chain_abs_grads.append(np.mean(abs(tt), axis = (1,2)))
+    
+    # organize the gradients by chain and then average across
+    chain_abs_grads = np.array(chain_abs_grads)
+    all_abs_grads = np.mean(chain_abs_grads, axis = 1)
+    
+    # only including total mean gradients rather than individual chains
+    res_df = pd.DataFrame(np.transpose(np.array([res[0],res[1],all_abs_grads])), columns = ['iter', 'logL', 'mean_abs_grad'])
+    
+    return(res_df)
+    
