@@ -240,6 +240,18 @@ def phi_to_u(phi, pivot = -1):
     return u
     
     
+def get_log_prob_from_results(res_dict):
+    """ Gets the target log probability function from a set of results
+    """
+    _, target_log_prob_fn = prepare_mcmc_CAR(data = res_dict['data'],
+    adjacency = res_dict['adjacency'], 
+    nchain = res_dict['mcmc_config']['nchain'],
+    pivot = res_dict['pivot_fit'],
+    models = res_dict['models'],
+    run_MAP = False)
+    
+    return(target_log_prob_fn)
+    
 ##### CAR functions
 
 # This function was taken from online
@@ -640,7 +652,7 @@ def pull_gradient(phis, log_prob_fn, skip_val = 100):
 
 
 
-def pull_gradient_wrapper(phis, log_prob_fn, skip_val = 100):
+def pull_gradient_wrapper(phis, log_prob_fn, skip_val = 100, step_sizes = None):
     """ A wrapper function to call "pull gradient"
     Args:
         phis: A set of phi values from one simulation run
@@ -661,8 +673,14 @@ def pull_gradient_wrapper(phis, log_prob_fn, skip_val = 100):
     chain_abs_grads = np.array(chain_abs_grads)
     all_abs_grads = np.mean(chain_abs_grads, axis = 1)
     
-    # only including total mean gradients rather than individual chains
-    res_df = pd.DataFrame(np.transpose(np.array([res[0],res[1],all_abs_grads])), columns = ['iter', 'logL', 'mean_abs_grad'])
+    # get the step sizes at the iterations selected (not the most efficient python way)
+    if step_sizes is not None:
+        step_subset = []
+        for i in range(len(res[0])):
+            step_subset.append(step_sizes[res[0][i]])
     
+    # only including total mean gradients rather than individual chains
+    res_df = pd.DataFrame(np.transpose(np.array([res[0], res[1], all_abs_grads, step_subset])), columns = ['iter', 'logL', 'mean_abs_grad', 'step_size'])
+
     return(res_df)
     
