@@ -43,7 +43,7 @@ from tensorflow_probability.python.math import generic as tfp_math
 tfd = tfp.distributions
 tfb = tfp.bijectors
 
-dtype = tf.float32
+dtype = tf.float64
 import gpflow as gpf
 import logging
 
@@ -151,12 +151,12 @@ def simulate_data(data_OG, adjacency, pivot = -1, sim_numbers = False, scale_dow
         nchain = 1
         
         Q = (1/tau2)*(np.diag(adjacency.sum(axis=1)) - rho*adjacency)
-        Q = tf.constant(Q, dtype = tf.float32)
+        Q = tf.constant(Q, dtype = tf.float64)
 
         if(pivot == -1):
             phi_true = tf.constant(np.array([mv_normal_sample(precision_matrix = Q, 
                                                           num_models = len(models)) for i in range(nchain)]),
-                               dtype = tf.float32)
+                               dtype = tf.float64)
 
         elif(pivot in range(len(models))):
             nm = len(models) - 1 
@@ -166,7 +166,7 @@ def simulate_data(data_OG, adjacency, pivot = -1, sim_numbers = False, scale_dow
             if nm == 1:
                 phi_np = phi_np[:,:,np.newaxis]
             phi_np = np.insert(phi_np, pivot, 0., axis = 2)
-            phi_true = tf.constant(phi_np, dtype = tf.float32)
+            phi_true = tf.constant(phi_np, dtype = tf.float64)
 
         else:
             raise Exception('Pivot needs to be -1, 0, 1, or 2')
@@ -333,26 +333,26 @@ def prepare_mcmc_CAR(data,
   print('when adding in tau2 and rho, need to update the likelihood function!')
 
   Q = (1/tau2)*(np.diag(adjacency.sum(axis=1)) - rho*adjacency)
-  Q = tf.constant(Q, dtype = tf.float32)
+  Q = tf.constant(Q, dtype = tf.float64)
 
   # define log likelihood function
   def target_log_prob_fn_CAR(phi):
     #Q = (1/tau2)*(np.diag(adjacency.sum(axis=1)) - rho*adjacency)
-    #Q = tf.constant(Q, dtype = tf.float32)
+    #Q = tf.constant(Q, dtype = tf.float64)
         
-    ll = tf.Variable(0.)
+    ll = tf.Variable(0., dtype = tf.float64)
     
     for chain in range(phi.shape[0]):
         # (1) Prob of the CAR random effect values
         ll_chain = -0.5*tf.reduce_mean(tf.linalg.diag_part(
             tf.linalg.matmul(phi[chain,:,:],tf.linalg.matmul(Q, phi[chain,:,:]), transpose_a = True))) 
-        print(ll_chain.dtype)
+        # print(ll_chain.dtype)
         ll = ll + ll_chain
         
     # add in determinant values
-    #log_det = tf.constant(np.linalg.slogdet(Q.numpy)[1], dtype = tf.float32)
-    log_det = tf.constant(np.linalg.slogdet(Q)[1], dtype = tf.float32)
-    #log_det = tf.linalg.logdet(Q)[1], dtype = tf.float32
+    #log_det = tf.constant(np.linalg.slogdet(Q.numpy)[1], dtype = tf.float64)
+    log_det = tf.constant(np.linalg.slogdet(Q)[1], dtype = tf.float64)
+    #log_det = tf.linalg.logdet(Q)[1], dtype = tf.float64
     ll = ll + 0.5*phi.shape[0]*len(models)*log_det
     
     if(pivot == -1):
@@ -382,7 +382,7 @@ def prepare_mcmc_CAR(data,
     nm = len(models)
   else:
     nm = len(models) - 1
-  init_state = tf.constant(np.array([mv_normal_sample(precision_matrix = Q, num_models = nm) for i in range(nchain)]), dtype = tf.float32)
+  init_state = tf.constant(np.array([mv_normal_sample(precision_matrix = Q, num_models = nm) for i in range(nchain)]), dtype = tf.float64)
   
   # adding in an extra dimension
   if nm == 1:
