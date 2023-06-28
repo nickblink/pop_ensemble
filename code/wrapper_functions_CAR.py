@@ -129,9 +129,11 @@ def simulate_data(data_OG, adjacency, pivot = -1, sim_numbers = False, scale_dow
     data = data_OG[:]
     
     if sim_numbers:
-        data['acs'] = np.random.normal(80.0, 10.0, data.shape[0])
+        #data['acs'] = np.random.normal(80.0, 10.0, data.shape[0])
+        #data['pep'] = np.random.normal(100.0, 10.0, data.shape[0])
+        #data['worldpop'] = np.random.normal(120.0, 10.0, data.shape[0])
         data['pep'] = np.random.normal(100.0, 10.0, data.shape[0])
-        data['worldpop'] = np.random.normal(120.0, 10.0, data.shape[0])
+        data['worldpop'] = np.random.normal(data['pep'], 10.0, data.shape[0])
     
     # scale down the values of the data 
     data[models] = data[models][:]/scale_down
