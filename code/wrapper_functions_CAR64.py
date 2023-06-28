@@ -340,12 +340,13 @@ def prepare_mcmc_CAR(data,
     #Q = (1/tau2)*(np.diag(adjacency.sum(axis=1)) - rho*adjacency)
     #Q = tf.constant(Q, dtype = tf.float64)
         
-    ll = tf.Variable(0.)
+    ll = tf.Variable(0., dtype = tf.float64)
     
     for chain in range(phi.shape[0]):
         # (1) Prob of the CAR random effect values
         ll_chain = -0.5*tf.reduce_mean(tf.linalg.diag_part(
             tf.linalg.matmul(phi[chain,:,:],tf.linalg.matmul(Q, phi[chain,:,:]), transpose_a = True))) 
+        # print(ll_chain.dtype)
         ll = ll + ll_chain
         
     # add in determinant values

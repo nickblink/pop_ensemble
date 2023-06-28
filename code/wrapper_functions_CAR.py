@@ -346,6 +346,7 @@ def prepare_mcmc_CAR(data,
         # (1) Prob of the CAR random effect values
         ll_chain = -0.5*tf.reduce_mean(tf.linalg.diag_part(
             tf.linalg.matmul(phi[chain,:,:],tf.linalg.matmul(Q, phi[chain,:,:]), transpose_a = True))) 
+        print(ll_chain.dtype)
         ll = ll + ll_chain
         
     # add in determinant values
