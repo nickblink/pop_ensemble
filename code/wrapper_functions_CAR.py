@@ -338,24 +338,27 @@ def prepare_mcmc_CAR(data,
   Q = tf.constant(Q, dtype = tf.float64)
 
   # define log likelihood function
-  def target_log_prob_fn_CAR(phi):
+  def target_log_prob_fn_CAR(phi, debug_return = False):
     #Q = (1/tau2)*(np.diag(adjacency.sum(axis=1)) - rho*adjacency)
     #Q = tf.constant(Q, dtype = tf.float64)
         
     ll = tf.Variable(0., dtype = tf.float64)
+    A = tf.Variable(0., dtype = tf.float64)
+    B = tf.Variable(0., dtype = tf.float64)
+    C = tf.Variable(0., dtype = tf.float64)
     
     for chain in range(phi.shape[0]):
         # (1) Prob of the CAR random effect values
-        ll_chain = -0.5*tf.reduce_mean(tf.linalg.diag_part(
+        A = A - 0.5*tf.reduce_mean(tf.linalg.diag_part(
             tf.linalg.matmul(phi[chain,:,:],tf.linalg.matmul(Q, phi[chain,:,:]), transpose_a = True))) 
-        # print(ll_chain.dtype)
-        ll = ll + ll_chain
-        
+    ll = ll + A
+    
     # add in determinant values
-    #log_det = tf.constant(np.linalg.slogdet(Q.numpy)[1], dtype = tf.float64)
+    # these are multiplied by the number of chains because they are included in the likelihood for each
     log_det = tf.constant(np.linalg.slogdet(Q)[1], dtype = tf.float64)
+    B = 0.5*phi.shape[0]*len(models)*log_det
     #log_det = tf.linalg.logdet(Q)[1], dtype = tf.float64
-    ll = ll + 0.5*phi.shape[0]*len(models)*log_det
+    ll = ll + B 
     
     if(pivot == -1):
         # get exponentiated values and sum across models
@@ -376,9 +379,17 @@ def prepare_mcmc_CAR(data,
     n = tf.reduce_sum(tmp, axis = 2)
     
     # update the log likelihood 
-    ll = ll + tf.reduce_sum([np.sum(data['census']*np.log(n[chain,:]) - n[chain,:]) for chain in range(phi.shape[0])])
+    C = tf.reduce_sum([np.sum(data['census']*np.log(n[chain,:]) - n[chain,:]) for chain in range(phi.shape[0])])
+    ll = ll + C
     
-    return(ll)  
+    if debug_return:
+        dct = {'phi': A, 
+               'det': B,
+               'Poisson': C,
+               'total': ll}
+        return(dct)
+    else:
+        return(ll)  
 
   if(pivot == -1):
     nm = len(models)
@@ -389,9 +400,9 @@ def prepare_mcmc_CAR(data,
   # adding in an extra dimension
   if nm == 1:
      init_state = init_state[:,:,np.newaxis]
-  
-  print(run_MAP)
+
   if run_MAP:
+    print('running MAP')
     init_state = run_map_CAR(target_log_prob_fn_CAR, init_state)
 
   return init_state, target_log_prob_fn_CAR
@@ -618,22 +629,27 @@ def mix_chain_samples(samples: Union[tf.Tensor, List[tf.Tensor]]):
   return mixed_samples
 
 
-def pull_gradient(phis, log_prob_fn, skip_val = 100):
+def pull_gradient(phis, log_prob_fn, skip_val = 100, max_iter = None):
     """ Given a set of phis and the log probability function, pull the log likelihood values and gradients
     Args:
         phis: A set of phi values from one simulation run
         log_prob_fn: The log probability function
         skip_val: Skipping between likelihood and gradient calculation
+        max_iter: whether to stop after a certain point
         
     Returns:
         the iterations calculated, the likelihoods, and the gradients
     """
-    n = phis.shape[0]
+    if max_iter is None:
+        max_iter = phis.shape[0]
     iter = 1
     iter_counts = []
     likelihoods = []
+    phi_likelihoods = []
+    det_likelihoods = []
+    pois_likelihoods = []
     gradients = list()
-    while iter < n:
+    while iter < max_iter:
         # store the iter counts
         iter_counts.append(iter)
         
@@ -641,7 +657,11 @@ def pull_gradient(phis, log_prob_fn, skip_val = 100):
         phi = phis[iter,:,:,:]
         
         # get the likelihoods
-        likelihoods.append(log_prob_fn(phi).numpy())
+        tmp = log_prob_fn(phi, debug_return = True)
+        phi_likelihoods.append(tmp['phi'].numpy())
+        det_likelihoods.append(tmp['det'].numpy())
+        pois_likelihoods.append(tmp['Poisson'].numpy())
+        likelihoods.append(tmp['total'].numpy())
         
         # get the gradients
         with tf.GradientTape() as g:
@@ -651,21 +671,23 @@ def pull_gradient(phis, log_prob_fn, skip_val = 100):
         
         iter = iter + skip_val
         
-    return iter_counts, likelihoods, gradients
+    return iter_counts, likelihoods, gradients, phi_likelihoods, det_likelihoods, pois_likelihoods
 
 
 
-def pull_gradient_wrapper(phis, log_prob_fn, skip_val = 100, step_sizes = None):
+def pull_gradient_wrapper(phis, log_prob_fn, skip_val = 100, max_iter = None, step_sizes = None):
     """ A wrapper function to call "pull gradient"
     Args:
         phis: A set of phi values from one simulation run
         log_prob_fn: The log probability function
         skip_val: Skipping between likelihood and gradient calculation
-        
+        max_iter: whether to stop after a certain point
+        step_sizes: Input series of step sizes
+
     Returns:
         A data frame with the iterations, log likelihoods, and average phi gradients across all chains
     """
-    res = pull_gradient(phis, log_prob_fn, skip_val = skip_val)
+    res = pull_gradient(phis, log_prob_fn, skip_val = skip_val, max_iter = max_iter)
     
     chain_abs_grads = []
     for i in range(len(res[2])):
@@ -683,7 +705,7 @@ def pull_gradient_wrapper(phis, log_prob_fn, skip_val = 100, step_sizes = None):
             step_subset.append(step_sizes[res[0][i]])
     
     # only including total mean gradients rather than individual chains
-    res_df = pd.DataFrame(np.transpose(np.array([res[0], res[1], all_abs_grads, step_subset])), columns = ['iter', 'logL', 'mean_abs_grad', 'step_size'])
+    res_df = pd.DataFrame(np.transpose(np.array([res[0], res[1], all_abs_grads, step_subset, res[3], res[4], res[5]])), columns = ['iter', 'logL', 'mean_abs_grad', 'step_size', 'phi_logL', 'det_logL', 'Pois_logL'])
 
     return(res_df)
     
