@@ -253,7 +253,35 @@ def get_log_prob_from_results(res_dict):
     run_MAP = False)
     
     return(target_log_prob_fn)
+
+### Compute the finite approximation of the derivate. Using this for testing purposes of the tf gradient
+def finite_grad_approx(f, x, epsilon = 1e-4):
+    x_copy = np.zeros(x.shape)
+    gradients = np.zeros(x.shape)
+
+    indices = np.ndindex(x.shape)
+
+    for index in indices:
+        x_copy[:] = x[:]
+        x_copy[index] = x_copy[index] + epsilon
+        gradients[index] = (f(x_copy) - f(x))/epsilon
+
+    return(gradients)
     
+### Compare the finite element gradients with the tf ones. They should be pretty close
+def gradient_comparison(phi, f, epsilon = 1e-4):
+    with tf.GradientTape() as g:
+        g.watch(phi)
+        y = f(phi)
+        grad1 = g.gradient(y, phi)
+        
+    grad2 = finite_grad_approx(f, x = phi.numpy()[:], epsilon = epsilon)
+    
+    diff = grad1.numpy() - grad2
+    
+    print('sum(abs(grad1 - grad2))/sum(abs(grad2)) = ' + str(np.sum(abs(diff))/ np.sum(abs(grad2))))
+    return grad1, grad2, diff
+
 ##### CAR functions
 
 # This function was taken from online
@@ -332,7 +360,7 @@ def prepare_mcmc_CAR(data,
   tau2 = 1
   rho = 0.3
   print('fixing tau2 and rho')
-  print('when adding in tau2 and rho, need to update the likelihood function!')
+  print('when adding in tau2 and rho, need to update the likelihood function and confirm gradient works!')
 
   Q = (1/tau2)*(np.diag(adjacency.sum(axis=1)) - rho*adjacency)
   Q = tf.constant(Q, dtype = tf.float64)
@@ -341,25 +369,24 @@ def prepare_mcmc_CAR(data,
   def target_log_prob_fn_CAR(phi, debug_return = False):
     #Q = (1/tau2)*(np.diag(adjacency.sum(axis=1)) - rho*adjacency)
     #Q = tf.constant(Q, dtype = tf.float64)
-        
+
     ll = tf.Variable(0., dtype = tf.float64)
     A = tf.Variable(0., dtype = tf.float64)
     B = tf.Variable(0., dtype = tf.float64)
     C = tf.Variable(0., dtype = tf.float64)
-    
+
     for chain in range(phi.shape[0]):
         # (1) Prob of the CAR random effect values
         A = A - 0.5*tf.reduce_mean(tf.linalg.diag_part(
             tf.linalg.matmul(phi[chain,:,:],tf.linalg.matmul(Q, phi[chain,:,:]), transpose_a = True))) 
     ll = ll + A
-    
+
     # add in determinant values
     # these are multiplied by the number of chains because they are included in the likelihood for each
-    log_det = tf.constant(np.linalg.slogdet(Q)[1], dtype = tf.float64)
+    log_det = tf.linalg.slogdet(Q)[1]
     B = 0.5*phi.shape[0]*len(models)*log_det
-    #log_det = tf.linalg.logdet(Q)[1], dtype = tf.float64
     ll = ll + B 
-    
+
     if(pivot == -1):
         # get exponentiated values and sum across models
         exp_phi = tf.math.exp(phi)
@@ -371,17 +398,20 @@ def prepare_mcmc_CAR(data,
         exp_phi_rows = tf.reduce_sum(exp_phi, 2)
     else:
         raise Exception('Pivot needs to be -1, 0, 1, or 2')
-    
+
     # get model weights and calculate mean estimate
-    u = exp_phi/exp_phi_rows[...,None]
-      
-    tmp = data[models].values*u
+    u = tf.math.divide(exp_phi, exp_phi_rows[...,None])
+
+    ## Do an (n x m) X (n x m) element wise multiplication
+    tmp = tf.math.multiply(data[models].values, u)
     n = tf.reduce_sum(tmp, axis = 2)
-    
+
     # update the log likelihood 
-    C = tf.reduce_sum([np.sum(data['census']*np.log(n[chain,:]) - n[chain,:]) for chain in range(phi.shape[0])])
+    C = tf.reduce_sum([tf.math.reduce_sum(
+        tf.math.subtract(tf.math.multiply(data['census'],tf.math.log(n[chain,:])),
+                         n[chain,:])) for chain in range(phi.shape[0])])
     ll = ll + C
-    
+
     if debug_return:
         dct = {'phi': A, 
                'det': B,
@@ -389,8 +419,8 @@ def prepare_mcmc_CAR(data,
                'total': ll}
         return(dct)
     else:
-        return(ll)  
-
+        return(ll) 
+  
   if(pivot == -1):
     nm = len(models)
   else:
