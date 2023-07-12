@@ -133,7 +133,7 @@ def simulate_data(data_OG, adjacency, pivot = -1, sim_numbers = False, scale_dow
         #data['pep'] = np.random.normal(100.0, 10.0, data.shape[0])
         #data['worldpop'] = np.random.normal(120.0, 10.0, data.shape[0])
         data['pep'] = np.random.normal(100.0, 10.0, data.shape[0])
-        data['worldpop'] = np.random.normal(data['pep'], 30.0, data.shape[0])
+        data['worldpop'] = np.random.normal(data['pep'], 10.0, data.shape[0])
     
     # scale down the values of the data 
     data[models] = data[models][:]/scale_down
@@ -642,9 +642,9 @@ def pull_gradient(phis, log_prob_fn, skip_val = 100, max_iter = None):
     """
     if max_iter is None:
         max_iter = phis.shape[0]
-    iter = 1
+    iter = 0
     iter_counts = []
-    likelihoods = []
+    posteriors = []
     phi_likelihoods = []
     det_likelihoods = []
     pois_likelihoods = []
@@ -661,7 +661,7 @@ def pull_gradient(phis, log_prob_fn, skip_val = 100, max_iter = None):
         phi_likelihoods.append(tmp['phi'].numpy())
         det_likelihoods.append(tmp['det'].numpy())
         pois_likelihoods.append(tmp['Poisson'].numpy())
-        likelihoods.append(tmp['total'].numpy())
+        posteriors.append(tmp['total'].numpy())
         
         # get the gradients
         with tf.GradientTape() as g:
@@ -671,7 +671,7 @@ def pull_gradient(phis, log_prob_fn, skip_val = 100, max_iter = None):
         
         iter = iter + skip_val
         
-    return iter_counts, likelihoods, gradients, phi_likelihoods, det_likelihoods, pois_likelihoods
+    return iter_counts, posteriors, gradients, phi_likelihoods, det_likelihoods, pois_likelihoods
 
 
 
@@ -705,7 +705,7 @@ def pull_gradient_wrapper(phis, log_prob_fn, skip_val = 100, max_iter = None, st
             step_subset.append(step_sizes[res[0][i]])
     
     # only including total mean gradients rather than individual chains
-    res_df = pd.DataFrame(np.transpose(np.array([res[0], res[1], all_abs_grads, step_subset, res[3], res[4], res[5]])), columns = ['iter', 'logL', 'mean_abs_grad', 'step_size', 'phi_logL', 'det_logL', 'Pois_logL'])
+    res_df = pd.DataFrame(np.transpose(np.array([res[0], res[1], all_abs_grads, step_subset, res[3], res[4], res[5]])), columns = ['iter', 'log_posterior', 'mean_abs_grad', 'step_size', 'logL_CAR_prior', 'logL_det', 'log_likelihood'])
 
     return(res_df)
     
