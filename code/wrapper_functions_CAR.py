@@ -527,7 +527,7 @@ def run_mcmc_CAR(init_state: Optional[List[tf.Tensor]] = None,
 
   # Check acceptance probability.
   p_accept = tf.math.exp(tfp.math.reduce_logmeanexp(
-    tf.minimum(sampler_stat[-1], 0.)))
+    tf.minimum(sampler_stat[1], 0.)))
   print(f'Acceptance Ratio: {p_accept}')
   
   if debug_mode:
@@ -575,7 +575,7 @@ def run_chain_CAR(init_state: List[tf.Tensor],
   if num_adaptation_steps is None:
     num_adaptation_steps = int(burnin  * 0.8)
 
-  def trace_fn(_, pkr): 
+  def trace_fn(states, pkr): 
     if step_adaptor_type == 'none':
       step_size = 0.1
     elif kernel_type == 'hmc':
@@ -583,7 +583,7 @@ def run_chain_CAR(init_state: List[tf.Tensor],
     else:
       step_size = pkr.inner_results.step_size
 
-    return (step_size, pkr.inner_results.log_accept_ratio)
+    return (step_size, pkr.inner_results.log_accept_ratio, states, pkr)
 
   if kernel_type == 'hmc':
     kernel = tfp.mcmc.HamiltonianMonteCarlo(
