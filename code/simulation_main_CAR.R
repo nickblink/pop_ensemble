@@ -28,6 +28,10 @@ lst <- subset_data_by_state(D2010, county_adj, 'New York', 'NY')
 # - being able to scale down the values in the data
 # - adding some noise to the models (no need right now)
 
+data2 <- simulate_models(data = lst$data, models = c('acs','pep'), means = c(100, 200), variances = c(10^2, 10^2))
+
+data3 <- scale
+
 # simulate the data
 phi_true, u_true, data = simulate_data(data_NY[:],
                                        adj_NY[:], 

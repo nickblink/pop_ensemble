@@ -125,7 +125,7 @@ def simulate_data(data_OG, adjacency, pivot = -1, sim_numbers = False, scale_dow
         poisson_noise: Whether to add noise to input models by simulating a poisson from each
         one_model: whether to only have one model determine the output. Worldpop is the default if this is chosen.
     """
-    # make copy of day so that the original data is not corruptedb
+    # make copy of day so that the original data is not corrupted
     data = data_OG[:]
     
     if sim_numbers:
