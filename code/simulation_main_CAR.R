@@ -18,8 +18,7 @@ models = c('pep', 'worldpop')
 
 
 # subset data by state
-lst <- subset_data_by_state(D2010, county_adj, 'New York', 'NY')
-
+NY_lst <- subset_data_by_state(D2010, county_adj, 'New York', 'NY')
 
 # Now I want to be able to simulate all sorts of data:
 # - different CAR precision matrices (could be an input? Like Leroux or BYM)
@@ -28,11 +27,12 @@ lst <- subset_data_by_state(D2010, county_adj, 'New York', 'NY')
 # - being able to scale down the values in the data
 # - adding some noise to the models (no need right now)
 
-data2 <- simulate_models(data = lst$data, models = c('acs','pep'), means = c(100, 200), variances = c(10^2, 10^2))
+data2 <- simulate_models(data = NY_lst$data, models = c('acs','pep'), means = c(100, 200), variances = c(10^2, 10^2))
 
-data3 <- scale
+data_lst <- simulate_data(NY_lst$data, NY_lst$adjacency, models = models, precision_type = 'Leroux', tau2 = 1, rho = 0.3)
 
 # simulate the data
+lst_dat
 phi_true, u_true, data = simulate_data(data_NY[:],
                                        adj_NY[:], 
                                        sim_numbers = False,
