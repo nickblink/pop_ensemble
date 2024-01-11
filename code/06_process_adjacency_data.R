@@ -60,3 +60,18 @@ length(unique(D2$name))
 
 D2[D2$name == 'Todd County, MN',]
 }
+
+
+### Make the NY data
+adj <- read.csv('data/countyadj2.csv')[,-1]
+
+D <- read.csv('data/merged_wp_census_data2_081122.csv')
+
+ind <- grep('New York', D$NAME)
+
+adj <- adj[ind,ind]
+D <- D[ind,]
+
+write.csv(D, row.names = F, file = 'data/merged_wp_census_data_NY_081122.csv')
+
+write.csv(adj, file = 'data/countyadj_NY.csv')
