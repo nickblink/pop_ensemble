@@ -46,13 +46,13 @@ simulate_models <- function(data, models, means, variances){
   return(data)
 }
   
-### Generate the precision matrix based. Can generate an ICAR, Cressie, or Leroux precision matrix
-# type: "ICAR" or "Leroux", for the type of precision matrix
+### Generate the precision matrix based. Can generate an Cressie, Cressie, or Leroux precision matrix
+# type: "Cressie" or "Leroux", for the type of precision matrix
 # rho: the spatial correlation parameter, ranging from 0 to 1
 # tau2: the variance parameter
 generate_precision_mat <- function(W, type, tau2, rho){
   D = diag(rowSums(W))
-  if(type == 'ICAR'){
+  if(type == 'Cressie'){
     Q = (D - rho*W)
   }else if(type == 'Leroux'){
     Q = (rho*(D - W) + (1-rho)*diag(rep(1,nrow(D))))
@@ -62,7 +62,7 @@ generate_precision_mat <- function(W, type, tau2, rho){
   return(Q)
 }
 
-### Sampling a multivariate normal from a precision matrix
+### Sampling a multivariate normal from a precision matrix using cholesky decomposition
 sample_MVN_from_precision <- function(n = 1, mu=rep(0, nrow(Q)), Q){
   p <- length(mu)
   Z <- matrix(rnorm(p*n), p, n)
@@ -78,10 +78,10 @@ sample_MVN_from_precision <- function(n = 1, mu=rep(0, nrow(Q)), Q){
 # models: the models to use in the ensemble
 # scale_down: a factor to scale down the covariate values
 # pivot: what pivot index to use for data creation (-1 indicates no pivot)
-# precision_type: "ICAR" or "Leroux", determining the CAR precision matrix.
+# precision_type: "Cressie" or "Leroux", determining the CAR precision matrix.
 # tau2: the CAR variance parameter
 # rho: the CAR spatial correlation parameter
-simulate_data <- function(data, adjacency, models = c('acs','pep','worldpop'), scale_down = 1, pivot = -1, precision_type = 'ICAR', tau2 = 1, rho = 0.3){
+simulate_data <- function(data, adjacency, models = c('acs','pep','worldpop'), scale_down = 1, pivot = -1, precision_type = 'Cressie', tau2 = 1, rho = 0.3){
   
   # scale down the data size
   data[,models] <- data[,models]/scale_down
