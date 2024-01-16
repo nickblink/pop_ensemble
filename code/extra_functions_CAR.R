@@ -110,10 +110,66 @@ simulate_data <- function(data, adjacency, models = c('acs','pep','worldpop'), s
   # simulate the y values
   data$y <- rpois(n = nrow(data), lambda = data$y_expected)
   
-  return(list(data = data, phi_true = phi_true, u_true = u_true))
+  return(list(data = data, adjacency = adjacency, phi_true = phi_true, u_true = u_true))
 }
 
 
+### prep the data for fitting the stan model
+# data: the observed data with the outcome "y" and the covariates as models. 
+# W: the adjacency matrix
+# models: a vector of the models to use in the ensemble
+prep_stan_data_leroux_sparse <- function(data, W, models){
+  # checking columns
+  if(!('y' %in% colnames(data))){
+    stop('need y as a column in data')
+  }
+  if(any(!(models %in% colnames(data)))){
+    stop('models input do not exist in data')
+  }
+  
+  N = nrow(data)
+  
+  W_n = sum(W)/2
+  # W2 = make_district_W2_matrix(df)
+  
+  # get eigenvalues for determinant calculation
+  lambda = eigen(diag(rowSums(W)) - W - diag(1, nrow(W)))$values
+  
+  # make the design matrix
+  X = as.matrix(data[,models])
+  
+  # get the outcome
+  y = data$y
+  
+  # # comparing missingness.
+  # if(!identical(as.integer(rownames(X_obs)), which(!is.na(df$y)))){
+  #   stop('mismatch of model matrix and df missing rows')
+  # }
+  
+  # missingness data
+  N_miss = sum(is.na(y))
+  N_obs = sum(!is.na(y))
+  ind_miss = which(is.na(y))
+  ind_obs = which(!is.na(y))
+  y_obs = y[ind_obs]
+  
+  # make the stan data frame
+  stan_data <- list(
+    M = length(models), # number of models
+    N = N, # number of observations
+    N_miss = N_miss, # number of missing y points
+    N_obs = N_obs,
+    ind_miss = ind_miss, # indices of missing y points
+    ind_obs = ind_obs,
+    X = X, # design matrix
+    y_obs = y_obs, # outcome variable 
+    W = W,
+    W_n = W_n,
+    I = diag(1.0, N),
+    lambda = lambda)
+  
+  return(stan_data)
+}
 
 
 
