@@ -3,7 +3,7 @@ functions {
   * Return the log probability of a proper conditional autoregressive (CAR) prior 
   * with a sparse representation for the adjacency matrix
   *
-  * @param phi_star CAR prior phi for a given model
+  * @param phi CAR prior phi for a given model
   * @param tau2 variance parameter for the CAR prior (real)
   * @param alpha Dependence (usually spatial) parameter for the CAR prior (real)
   * @param W_sparse Sparse representation of adjacency matrix (int array)
@@ -14,19 +14,19 @@ functions {
   *
   * @return Log probability density of CAR prior up to additive constant
   */
-  real sparse_car_lpdf(vector phi_star, real tau2, real rho, int[,] W_sparse, 
+  real sparse_car_lpdf(vector phi, real tau2, real rho, int[,] W_sparse, 
   vector D_sparse, real log_det_Q, int n, int W_n) {
       row_vector[n] phit_D; // phi' * D
       row_vector[n] phit_W; // phi' * W
     
-      phit_D = (phi_star .* D_sparse)';
+      phit_D = (phi .* D_sparse)';
       phit_W = rep_row_vector(0, n);
       for (i in 1:W_n) {
-        phit_W[W_sparse[i, 1]] = phit_W[W_sparse[i, 1]] + phi_star[W_sparse[i, 2]];
-        phit_W[W_sparse[i, 2]] = phit_W[W_sparse[i, 2]] + phi_star[W_sparse[i, 1]];
+        phit_W[W_sparse[i, 1]] = phit_W[W_sparse[i, 1]] + phi[W_sparse[i, 2]];
+        phit_W[W_sparse[i, 2]] = phit_W[W_sparse[i, 2]] + phi[W_sparse[i, 1]];
       }
     
-      return 0.5 * (log_det_Q - (1/tau2) * (rho * (phit_D * phi_star) - rho * (phit_W * phi_star) + (1 - rho)*dot_self(phi_star)));
+      return 0.5 * (log_det_Q - (1/tau2) * (rho * (phit_D * phi) - rho * (phit_W * phi) + (1 - rho)*dot_self(phi)));
   }
 }data {
   int<lower=0> M; // number of models
@@ -97,10 +97,14 @@ transformed parameters {
   }
 }
 model {
-  y_obs ~ poisson(observed_est); // likelihood
+  // likelihood
+  y_obs ~ poisson(observed_est);
+  // CAR prior
   for(m in 1:M){
 	phi[1:N, m] ~ sparse_car(tau2[m], rho[m], W_sparse, D_sparse, log_detQ[m], N, W_n);
   }
+  // gamma prior on tau2 
+  tau2 ~ gamma(1, 5);
 }
 generated quantities {
   vector[N] y_exp = mu;

@@ -33,48 +33,78 @@ NY_lst <- subset_data_by_state(D2010, county_adj, 'New York', 'NY')
 # data2 <- simulate_models(data = NY_lst$data, models = c('acs','pep'), means = c(100, 200), variances = c(10^2, 10^2))
 data_lst <- simulate_data(NY_lst$data, NY_lst$adjacency, models = models, precision_type = 'Leroux', tau2 = 1, rho = 0.3)
 
+## fit the model
+stan_fit <- run_stan_CAR(data_lst$data, data_lst$adjacency, models = models)
 
-## run MAP estimation?
 
+# debug and analyze the model
+shinystan::launch_shinystan(stan_fit)
+
+stan_out <- extract(stan_fit)
+
+tt <- stan_out$mu
+which(apply(tt, 1, function(xx) any(is.na(xx))))
+# [94,55] is one place
+
+ss <- stan_out$u
+ss[94, 55, ]
+# NaN 0. Ok ok 
+
+vv <- stan_out$phi
+vv[94, 55, ]
+# 709.5587 -252.6754
+# ok in general I am getting crazy big values for phi.
+# so no wonder exponentiating these gets crazy big.
+
+# what is tau2?
+tau <- stan_out$tau2
+colMeans(tau)
+# 97193.93 100957.00
+# ok obviously something is wrong.
+
+aa <- stan_out$log_detQ
+plot(density(aa))
+# so on the log scale not much variation. But that's huge on the not log scale, right? No, it's super super small. Because of the tau2, amiright?
+
+bb <- stan_out$ldet_vec
+# ok so the tau2 term dominates
+
+cc <- stan_out$lp__
+# ah so it's friggin huge.
+
+stan_summary = summary(stan_fit, pars = c('tau2','rho', 'phi'))$summary
+stan_lst <- list(stan_fit = stan_fit,
+                 stan_out = stan_out,
+                 stan_summary = stan_summary)
+
+stan_summary = summary(stan_list$stan_fit, pars = c('tau2','rho', 'phi', 'u'))$summary
+
+
+### Trying with smaller values
+data_lst2 <- simulate_data(NY_lst$data, NY_lst$adjacency, models = models, precision_type = 'Leroux', tau2 = 1, rho = 0.3, scale_down = 1000)
 
 ## fit the model
-# function to fit:
-### Fits the CAR model using rstan. Prepares the data for rstan and runs it.
-# data: input data with output column y and covariate columns according to models.
-# adjacency: the adjacency matrix for the data.
-# models: the models for the ensemble.
-# precision_type: Cressie or Leroux, for the type of precision matrix.
-# n.sample: the number of iterations to run the rstan code.
-# burnin: the number of burnin iterations to run the rstan code.
-# seed: a seed for reproducability
-run_stan_CAR <- function(data, adjacency, models = c('acs','pep','worldpop'), precision_type = 'Leroux', n.sample = 10000, burnin = 5000, seed = 10){
-  # error checking for precision matrix type
-  if(precision_type != 'Leroux'){stop('only have Leroux precision coded')}
-  
-  # prep the data
-  stan_data <- prep_stan_data_leroux_sparse(data, adjacency, models)
-  
-  # fit the stan model
-  stan_fit <- stan(file = "code/CAR_leroux_sparse.stan",
-                   data = stan_data, 
-                   iter = n.sample, 
-                   warmup = burnin,
-                   chains = 1, 
-                   init = '0',
-                   cores = 1,
-                   seed = seed)
-  
-  # extract important info
-  stan_out <- extract(stan_fit)
-  stan_summary = summary(stan_fit, pars = c('tau2','rho', 'phi'))$summary
-  stan_lst <- list(stan_out = stan_out, 
-                   stan_summary = stan_summary)
-  return(stan_lst)
-}
+stan_fit2 <- run_stan_CAR(data_lst2$data, data_lst2$adjacency, models = models)
 
-test <- run_stan_CAR(data_lst$data, data_lst$adjacency, models = models)
+### Trying with different y values
+data2 <- simulate_models(data = NY_lst$data, models = c('acs','pep'), means = c(100, 200), variances = c(10^2, 10^2))
+data_lst3 <- simulate_data(data2, NY_lst$adjacency, models = models, precision_type = 'Leroux', tau2 = 1, rho = 0.3)
+
+stan_fit3 <- run_stan_CAR(data_lst3$data, data_lst3$adjacency, models = models)
+
 
 # create the posterior
+process_results <- function(data, models, stan_list){
+  ## get the ESS of phi, u, and others
+  
+  ## get the posterior split into likelihood and log posterior
+  
+  ## compare the true phi values with the estimated phi values
+  
+  ## compare the true u values with the estimated u values
+  
+  ## compare the true outcomes with the estimated outcomes (compared to just using one model in the outcomes)
+}
 
 # create stan data prep
 

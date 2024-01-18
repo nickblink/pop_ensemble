@@ -26,6 +26,7 @@ subset_data_by_state <- function(data, adjacency, state, abbrev = NULL){
   return(list(data = data_subset, adjacency = adjacency_subset))
 }
 
+
 ### simulate the numbers in the data according to a normal distribution
 # data: the input data
 # models: the models to simulate data for
@@ -46,6 +47,7 @@ simulate_models <- function(data, models, means, variances){
   return(data)
 }
   
+
 ### Generate the precision matrix based. Can generate an Cressie, Cressie, or Leroux precision matrix
 # type: "Cressie" or "Leroux", for the type of precision matrix
 # rho: the spatial correlation parameter, ranging from 0 to 1
@@ -62,6 +64,7 @@ generate_precision_mat <- function(W, type, tau2, rho){
   return(Q)
 }
 
+
 ### Sampling a multivariate normal from a precision matrix using cholesky decomposition
 sample_MVN_from_precision <- function(n = 1, mu=rep(0, nrow(Q)), Q){
   p <- length(mu)
@@ -71,6 +74,7 @@ sample_MVN_from_precision <- function(n = 1, mu=rep(0, nrow(Q)), Q){
   X <- sweep(X, 1, mu, FUN=`+`)
   return(X)
 }
+
 
 ### Simulate the data!
 # data: the input data
@@ -172,9 +176,40 @@ prep_stan_data_leroux_sparse <- function(data, W, models){
 }
 
 
-
-
-
+### Fits the CAR model using rstan. Prepares the data for rstan and runs it.
+# data: input data with output column y and covariate columns according to models.
+# adjacency: the adjacency matrix for the data.
+# models: the models for the ensemble.
+# precision_type: Cressie or Leroux, for the type of precision matrix.
+# n.sample: the number of iterations to run the rstan code.
+# burnin: the number of burnin iterations to run the rstan code.
+# seed: a seed for reproducability
+run_stan_CAR <- function(data, adjacency, models = c('acs','pep','worldpop'), precision_type = 'Leroux', n.sample = 10000, burnin = 5000, seed = 10){
+  # error checking for precision matrix type
+  if(precision_type != 'Leroux'){stop('only have Leroux precision coded')}
+  
+  # prep the data
+  stan_data <- prep_stan_data_leroux_sparse(data, adjacency, models)
+  
+  # fit the stan model
+  stan_fit <- stan(file = "code/CAR_leroux_sparse.stan",
+                   data = stan_data, 
+                   iter = n.sample, 
+                   warmup = burnin,
+                   chains = 1, 
+                   init = '0',
+                   cores = 1,
+                   seed = seed)
+  
+  # # extract important info
+  # stan_out <- extract(stan_fit)
+  # stan_summary = summary(stan_fit, pars = c('tau2','rho', 'phi'))$summary
+  # stan_lst <- list(stan_fit = stan_fit,
+  #                  stan_out = stan_out, 
+  #                  stan_summary = stan_summary)
+  #return(stan_lst)
+  return(stan_fit)
+}
 
 
   
