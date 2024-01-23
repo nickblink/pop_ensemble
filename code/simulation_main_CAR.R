@@ -31,6 +31,9 @@ NY_lst <- subset_data_by_state(D2010, county_adj, 'New York', 'NY')
 
 
 ## simulate the data
+
+# previous runs
+{
 # data2 <- simulate_models(data = NY_lst$data, models = c('acs','pep'), means = c(100, 200), variances = c(10^2, 10^2))
 data_lst <- simulate_data(NY_lst$data, NY_lst$adjacency, models = models, precision_type = 'Leroux', tau2 = 1, rho = 0.3)
 
@@ -86,27 +89,29 @@ data_lst2 <- simulate_data(NY_lst$data, NY_lst$adjacency, models = models, preci
 
 ## fit the model
 stan_fit2 <- run_stan_CAR(data_lst2$data, data_lst2$adjacency, models = models)
+}
 
 ### Trying with different y values
-data2 <- simulate_models(data = NY_lst$data, models = c('acs','pep'), means = c(100, 200), variances = c(10^2, 10^2))
-data_lst3 <- simulate_data(data2, NY_lst$adjacency, models = models, precision_type = 'Leroux', tau2 = 1, rho = 0.3)
+data <- simulate_models(data = NY_lst$data, models = c('acs','pep'), means = c(100, 200), variances = c(10^2, 10^2))
+data_lst <- simulate_data(data, NY_lst$adjacency, models = models, precision_type = 'Leroux', tau2 = 1, rho = 0.3)
 
-stan_fit3 <- run_stan_CAR(data_lst3$data, data_lst3$adjacency, models = models)
-save(stan_fit3, data_lst3, data, file = 'C:/Users/Admin-Dell/Dropbox/Academic/HSPH/Research/Population Estimation/Results/results_sim_01232024.RData')
-
+stan_fit <- run_stan_CAR(data_lst$data, data_lst$adjacency, models = models, n.sample = 1000, burnin = 500)
+#save(stan_fit3, data_lst3, data, file = 'C:/Users/Admin-Dell/Dropbox/Academic/HSPH/Research/Population Estimation/Results/results_sim_01232024.RData')
+load('C:/Users/nickl/Dropbox/Academic/HSPH/Research/Population Estimation/Results/results_sim_01232024.RData')
+data_list <- data_lst3; stan_fit <- stan_fit3
 
 # process the results
 process_results <- function(data_list, models, stan_fit){
   N = nrow(data_list$data)
   
   ## grab the results
-  stan_summary = summary(stan_fit, pars = c('tau2','rho', 'phi', 'u'))$summary
+  stan_summary = summary(stan_fit, pars = c('tau2','rho', 'phi', 'u','y_exp','lp__'))$summary
   stan_out <- extract(stan_fit)
   
   ## get the convergence parameters
   # ESS of tau2 and rho
-  print(ESS_spatial)
   ESS_spatial <- data.frame(stan_summary[1:(2*length(models)), c('n_eff', 'Rhat')])
+  print(ESS_spatial)
   
   # ESS of phi
   ind = grep('phi', rownames(stan_summary))
@@ -180,12 +185,22 @@ process_results <- function(data_list, models, stan_fit){
   }
   
   ## compare the true outcomes with the estimated outcomes (compared to just using one model in the outcomes)
+  ind = grep('y_exp', rownames(stan_summary))
+  data_list$data$y_predicted <- stan_summary[ind,'50%']
+  p4 <- ggplot(data_list$data, aes(x = y, y_predicted)) + 
+    geom_point() + 
+    geom_abline(slope = 1, intercept = 0, col = 'red') + 
+    xlab('observed y') + 
+    ylab('median estimated y') + 
+    ggtitle('y estimation')
   
   
-  full_plot <- cowplot::plot_grid(p1, p2, p3, ncol = 1)
+  
+  full_plot <- cowplot::plot_grid(p1, p2, p3, p4, ncol = 1)
   
   return(full_plot)
 }
 
+pp <- process_results(data_list, models, stan_fit)
 
 ### (later) plot the chloroploth maps
