@@ -1,5 +1,6 @@
 library(dplyr)
 library(rstan)
+library(ggplot2)
 
 rstan_options(auto_write = TRUE)
 
@@ -91,36 +92,100 @@ data2 <- simulate_models(data = NY_lst$data, models = c('acs','pep'), means = c(
 data_lst3 <- simulate_data(data2, NY_lst$adjacency, models = models, precision_type = 'Leroux', tau2 = 1, rho = 0.3)
 
 stan_fit3 <- run_stan_CAR(data_lst3$data, data_lst3$adjacency, models = models)
+save(stan_fit3, data_lst3, data, file = 'C:/Users/Admin-Dell/Dropbox/Academic/HSPH/Research/Population Estimation/Results/results_sim_01232024.RData')
 
 
-# create the posterior
-process_results <- function(data, models, stan_list){
-  ## get the ESS of phi, u, and others
+# process the results
+process_results <- function(data_list, models, stan_fit){
+  N = nrow(data_list$data)
+  
+  ## grab the results
+  stan_summary = summary(stan_fit, pars = c('tau2','rho', 'phi', 'u'))$summary
+  stan_out <- extract(stan_fit)
+  
+  ## get the convergence parameters
+  # ESS of tau2 and rho
+  print(ESS_spatial)
+  ESS_spatial <- data.frame(stan_summary[1:(2*length(models)), c('n_eff', 'Rhat')])
+  
+  # ESS of phi
+  ind = grep('phi', rownames(stan_summary))
+  # ind1 = grep('phi\\[[0-9]{1,2},1\\]', rownames(stan_summary))
+  # ind2 = grep('phi\\[[0-9]{1,2},2\\]', rownames(stan_summary))
+  print(sprintf('median ESS for phi is %s and median rhat is %s', round(median(stan_summary[ind, 'n_eff']), 1), round(median(stan_summary[ind, 'Rhat']), 3)))
+  x = data.frame(n_eff = stan_summary[ind, 'n_eff'])
+  p1 <- ggplot(data = x, aes(x = n_eff)) + 
+    geom_density() +
+    scale_x_continuous(trans='log2') + 
+    ggtitle('ESS of phis')
   
   ## get the posterior split into likelihood and log posterior
   
   ## compare the true phi values with the estimated phi values
+  {
+    phi_est <- as.data.frame(matrix(0, nrow = N, ncol = length(models)))
+    colnames(phi_est) <- models
+    for(i in 1:length(models)){
+      ind = grep(sprintf('phi\\[[0-9]{1,2},%s\\]', i), rownames(stan_summary))
+      phi_est[,i] <- stan_summary[ind,'50%']
+    }
+    phi_est$index = 1:N
+    
+    # convert estimates to long
+    phi_est_long <- tidyr::gather(phi_est, key = model, value = phi_median_est, -index)
+    
+    # convert true vals to long
+    phi_true_long <- tidyr::gather(data_list$phi_true, key = model, value = phi_true, -index)
+    
+    # merge them
+    phi_mat <- merge(phi_est_long, phi_true_long, by = c('index','model'))
+  
+    # plot 'em
+    p2 <- ggplot(phi_mat, aes(x = phi_true, phi_median_est)) + 
+      geom_point() + 
+      geom_abline(slope = 1, intercept = 0, col = 'red') + 
+      facet_wrap(~model) + 
+      xlab('true phi values') + 
+      ylab('median estimated phi values') + 
+      ggtitle('phi estimates')
+  }
   
   ## compare the true u values with the estimated u values
+  {
+    u_est <- as.data.frame(matrix(0, nrow = N, ncol = length(models)))
+    colnames(u_est) <- models
+    for(i in 1:length(models)){
+      ind = grep(sprintf('u\\[[0-9]{1,2},%s\\]', i), rownames(stan_summary))
+      u_est[,i] <- stan_summary[ind,'50%']
+    }
+    u_est$index = 1:N
+    
+    # convert estimates to long
+    u_est_long <- tidyr::gather(u_est, key = model, value = u_median_est, -index)
+    
+    # convert true vals to long
+    u_true_long <- tidyr::gather(data_list$u_true, key = model, value = u_true, -index)
+    
+    # merge them
+    u_mat <- merge(u_est_long, u_true_long, by = c('index','model'))
+    
+    # plot 'em
+    p3 <- ggplot(u_mat, aes(x = u_true, u_median_est)) + 
+      geom_point() + 
+      geom_abline(slope = 1, intercept = 0, col = 'red') + 
+      facet_wrap(~model) + 
+      xlab('true u values') + 
+      ylab('median estimated u values') + 
+      ggtitle('u estimates')
+  }
   
   ## compare the true outcomes with the estimated outcomes (compared to just using one model in the outcomes)
+  
+  
+  full_plot <- cowplot::plot_grid(p1, p2, p3, ncol = 1)
+  
+  return(full_plot)
 }
-
-# create stan data prep
-
-# analysis
-# pull the gradients, log likelihood values
-# plot the gradients and the log posterior, splitting likelihood and prior
-
-# show the ESS and rhat
-
-# plot density of phi samples and density of phi averages
-
-# plot density of u values
-
-# plot u values fitted vs. true
-
-# plot predictions vs. true
 
 
 ### (later) plot the chloroploth maps

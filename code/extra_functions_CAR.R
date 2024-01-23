@@ -114,6 +114,11 @@ simulate_data <- function(data, adjacency, models = c('acs','pep','worldpop'), s
   # simulate the y values
   data$y <- rpois(n = nrow(data), lambda = data$y_expected)
   
+  data$index = 1:nrow(data)
+  phi_true <- as.data.frame(phi_true) %>%
+    mutate(index = 1:nrow(phi_true))
+  u_true <- as.data.frame(u_true) %>%
+    mutate(index = 1:nrow(u_true))
   return(list(data = data, adjacency = adjacency, phi_true = phi_true, u_true = u_true))
 }
 
