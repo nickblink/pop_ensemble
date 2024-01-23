@@ -85,22 +85,39 @@ sample_MVN_from_precision <- function(n = 1, mu=rep(0, nrow(Q)), Q){
 # precision_type: "Cressie" or "Leroux", determining the CAR precision matrix.
 # tau2: the CAR variance parameter
 # rho: the CAR spatial correlation parameter
-simulate_data <- function(data, adjacency, models = c('acs','pep','worldpop'), scale_down = 1, pivot = -1, precision_type = 'Cressie', tau2 = 1, rho = 0.3){
+# seed: random seed to initialize function with
+simulate_data <- function(data, adjacency, models = c('acs','pep','worldpop'), scale_down = 1, pivot = -1, precision_type = 'Cressie', tau2 = 1, rho = 0.3, seed = 10){
+  # set seed for reproducability 
+  set.seed(seed)
+  
+  # transform to be for each model
+  if(length(tau2) == 1 & length(models) > 1){
+    tau2 = rep(tau2, length(models))
+  }
+  if(length(rho) == 1 & length(models) > 1){
+    rho = rep(rho, length(models))
+  }
   
   # scale down the data size
   data[,models] <- data[,models]/scale_down
   
-  # create the precision matrix
-  Q <- generate_precision_mat(W = adjacency, type = precision_type, tau2 = tau2, rho = rho)
+  # initialize phi_true
+  phi_true <- matrix(0, nrow = nrow(data), ncol = length(models))
   
-  if(pivot == -1){
-    # sample from MVN based on the precision matrix
-    phi_true <- sample_MVN_from_precision(n = length(models), Q = Q)
-  }else{
-    stop('havent coded for pivot data generation')
+  # cycle through models to generate phi values
+  for(i in 1:length(models)){
+    # create the precision matrix
+    Q <- generate_precision_mat(W = adjacency, type = precision_type, tau2 = tau2[i], rho = rho[i])
+    
+    if(pivot == -1){
+      # sample from MVN based on the precision matrix
+      phi_true[,i] <- sample_MVN_from_precision(n = 1, Q = Q)
+    }else{
+      stop('havent coded for pivot data generation')
+    }
   }
   colnames(phi_true) <- models
-  
+    
   # get exponentiated values and sum across models
   exp_phi = exp(phi_true)
   exp_phi_rows = rowSums(exp_phi)
@@ -119,7 +136,7 @@ simulate_data <- function(data, adjacency, models = c('acs','pep','worldpop'), s
     mutate(index = 1:nrow(phi_true))
   u_true <- as.data.frame(u_true) %>%
     mutate(index = 1:nrow(u_true))
-  return(list(data = data, adjacency = adjacency, phi_true = phi_true, u_true = u_true))
+  return(list(data = data, adjacency = adjacency, phi_true = phi_true, u_true = u_true, tau2 = tau2, rho = rho))
 }
 
 
