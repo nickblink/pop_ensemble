@@ -109,4 +109,5 @@ model {
 generated quantities {
   vector[N] y_exp = mu;
   int y_pred[N] = poisson_rng(mu);
+  real log_likelihood = poisson_lpmf(y_obs | observed_est);
 }
