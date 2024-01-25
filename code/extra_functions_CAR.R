@@ -33,7 +33,8 @@ subset_data_by_state <- function(data, adjacency, state, abbrev = NULL){
 # models: the models to simulate data for
 # means: the means of the normals for each model
 # variances: the variances of the normals for each model
-simulate_models <- function(data, models, means, variances){
+simulate_models <- function(data, models, means, variances, seed = 10){
+  set.seed(seed)
   # check that the lengths of the inputs match
   if(length(models) != length(means) | length(models) != length(variances)){
     stop('length of models, means, and variances, not matching up')
@@ -62,6 +63,7 @@ generate_precision_mat <- function(W, type, tau2, rho){
   }else{
     stop('please input a proper precision matrix type')
   }
+  Q = Q/tau2
   return(Q)
 }
 
@@ -87,7 +89,7 @@ sample_MVN_from_precision <- function(n = 1, mu=rep(0, nrow(Q)), Q){
 # tau2: the CAR variance parameter
 # rho: the CAR spatial correlation parameter
 # seed: random seed to initialize function with
-simulate_data <- function(data, adjacency, models = c('acs','pep','worldpop'), scale_down = 1, pivot = -1, precision_type = 'Cressie', tau2 = 1, rho = 0.3, seed = 10){
+simulate_data <- function(data, adjacency, models = c('acs','pep','worldpop'), scale_down = 1, pivot = -1, precision_type = 'Cressie', tau2 = 1, rho = 0.3, seed = 10, cholesky = T){
   # set seed for reproducability 
   set.seed(seed)
   
@@ -112,7 +114,12 @@ simulate_data <- function(data, adjacency, models = c('acs','pep','worldpop'), s
     
     if(pivot == -1){
       # sample from MVN based on the precision matrix
-      phi_true[,i] <- sample_MVN_from_precision(n = 1, Q = Q)
+      if(cholesky){
+        phi_true[,i] <- sample_MVN_from_precision(n = 1, Q = Q)
+      }else{
+        Sigma <- solve(Q)
+        phi_true[,i] <- MASS::mvrnorm(n = 1, mu = rep(0,nrow(Sigma)), Sigma = Sigma)
+      }
     }else{
       stop('havent coded for pivot data generation')
     }
@@ -239,7 +246,7 @@ run_stan_CAR <- function(data, adjacency, models = c('acs','pep','worldpop'), pr
 # data_list: List containing data used for the fit, the true phi values, and the true u values.
 # models: Vector of models used for fitting.
 # stan_fit: The result of the stan fit on this data.
-process_results <- function(data_list, models, stan_fit, ESS = T, likelihoods = T){
+process_results <- function(data_list, models, stan_fit, ESS = T, likelihoods = T, spatial_params = T, phi_estimates = T, u_estimates = T, y_estimates = T){
   N = nrow(data_list$data)
   
   plot_list = NULL
@@ -290,40 +297,42 @@ process_results <- function(data_list, models, stan_fit, ESS = T, likelihoods = 
   }
   
   ## get the spatial parameter estimates
-  tau2 <- NULL
-  rho <- NULL
-  for(i in 1:length(models)){
-    tau2 <- rbind(tau2, 
-                  data.frame(value = stan_out$tau2[,i], 
-                             model = models[i]))
-    rho <- rbind(rho, 
-                 data.frame(value = stan_out$rho[,i], 
-                            model = models[i]))
+  if(spatial_params){
+    tau2 <- NULL
+    rho <- NULL
+    for(i in 1:length(models)){
+      tau2 <- rbind(tau2, 
+                    data.frame(value = stan_out$tau2[,i], 
+                               model = models[i]))
+      rho <- rbind(rho, 
+                   data.frame(value = stan_out$rho[,i], 
+                              model = models[i]))
+    }
+    
+    # get the true spatial params
+    true_vals <- data.frame(model = models, 
+                            tau2 = data_list$tau2, 
+                            rho = data_list$rho)
+    
+    # plot the tau2 param
+    p_tau2 <- ggplot(data = tau2, aes(x = model, y = value)) + 
+      geom_boxplot() + 
+      geom_point(data = true_vals, aes(x = model, y = tau2, col = 'red')) + 
+      ggtitle('tau2 estimates') + 
+      theme(legend.position = 'none')
+    
+    # plot the rho param 
+    p_rho <- ggplot(data = rho, aes(x = model, y = value)) + 
+      geom_boxplot() + 
+      geom_point(data = true_vals, aes(x = model, y = rho, col = 'red')) + 
+      ggtitle('rho estimates') + 
+      theme(legend.position = 'none')
+    
+    plot_list <- append(plot_list, list(plot_grid(p_rho, p_tau2)))
   }
   
-  # get the true spatial params
-  true_vals <- data.frame(model = models, 
-                          tau2 = data_lst$tau2, 
-                          rho = data_lst$rho)
-  
-  # plot the tau2 param
-  p_tau2 <- ggplot(data = tau2, aes(x = model, y = value)) + 
-    geom_boxplot() + 
-    geom_point(data = true_vals, aes(x = model, y = tau2, col = 'red')) + 
-    ggtitle('tau2 estimates') + 
-    theme(legend.position = 'none')
-  
-  # plot the rho param 
-  p_rho <- ggplot(data = rho, aes(x = model, y = value)) + 
-    geom_boxplot() + 
-    geom_point(data = true_vals, aes(x = model, y = rho, col = 'red')) + 
-    ggtitle('rho estimates') + 
-    theme(legend.position = 'none')
-  
-  plot_list <- append(plot_list, list(plot_grid(p_rho, p_tau2)))
-  
   ## compare the true phi values with the estimated phi values
-  {
+  if(phi_estimates){
     phi_est <- as.data.frame(matrix(0, nrow = N, ncol = length(models)))
     colnames(phi_est) <- models
     for(i in 1:length(models)){
@@ -352,10 +361,10 @@ process_results <- function(data_list, models, stan_fit, ESS = T, likelihoods = 
       ggtitle('phi estimates')
     
     plot_list <- append(plot_list, list(p_phi))
-    }
+  }
   
   ## compare the true u values with the estimated u values
-  {
+  if(u_estimates){
     u_est <- as.data.frame(matrix(0, nrow = N, ncol = length(models)))
     colnames(u_est) <- models
     for(i in 1:length(models)){
@@ -387,18 +396,21 @@ process_results <- function(data_list, models, stan_fit, ESS = T, likelihoods = 
   }
   
   ## compare the true outcomes with the estimated outcomes (compared to just using one model in the outcomes)
-  ind = grep('y_exp', rownames(stan_summary))
-  data_list$data$y_predicted <- stan_summary[ind,'50%']
-  p_y <- ggplot(data_list$data, aes(x = y, y_predicted)) + 
-    geom_point() +
-    geom_smooth(method='lm') + 
-    geom_abline(slope = 1, intercept = 0, col = 'red') + 
-    xlab('observed y') + 
-    ylab('median estimated y') + 
-    ggtitle('y estimation')
+  if(y_estimates){
+    ind = grep('y_exp', rownames(stan_summary))
+    data_list$data$y_predicted <- stan_summary[ind,'50%']
+    p_y <- ggplot(data_list$data, aes(x = y, y_predicted)) + 
+      geom_point() +
+      geom_smooth(method='lm') + 
+      geom_abline(slope = 1, intercept = 0, col = 'red') + 
+      xlab('observed y') + 
+      ylab('median estimated y') + 
+      ggtitle('y estimation')
+    
+    plot_list <- append(plot_list, list(p_y))
+  }
   
-  plot_list <- append(plot_list, list(p_y))
-  
+  ## Combine all the plots!
   full_plot <- plot_grid(plotlist = plot_list,
                          ncol = 1)
   
