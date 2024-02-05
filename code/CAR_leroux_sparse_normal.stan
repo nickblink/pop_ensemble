@@ -78,6 +78,7 @@ transformed parameters {
   vector[N_obs] observed_est;
   real log_detQ[M];
   matrix[N + 1, M] ldet_vec;
+  real<lower = 0> sigma;
   
   // variable calculations
   exp_phi = exp(phi);
@@ -96,13 +97,16 @@ transformed parameters {
 	}
 	log_detQ[m] = sum(ldet_vec[1:N+1,m]);
   }
+  
+  // transform the y Gaussian variance to standard deviation.
+  sigma = sqrt(sigma2);
 }
 model {
   // prior on sigma2
-  sigma2 ~ gamma(1, 10)
+  sigma2 ~ gamma(1, 10);
   // likelihood
   // y_obs ~ poisson(observed_est);
-  y_obs ~ normal(observed_est, sqrt(sigma2))
+  y_obs ~ normal(observed_est, sigma);
   // CAR prior
   for(m in 1:M){
 	phi[1:N, m] ~ sparse_car(tau2[m], rho[m], W_sparse, D_sparse, log_detQ[m], N, W_n);
