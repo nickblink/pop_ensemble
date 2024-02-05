@@ -36,7 +36,7 @@ functions {
   int<lower=0, upper=N> ind_miss[N_miss]; // indices of missing y points
   int<lower=0, upper=N> ind_obs[N_obs]; // indices of observed y points
   matrix[N,M] X; // design matrix of ensemble models
-  int<lower=0> y_obs[N_obs];  // output
+  vector[N_obs] y_obs;  // output
   matrix<lower=0, upper = 1>[N, N] W; //adjacency matrix
   int W_n; // Number of adjacency pairs
   matrix[N,N] I; // Identity matrix
@@ -85,7 +85,7 @@ transformed parameters {
   for(m in 1:M){
 	exp_phi_sum[1:N,m] = (exp_phi * v_ones);
   }
-  u = exp_phi./exp_phi_sum;
+  u = exp_phi ./ exp_phi_sum;
   mu = (X .* u)*v_ones;
   observed_est = mu[ind_obs];
   

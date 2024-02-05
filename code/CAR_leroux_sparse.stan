@@ -81,19 +81,19 @@ transformed parameters {
   // variable calculations
   exp_phi = exp(phi);
   for(m in 1:M){
-	exp_phi_sum[1:N,m] = (exp_phi * v_ones);
+    exp_phi_sum[1:N,m] = (exp_phi * v_ones);
   }
-  u = exp_phi./exp_phi_sum;
+  u = exp_phi ./ exp_phi_sum;
   mu = (X .* u)*v_ones;
   observed_est = mu[ind_obs];
   
   // calculate the log determinants
   for (m in 1:M){
-	ldet_vec[N + 1,m] = -N*log(tau2[m]);
-	for (i in 1:N){
-		ldet_vec[i,m] = log1p(rho[m]*lambda[i]);
-	}
-	log_detQ[m] = sum(ldet_vec[1:N+1,m]);
+    ldet_vec[N + 1,m] = -N*log(tau2[m]);
+    for (i in 1:N){
+        ldet_vec[i,m] = log1p(rho[m]*lambda[i]);
+    }
+    log_detQ[m] = sum(ldet_vec[1:N+1,m]);
   }
 }
 model {
@@ -101,7 +101,7 @@ model {
   y_obs ~ poisson(observed_est);
   // CAR prior
   for(m in 1:M){
-	phi[1:N, m] ~ sparse_car(tau2[m], rho[m], W_sparse, D_sparse, log_detQ[m], N, W_n);
+    phi[1:N, m] ~ sparse_car(tau2[m], rho[m], W_sparse, D_sparse, log_detQ[m], N, W_n);
   }
   // gamma prior on tau2 
   tau2 ~ gamma(1, 5);

@@ -244,7 +244,7 @@ run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_
   }
   
   if(is.null(stan_m)){
-    stan_m <- stan_model(m)
+    stan_m <- stan_model(stan_path)
   }
   
   # fit the stan model

@@ -84,7 +84,7 @@ transformed parameters {
   for(m in 1:M){
 	exp_phi_sum[1:N,m] = (exp_phi * v_ones);
   }
-  u = exp_phi./exp_phi_sum;
+  u = exp_phi ./ exp_phi_sum;
   mu = (X .* u)*v_ones;
   observed_est = mu[ind_obs];
   

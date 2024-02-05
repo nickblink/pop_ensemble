@@ -30,6 +30,7 @@ system.time({
   res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2), means = c(100,200), N_sims = 1, n.sample = 1000, burnin = 400, rho = 0.3, tau2 = 1, tau2_fixed = F, family = 'normal', stan_path = 'code/CAR_leroux_sparse_normal.stan')
 })
 
+res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2), means = c(100,200), N_sims = 1, n.sample = 1000, burnin = 400, rho = 0.3, tau2 = 1, tau2_fixed = F)
 
 #
 #### Running with tau2 fixed, 2 models ####
