@@ -117,4 +117,5 @@ model {
 generated quantities {
   vector[N] y_exp = mu;
   int y_pred[N] = poisson_rng(mu);
+  real log_likelihood = normal_lpdf(y_obs | observed_est, sigma);
 }

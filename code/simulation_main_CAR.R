@@ -22,16 +22,30 @@ models = c('M1','M2')
 ## subset data by state
 NY_lst <- subset_data_by_state(D2010, county_adj, 'New York', 'NY')
 
-#### Testing new function form ####
+
+#### Running with normal distribution, 2 models ####
 models = c('M1','M2')
 
 # run the simulations
 system.time({
-  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2), means = c(100,200), N_sims = 1, n.sample = 1000, burnin = 400, rho = 0.3, tau2 = 1, tau2_fixed = F, family = 'normal', stan_path = 'code/CAR_leroux_sparse_normal.stan')
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2), means = c(100,200), N_sims = 10, rho = 0.3, tau2 = 1, tau2_fixed = F, family = 'normal', sigma2 = 10^2, stan_path = 'code/CAR_leroux_sparse_normal.stan')
 })
+# 22m
 
-res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2), means = c(100,200), N_sims = 1, n.sample = 1000, burnin = 400, rho = 0.3, tau2 = 1, tau2_fixed = F)
+# plot a single simulation results
+pp <- process_results(res_lst[[1]]$data_list, models, res_lst[[1]]$stan_fit, tau2_estimates = T, likelihoods = T, sigma2_estimates = T)
 
+# plot overall spatial param estimates
+tt <- plot_multiple_sims(res_lst, models, tau2_estimates = T)
+
+# save things
+{
+  save(res_lst, file = 'C:/Users/nickl/Dropbox/Academic/HSPH/Research/Population Estimation/Results/results_2models_10runs_normal_02052024.RData')
+  
+  ggsave(pp, file = 'C:/Users/nickl/Dropbox/Academic/HSPH/Research/Population Estimation/Figures/2models_normal_02052024.png', height = 10, width = 5)
+  
+  ggsave(plot = tt, filename = 'C:/Users/nickl/Dropbox/Academic/HSPH/Research/Population Estimation/Figures/spatial_params_2models_10runs_normal_02052024.png', width = 10, height = 15)
+}
 #
 #### Running with tau2 fixed, 2 models ####
 models = c('M1','M2')

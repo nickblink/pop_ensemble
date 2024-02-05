@@ -151,12 +151,20 @@ simulate_y <- function(data, adjacency, models = c('M1','M2','M3'), scale_down =
     stop('please input a proper family')
   }
   
+  # create phi and u data frames
   data$index = 1:nrow(data)
   phi_true <- as.data.frame(phi_true) %>%
     mutate(index = 1:nrow(phi_true))
   u_true <- as.data.frame(u_true) %>%
     mutate(index = 1:nrow(u_true))
-  return(list(data = data, adjacency = adjacency, phi_true = phi_true, u_true = u_true, tau2 = tau2, rho = rho))
+  
+  # create the list to return
+  res_list = list(data = data, adjacency = adjacency, phi_true = phi_true, u_true = u_true, tau2 = tau2, rho = rho)
+  if(!is.null(sigma2)){
+    res_list[['sigma2']] <- sigma2
+  }
+  
+  return(res_list)
 }
 
 
@@ -303,7 +311,7 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
     data <- simulate_models(data = raw_data$data, models = models, seed = i, means = means, variances = variances, ...)
     
     # simulate y values from input models
-    data_lst <- simulate_y(data, raw_data$adjacency, models = models, seed = i, ...)
+    data_lst <- simulate_y(data, raw_data$adjacency, models = models, seed = i, family = family, ...)
     
     # fit the Bayesian model
     if(tau2_fixed){
@@ -320,50 +328,15 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
   return(res_lst)
 }
 
-
-
-multiple_sims_test <- function(raw_data, models, N_sims = 10, tau2_fixed = F, stan_path = "code/CAR_leroux_sparse.stan", ...){
-  # check that the path works
-  if(tau2_fixed){
-    if(!grepl('tau2', stan_path)){
-      stop('need to use the stan code that fixes tau2')
-    }
-  }
-  
-  # compile the stan program
-  m <- stan_model(stan_path)
-  
-  # initialize results
-  res_lst <- list()
-  
-  # cycle through N simulations
-  for(i in 1:N_sims){
-    # simulate input model values
-    data <- simulate_models(data = raw_data$data, models = models, seed = i, ...)
-    
-    # simulate y values from input models
-    data_lst <- simulate_y(data, raw_data$adjacency, models = models, seed = i, ...)
-    
-    # fit the Bayesian model
-    if(tau2_fixed){
-      stan_fit <- run_stan_CAR(data_lst$data, data_lst$adjacency, models = models, seed = i, stan_m = m,  ...)
-    }else{
-      stan_fit <- run_stan_CAR(data_lst$data, data_lst$adjacency, models = models, seed = i, stan_m = m, ...)
-    }
-    
-    # store results
-    res_lst[[i]] <- list(data_list = data_lst, stan_fit = stan_fit)
-  }
-  
-  # return the results
-  return(res_lst)
-}
 
 ### process the results. Prints ESS for spatial params and returns a plot of various results for parameter estimates
 # data_list: List containing data used for the fit, the true phi values, and the true u values.
 # models: Vector of models used for fitting.
 # stan_fit: The result of the stan fit on this data.
-process_results <- function(data_list, models, stan_fit, ESS = T, likelihoods = T, rho_estimates = T, tau2_estimates = T, phi_estimates = T, u_estimates = T, y_estimates = T){
+# ESS: Whether to include the ESS of the parameters.
+# likelihoods: whether to include the prior, likelihood, and posterior
+# <XX>_estimates: whether to include the <XX> estimates
+process_results <- function(data_list, models, stan_fit, ESS = T, likelihoods = T, rho_estimates = T, tau2_estimates = T, sigma2_estimates = F, phi_estimates = T, u_estimates = T, y_estimates = T){
   N = nrow(data_list$data)
   
   plot_list = NULL
@@ -455,17 +428,33 @@ process_results <- function(data_list, models, stan_fit, ESS = T, likelihoods = 
       theme(legend.position = 'none')
   }
   
+  if(sigma2_estimates){
+    true_val = data.frame(val = data_list$sigma2)
+    df <- data.frame(estimates = stan_out$sigma2)
+    
+    p_sigma2 <- ggplot(data = df, aes(y = estimates)) + 
+      geom_boxplot() + 
+      geom_point(data = true_val, aes(y = val, x = 0, col = 'red')) +
+      ggtitle('sigma2 estimates') + 
+      theme(legend.position = 'none')
+  }
+  
   # combine rho and tau2
-  if(rho_estimates | tau2_estimates){
+  if(rho_estimates + tau2_estimates + sigma2_estimates > 0){
+    # create the hyperparam plot list
+    hyperparam_plot = NULL
     if(rho_estimates){
-      if(tau2_estimates){
-        plot_list <- append(plot_list, list(plot_grid(p_rho, p_tau2)))
-      }else{
-        plot_list <- append(plot_list, list(p_rho))
-      }
-    }else{
-      plot_list <- append(plot_list, list(p_tau2))
+      hyperparam_plot <- append(hyperparam_plot, list(p_rho))
     }
+    if(tau2_estimates){
+      hyperparam_plot <- append(hyperparam_plot, list(p_tau2))
+    }
+    if(sigma2_estimates){
+      hyperparam_plot <- append(hyperparam_plot, list(p_sigma2))
+    }
+
+    # add the plot back to the overall one.
+    plot_list <- append(plot_list, list(plot_grid(plotlist = hyperparam_plot, nrow = 1)))
   }
   
   ## compare the true phi values with the estimated phi values
