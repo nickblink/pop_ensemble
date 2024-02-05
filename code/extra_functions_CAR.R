@@ -33,7 +33,7 @@ subset_data_by_state <- function(data, adjacency, state, abbrev = NULL){
 # models: the models to simulate data for
 # means: the means of the normals for each model
 # variances: the variances of the normals for each model
-simulate_models <- function(data, models, means, variances, seed = 10){
+simulate_models <- function(data, models, means, variances, seed = 10, ...){
   set.seed(seed)
   # check that the lengths of the inputs match
   if(length(models) != length(means) | length(models) != length(variances)){
@@ -79,17 +79,20 @@ sample_MVN_from_precision <- function(n = 1, mu=rep(0, nrow(Q)), Q){
 }
 
 
-### Simulate the data!
-# data: the input data
-# adjacency: the adjacency matrix 
-# models: the models to use in the ensemble
-# scale_down: a factor to scale down the covariate values
-# pivot: what pivot index to use for data creation (-1 indicates no pivot)
+### Simulate the outcome y
+# data: the input data.
+# adjacency: the adjacency matrix.
+# models: the models to use in the ensemble.
+# scale_down: a factor to scale down the covariate values.
+# pivot: what pivot index to use for data creation (-1 indicates no pivot).
 # precision_type: "Cressie" or "Leroux", determining the CAR precision matrix.
-# tau2: the CAR variance parameter
-# rho: the CAR spatial correlation parameter
-# seed: random seed to initialize function with
-simulate_y <- function(data, adjacency, models = c('M1','M2','M3'), scale_down = 1, pivot = -1, precision_type = 'Cressie', tau2 = 1, rho = 0.3, seed = 10, cholesky = T){
+# tau2: the CAR variance parameter.
+# rho: the CAR spatial correlation parameter.
+# seed: random seed to initialize function with.
+# cholesky: whether to simulate phi's from cholesky decomposition.
+# family: Poisson or Normal/Gaussian, for the type of outcome family.
+# sigma2: variance of the normal distribution.
+simulate_y <- function(data, adjacency, models = c('M1','M2','M3'), scale_down = 1, pivot = -1, precision_type = 'Leroux', tau2 = 1, rho = 0.3, seed = 10, cholesky = T, family = 'poisson', sigma2 = NULL, ...){
   # set seed for reproducability 
   set.seed(seed)
   
@@ -137,7 +140,16 @@ simulate_y <- function(data, adjacency, models = c('M1','M2','M3'), scale_down =
   data$y_expected <- rowSums(u_true*data[,models])
   
   # simulate the y values
-  data$y <- rpois(n = nrow(data), lambda = data$y_expected)
+  if(tolower(family) == 'poisson'){
+    data$y <- rpois(n = nrow(data), lambda = data$y_expected)
+  }else if(tolower(family) %in% c('normal','gaussian')){
+    if(is.null(sigma2)){
+      stop('please put in a sigma2 value if simulating from normal')
+    }
+    data$y <- rnorm(n = nrow(data), mean = data$y_expected, sd = sqrt(sigma2))
+  }else{
+    stop('please input a proper family')
+  }
   
   data$index = 1:nrow(data)
   phi_true <- as.data.frame(phi_true) %>%
@@ -214,7 +226,7 @@ prep_stan_data_leroux_sparse <- function(data, W, models){
 # n.sample: the number of iterations to run the rstan code.
 # burnin: the number of burnin iterations to run the rstan code.
 # seed: a seed for reproducability
-run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_type = 'Leroux', n.sample = 10000, burnin = 5000, seed = 10, stan_m = NULL, stan_path = "code/CAR_leroux_sparse.stan", tau2_fixed = NULL){
+run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_type = 'Leroux', n.sample = 10000, burnin = 5000, seed = 10, stan_m = NULL, stan_path = "code/CAR_leroux_sparse.stan", tau2 = NULL, ...){
   # error checking for precision matrix type
   if(precision_type != 'Leroux'){stop('only have Leroux precision coded')}
   
@@ -222,17 +234,13 @@ run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_
   stan_data <- prep_stan_data_leroux_sparse(data, adjacency, models)
   
   # update fixed tau2 value to be of M dimensions.
-  if(!is.null(tau2_fixed)){
-    if(length(tau2_fixed) == 1 & length(models) > 1){
-      tau2_fixed = rep(tau2_fixed, length(models))
+  if(!is.null(tau2)){
+    if(length(tau2) == 1 & length(models) > 1){
+      tau2 = rep(tau2, length(models))
     }
-    
-    # if(stan_path == "code/CAR_leroux_sparse.stan"){
-    #   stop('wrong stan path')
-    # }
-    
+
     # add in tau2 fixed
-    stan_data$tau2 = tau2_fixed
+    stan_data$tau2 = tau2
   }
   
   if(is.null(stan_m)){
@@ -248,72 +256,73 @@ run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_
                    init = '0',
                    cores = 1,
                    seed = seed)
-  
-  # # fit the stan model
-  # stan_fit <- stan(file = "code/CAR_leroux_sparse.stan",
-  #                  data = stan_data, 
-  #                  iter = n.sample, 
-  #                  warmup = burnin,
-  #                  chains = 1, 
-  #                  init = '0',
-  #                  cores = 1,
-  #                  seed = seed)
-  
-  # # extract important info
-  # stan_out <- extract(stan_fit)
-  # stan_summary = summary(stan_fit, pars = c('tau2','rho', 'phi'))$summary
-  # stan_lst <- list(stan_fit = stan_fit,
-  #                  stan_out = stan_out, 
-  #                  stan_summary = stan_summary)
-  #return(stan_lst)
+
+  # return the results!
   return(stan_fit)
 }
 
-
-run_stan_CAR_fixtau2 <- function(data, adjacency, models = c('M1','M2','M3'), precision_type = 'Leroux', n.sample = 10000, burnin = 5000, seed = 10, tau2 = 1){
-  # error checking for precision matrix type
-  if(precision_type != 'Leroux'){stop('only have Leroux precision coded')}
-  
-  if(length(tau2) == 1 & length(models) > 1){
-    tau2 = rep(tau2, length(models))
-  }
-  
-  # prep the data
-  stan_data <- prep_stan_data_leroux_sparse(data, adjacency, models)
-  
-  stan_data$tau2 = tau2
-  
-  # fit the stan model
-  stan_fit <- stan(file = "code/CAR_leroux_sparse_fixtau2.stan",
-                   data = stan_data, 
-                   iter = n.sample, 
-                   warmup = burnin,
-                   chains = 1, 
-                   init = '0',
-                   cores = 1,
-                   seed = seed)
-  
-  # # extract important info
-  # stan_out <- extract(stan_fit)
-  # stan_summary = summary(stan_fit, pars = c('tau2','rho', 'phi'))$summary
-  # stan_lst <- list(stan_fit = stan_fit,
-  #                  stan_out = stan_out, 
-  #                  stan_summary = stan_summary)
-  #return(stan_lst)
-  return(stan_fit)
-}
 
 ### Run multiple simulation runs. This calls the data creation functions and run_stan_CAR.
 # raw_data: data list containing "data" and "adjacency".
 # models: list of input models to put in function.
+# tau2_fixed: whether to keep tau2_fixed in the data generation.
+# stan_path: path to stan code.
 # means: means of the input models' data creation.
-# variances: variances of the input models' data creation .
+# variances: variances of the input models' data creation.
+# family: family of y distribution for simulation.
+
+### Optional arguments
 # precision_type: Leroux or Cressie.
 # tau2: scalar or vector of CAR variance parameter.
 # rho: scalar or vector of spatial correlation parameter.
 # n.sample: number of stan chain samples.
 # burnin: length of burnin period for stan.
-multiple_sims <- function(raw_data, models, means, variances, precision_type = 'Leroux', tau2 = 1, rho = 0.3, n.sample = 10000, burnin = 5000, N_sims = 10, tau2_fixed = F, stan_path = "code/CAR_leroux_sparse.stan"){
+# sigma2: sigma2 value of y distribution.
+multiple_sims <- function(raw_data, models, means, variances, family = 'poisson', N_sims = 10, tau2_fixed = F, stan_path = "code/CAR_leroux_sparse.stan", ...){
+  # check that the path matches the tau2 fixing and the family
+  if(tau2_fixed){
+    if(!grepl('tau2', stan_path)){
+      stop('need to use the stan code that fixes tau2')
+    }
+  }
+  if(tolower(family) %in% c('normal','gaussian')){
+    if(!grepl('normal', stan_path)){
+      stop('should use the stan code that fits a normal distribution')
+    }
+  }
+  
+  # compile the stan program
+  m <- stan_model(stan_path)
+  
+  # initialize results
+  res_lst <- list()
+  
+  # cycle through N simulations
+  for(i in 1:N_sims){
+    # simulate input model values
+    data <- simulate_models(data = raw_data$data, models = models, seed = i, means = means, variances = variances, ...)
+    
+    # simulate y values from input models
+    data_lst <- simulate_y(data, raw_data$adjacency, models = models, seed = i, ...)
+    
+    # fit the Bayesian model
+    if(tau2_fixed){
+      stan_fit <- run_stan_CAR(data_lst$data, data_lst$adjacency, models = models, seed = i, stan_m = m,  ...)
+    }else{
+      stan_fit <- run_stan_CAR(data_lst$data, data_lst$adjacency, models = models, seed = i, stan_m = m, ...)
+    }
+    
+    # store results
+    res_lst[[i]] <- list(data_list = data_lst, stan_fit = stan_fit)
+  }
+  
+  # return the results
+  return(res_lst)
+}
+
+
+
+multiple_sims_test <- function(raw_data, models, N_sims = 10, tau2_fixed = F, stan_path = "code/CAR_leroux_sparse.stan", ...){
   # check that the path works
   if(tau2_fixed){
     if(!grepl('tau2', stan_path)){
@@ -330,16 +339,16 @@ multiple_sims <- function(raw_data, models, means, variances, precision_type = '
   # cycle through N simulations
   for(i in 1:N_sims){
     # simulate input model values
-    data <- simulate_models(data = raw_data$data, models = models, means = means, variances = variances, seed = i)
+    data <- simulate_models(data = raw_data$data, models = models, seed = i, ...)
     
     # simulate y values from input models
-    data_lst <- simulate_y(data, raw_data$adjacency, models = models, precision_type = precision_type, tau2 = tau2, rho = rho, seed = i)
+    data_lst <- simulate_y(data, raw_data$adjacency, models = models, seed = i, ...)
     
     # fit the Bayesian model
     if(tau2_fixed){
-      stan_fit <- run_stan_CAR(data_lst$data, data_lst$adjacency, models = models, n.sample = n.sample, burnin = burnin, seed = i, stan_m = m, tau2_fixed = tau2)
+      stan_fit <- run_stan_CAR(data_lst$data, data_lst$adjacency, models = models, seed = i, stan_m = m,  ...)
     }else{
-      stan_fit <- run_stan_CAR(data_lst$data, data_lst$adjacency, models = models, n.sample = n.sample, burnin = burnin, seed = i, stan_m = m)
+      stan_fit <- run_stan_CAR(data_lst$data, data_lst$adjacency, models = models, seed = i, stan_m = m, ...)
     }
     
     # store results
@@ -349,7 +358,6 @@ multiple_sims <- function(raw_data, models, means, variances, precision_type = '
   # return the results
   return(res_lst)
 }
-
 
 ### process the results. Prints ESS for spatial params and returns a plot of various results for parameter estimates
 # data_list: List containing data used for the fit, the true phi values, and the true u values.
@@ -569,4 +577,3 @@ plot_multiple_sims <- function(res_lst, models, ncol = 2, rho_estimates = T, tau
   
   return(final_plot)
 }
-  
