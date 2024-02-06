@@ -6,10 +6,11 @@ rstan_options(auto_write = TRUE)
 
 # set working directory
 if(file.exists('C:/Users/Admin-Dell')){
-  setwd("C:/Users/Admin-Dell/Documents/github_projects/pop_ensemble/")
+  root_dir = 'C:/Users/Admin-Dell'
 }else{
-  setwd("C:/Users/nickl/Documents/github_projects/pop_ensemble/")
+  root_dir = 'C:/Users/nickl'
 }
+setwd(sprintf('%s/Documents/github_projects/pop_ensemble/', root_dir))
 
 # load extra functions
 source('code/extra_functions_CAR.R')
@@ -22,7 +23,34 @@ models = c('M1','M2')
 ## subset data by state
 NY_lst <- subset_data_by_state(D2010, county_adj, 'New York', 'NY')
 
+#### Running with normal distribution, 3 models ####
+models = c('M1','M2','M3')
 
+# run the simulations
+system.time({
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,200,300), N_sims = 10, rho = 0.3, tau2 = 1, tau2_fixed = F, family = 'normal', sigma2 = 10^2, stan_path = 'code/CAR_leroux_sparse_normal.stan')
+})
+# 78m, though maybe due to comp sleeping?
+
+# plot a single simulation results
+pp <- process_results(res_lst[[1]]$data_list, models, res_lst[[1]]$stan_fit, tau2_estimates = T, likelihoods = T, sigma2_estimates = T)
+
+# plot multiple simulation parameter estimates and u estimates
+tt1 <- plot_multiple_sims(res_lst, models, sigma2_estimates = T)
+tt2 <- plot_multiple_sims(res_lst, models, u_estimates = T, rho_estimates = F, tau2_estimates = F)
+
+# save things
+{
+  #save(res_lst, file = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Results/02052024_normal_3models_10runs_results.RData', root_dir))
+  
+  ggsave(pp, filename = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Figures/02052024_normal_3models_1run.png', root_dir), height = 10, width = 5)
+  
+  ggsave(plot = tt1, filename = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Figures/02052024_normal_3models_10runs_spatial_params.png', root_dir), width = 10, height = 15)
+  
+  ggsave(plot = tt2, filename = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Figures/02052024_normal_3models_10runs_u_estimates.png', root_dir), width = 10, height = 15)
+}
+
+#
 #### Running with normal distribution, 2 models ####
 models = c('M1','M2')
 
@@ -30,21 +58,24 @@ models = c('M1','M2')
 system.time({
   res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2), means = c(100,200), N_sims = 10, rho = 0.3, tau2 = 1, tau2_fixed = F, family = 'normal', sigma2 = 10^2, stan_path = 'code/CAR_leroux_sparse_normal.stan')
 })
-# 22m
+# 18m
 
 # plot a single simulation results
 pp <- process_results(res_lst[[1]]$data_list, models, res_lst[[1]]$stan_fit, tau2_estimates = T, likelihoods = T, sigma2_estimates = T)
 
-# plot overall spatial param estimates
-tt <- plot_multiple_sims(res_lst, models, tau2_estimates = T)
+# plot multiple simulation parameter estimates and u estimates
+tt1 <- plot_multiple_sims(res_lst, models, sigma2_estimates = T)
+tt2 <- plot_multiple_sims(res_lst, models, u_estimates = T, rho_estimates = F, tau2_estimates = F)
 
 # save things
 {
-  save(res_lst, file = 'C:/Users/nickl/Dropbox/Academic/HSPH/Research/Population Estimation/Results/results_2models_10runs_normal_02052024.RData')
+  save(res_lst, file = 'C:/Users/Admin-Dell/Dropbox/Academic/HSPH/Research/Population Estimation/Results/02052024_normal_2models_10runs_results.RData')
   
-  ggsave(pp, file = 'C:/Users/nickl/Dropbox/Academic/HSPH/Research/Population Estimation/Figures/2models_normal_02052024.png', height = 10, width = 5)
+  ggsave(pp, file = 'C:/Users/Admin-Dell/Dropbox/Academic/HSPH/Research/Population Estimation/Figures/02052024_normal_2models_1run.png', height = 10, width = 5)
   
-  ggsave(plot = tt, filename = 'C:/Users/nickl/Dropbox/Academic/HSPH/Research/Population Estimation/Figures/spatial_params_2models_10runs_normal_02052024.png', width = 10, height = 15)
+  ggsave(plot = tt1, filename = 'C:/Users/Admin-Dell/Dropbox/Academic/HSPH/Research/Population Estimation/Figures/02052024_normal_2models_10runs_spatial_params.png', width = 10, height = 15)
+  
+  ggsave(plot = tt2, filename = 'C:/Users/Admin-Dell/Dropbox/Academic/HSPH/Research/Population Estimation/Figures/02052024_normal_2models_10runs_u_estimates.png', width = 10, height = 15)
 }
 #
 #### Running with tau2 fixed, 2 models ####

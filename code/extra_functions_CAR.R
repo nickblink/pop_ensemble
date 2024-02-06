@@ -548,14 +548,14 @@ process_results <- function(data_list, models, stan_fit, ESS = T, likelihoods = 
 # res_lst: Output list from multiple_sims, containing a list with "data_list" and "stan_fit" for each simulation run.
 # models: models used in the fitting.
 # ncol: number of columns in output plot.
-plot_multiple_sims <- function(res_lst, models, ncol = 2, rho_estimates = T, tau2_estimates = T){
+plot_multiple_sims <- function(res_lst, models, ncol = 2, ESS = F, likelihoods = F, rho_estimates = T, tau2_estimates = T, sigma2_estimates = F, phi_estimates = F, u_estimates = F, y_estimates = F){
   # initialize the plot list
   plot_list <- list()
   
   # cycle through each simulation
   for(i in 1:length(res_lst)){
     # create the param estimate plots
-    pp <- process_results(res_lst[[i]]$data_list, models, res_lst[[i]]$stan_fit, rho_estimates = rho_estimates, tau2_estimates = tau2_estimates, ESS = F, likelihoods = F, phi_estimates = F, u_estimates = F, y_estimates = F)
+    pp <- process_results(res_lst[[i]]$data_list, models, res_lst[[i]]$stan_fit, rho_estimates = rho_estimates, tau2_estimates = tau2_estimates, sigma2_estimates = sigma2_estimates, ESS = ESS, likelihoods = likelihoods, phi_estimates = phi_estimates, u_estimates = u_estimates, y_estimates = y_estimates)
     
     # store the plot
     plot_list[[i]] <- pp
