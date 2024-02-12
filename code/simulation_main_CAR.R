@@ -18,11 +18,112 @@ source('code/extra_functions_CAR.R')
 ## pull in the data
 D2010 = read.csv('data/merged_wp_census_data2_081122.csv')
 county_adj = read.csv('data/countyadj2.csv', row.names = 1)
-models = c('M1','M2')
 
 ## subset data by state
 NY_lst <- subset_data_by_state(D2010, county_adj, 'New York', 'NY')
 
+# parameters for simulations and MCMC fitting
+models = c('M1','M2','M3')
+n.sample = 500
+burnin = 100
+
+#### MVN model simulation - negative correlation ####
+# run the simulations
+system.time({
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 5, rho = 0.3, tau2 = 1, tau2_fixed = F, family = 'normal', sigma2 = 10^2, n.sample = n.sample, burnin = burnin, M_MVN_alpha = -50, stan_path = 'code/CAR_leroux_sparse_normal.stan')
+})
+# 78m, though maybe due to comp sleeping?
+
+# make dah plot!
+panel_plot <- make_panel_plot(res_lst)
+
+# save things
+{
+  warnings = warnings()
+  save(res_lst, warnings, file = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Results/02122024_normal_3models_mean100_MVNneg_5runs_results.RData', root_dir))
+  
+  ggsave(panel_plot, filename = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Figures/02122024_normal_3models_mean100_MVNneg_panel_plot.png', root_dir), height = 10, width = 20)
+}
+
+#### MVN model simulation - positive correlation ####
+# run the simulations
+system.time({
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 5, rho = 0.3, tau2 = 1, tau2_fixed = F, family = 'normal', sigma2 = 10^2, n.sample = n.sample, burnin = burnin, M_MVN_alpha = 50, stan_path = 'code/CAR_leroux_sparse_normal.stan')
+})
+# 78m, though maybe due to comp sleeping?
+
+# make dah plot!
+panel_plot <- make_panel_plot(res_lst)
+
+# save things
+{
+  warnings = warnings()
+  save(res_lst, warnings, file = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Results/02122024_normal_3models_mean100_MVNpos_5runs_results.RData', root_dir))
+  
+  ggsave(panel_plot, filename = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Figures/02122024_normal_3models_mean100_MVNpos_panel_plot.png', root_dir), height = 10, width = 20)
+}
+
+#
+#### 3 models, CAR + normal variance (BYM) ####
+
+# run the simulations
+system.time({
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 5, rho = 0.3, tau2 = 1, tau2_fixed = F, family = 'normal', sigma2 = 10^2, n.sample = n.sample, burnin = burnin, M_CAR_tau2 = 100, M_CAR_rho = 0.4, M_BYM_variance = T, stan_path = 'code/CAR_leroux_sparse_normal.stan')
+})
+# 78m, though maybe due to comp sleeping?
+
+# make dah plot!
+panel_plot <- make_panel_plot(res_lst)
+
+# save things
+{
+  warnings = warnings()
+  save(res_lst, warnings, file = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Results/02122024_normal_3models_mean100_BYMvar_5runs_results.RData', root_dir))
+  
+  ggsave(panel_plot, filename = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Figures/02122024_normal_3models_mean100_BYMvar_panel_plot.png', root_dir), height = 10, width = 20)
+}
+
+#
+#### 3 models + CAR variance ####
+# run the simulations
+system.time({
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 5, rho = 0.3, tau2 = 1, tau2_fixed = F, family = 'normal', sigma2 = 10^2, n.sample = n.sample, burnin = burnin, M_CAR_tau2 = 100, M_CAR_rho = 0.4, stan_path = 'code/CAR_leroux_sparse_normal.stan')
+})
+# 78m, though maybe due to comp sleeping?
+
+# make dah plot!
+panel_plot <- make_panel_plot(res_lst)
+
+# save things
+{
+  warnings = warnings()
+  save(res_lst, warnings, file = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Results/02122024_normal_3models_mean100_CARvar_5runs_results.RData', root_dir))
+  
+  ggsave(panel_plot, filename = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Figures/02122024_normal_3models_mean100_CARvar_panel_plot.png', root_dir), height = 10, width = 20)
+}
+
+#
+#### 3 models, same mean ####
+
+
+# run the simulations
+system.time({
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 5, rho = 0.3, tau2 = 1, tau2_fixed = F, family = 'normal', sigma2 = 10^2, n.sample = n.sample, burnin = burnin, stan_path = 'code/CAR_leroux_sparse_normal.stan')
+})
+# 78m, though maybe due to comp sleeping?
+
+# make dah plot!
+panel_plot <- make_panel_plot(res_lst)
+
+# save things
+{
+  swarnings = warnings()
+  save(res_lst, warnings, file = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Results/02122024_normal_3models_mean100_5runs_results.RData', root_dir))
+  
+  ggsave(panel_plot, filename = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Figures/02122024_normal_3models_mean100_panel_plot.png', root_dir), height = 10, width = 20)
+}
+
+#
 #### Running with normal distribution, 3 models ####
 models = c('M1','M2','M3')
 
@@ -311,64 +412,3 @@ tt = plot_grid(pp1, pp2, nrow = 1)
 tt
 
 #
-#### previous runs ####
-{
-  # data2 <- simulate_models(data = NY_lst$data, models = c('M1','M2'), means = c(100, 200), variances = c(10^2, 10^2))
-  data_lst <- simulate_y(NY_lst$data, NY_lst$adjacency, models = models, precision_type = 'Leroux', tau2 = 1, rho = 0.3)
-  
-  ## fit the model
-  stan_fit <- run_stan_CAR(data_lst$data, data_lst$adjacency, models = models)
-  
-  
-  # debug and analyze the model
-  shinystan::launch_shinystan(stan_fit)
-  
-  stan_out <- extract(stan_fit)
-  
-  tt <- stan_out$mu
-  which(apply(tt, 1, function(xx) any(is.na(xx))))
-  # [94,55] is one place
-  
-  ss <- stan_out$u
-  ss[94, 55, ]
-  # NaN 0. Ok ok 
-  
-  vv <- stan_out$phi
-  vv[94, 55, ]
-  # 709.5587 -252.6754
-  # ok in general I am getting crazy big values for phi.
-  # so no wonder exponentiating these gets crazy big.
-  
-  # what is tau2?
-  tau <- stan_out$tau2
-  colMeans(tau)
-  # 97193.93 100957.00
-  # ok obviously something is wrong.
-  
-  aa <- stan_out$log_detQ
-  plot(density(aa))
-  # so on the log scale not much variation. But that's huge on the not log scale, right? No, it's super super small. Because of the tau2, amiright?
-  
-  bb <- stan_out$ldet_vec
-  # ok so the tau2 term dominates
-  
-  cc <- stan_out$lp__
-  # ah so it's friggin huge.
-  
-  stan_summary = summary(stan_fit, pars = c('tau2','rho', 'phi'))$summary
-  stan_lst <- list(stan_fit = stan_fit,
-                   stan_out = stan_out,
-                   stan_summary = stan_summary)
-  
-  stan_summary = summary(stan_list$stan_fit, pars = c('tau2','rho', 'phi', 'u'))$summary
-  
-  
-  ### Trying with smaller values
-  data_lst2 <- simulate_y(NY_lst$data, NY_lst$adjacency, models = models, precision_type = 'Leroux', tau2 = 1, rho = 0.3, scale_down = 1000)
-  
-  ## fit the model
-  stan_fit2 <- run_stan_CAR(data_lst2$data, data_lst2$adjacency, models = models)
-}
-
-
-### (later) plot the chloroploth maps

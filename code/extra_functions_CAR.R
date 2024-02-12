@@ -33,18 +33,71 @@ subset_data_by_state <- function(data, adjacency, state, abbrev = NULL){
 # models: the models to simulate data for
 # means: the means of the normals for each model
 # variances: the variances of the normals for each model
-simulate_models <- function(data, models, means, variances, seed = 10, ...){
+# seed: random seed
+# adjacency: adjacency matrix. Only relevant for CAR distribution simulation.
+# M_CAR_rho: rho for the CAR distribution of each model. If null, CAR is not added to each model.
+# M_CAR_tau2: tau2 for the CAR distribution of each model. If null CAR is not added to each model.
+# M_BYM_variance: if running CAR, to add in normal variance as well (== T) or just CAR variance (== F).
+# precision_type: precision type for the CAR model. Only relevant if running CAR simulation.
+# M_MVN_alpha: value of multivariate normal covariance level (same covariance for all off-diagonals).
+
+simulate_models <- function(data, models, means, variances, seed = 10, adjacency = NULL, M_CAR_rho = NULL, M_CAR_tau2 = NULL, M_BYM_variance = F, precision_type = 'Leroux', M_MVN_alpha = NULL, ...){
+  # set random seed.
   set.seed(seed)
-  # check that the lengths of the inputs match
+  
+  run_CAR = F
+  # check if running CAR
+  if(is.null(M_CAR_rho) + is.null(M_CAR_tau2) == 1){
+    stop('either M_CAR_rho and M_CAR_tau2 should both be NULL or both be values.')
+  }else if(is.null(M_CAR_rho) + is.null(M_CAR_tau2) == 0){
+    print('running CAR distribution simulation for model values.')
+    run_CAR = T
+    if(M_CAR_rho < 0 | M_CAR_rho > 1 | M_CAR_tau2 < 0){
+      stop('Improper CAR values.')
+    }
+    if(!is.null(M_MVN_alpha)){
+      stop('cant run M_MVN simulation and CAR simulation right now.')
+    }
+  }
+  
+  # check that the lengths of the inputs match.
   if(length(models) != length(means) | length(models) != length(variances)){
     stop('length of models, means, and variances, not matching up')
   }
   
-  # sample data for each model
-  for(i in 1:length(models)){
-    m = models[i]
-    data[,m] <- rnorm(nrow(data), means[i], sd = sqrt(variances[i]))
+  # sample from MVN value
+  if(!is.null(M_MVN_alpha)){
+    # create the covariance matrix
+    Sigma = diag(variances)
+    Sigma[Sigma == 0] <- M_MVN_alpha
+    
+    # sample the data
+    data[,models] = MASS::mvrnorm(n = nrow(data), mu = means, Sigma = Sigma)
+  }else{
+    # sample data independently for each model.
+    for(i in 1:length(models)){
+      m = models[i]
+      if(run_CAR){
+        # create the precision matrix
+        Q <- generate_precision_mat(W = adjacency, type = precision_type, tau2 = M_CAR_tau2, rho = M_CAR_rho)
+        
+        # sample phi values
+        phi <- sample_MVN_from_precision(n = 1, Q = Q)
+        
+        # sample model values according to BYM or just CAR 
+        if(M_BYM_variance){
+          data[,m] <- rnorm(nrow(data), means[i], sd = sqrt(variances[i])) + phi
+        }else{
+          data[,m] <- means[i] + phi
+        }
+        
+      }else{
+        data[,m] <- rnorm(nrow(data), means[i], sd = sqrt(variances[i]))
+      }
+      
+    }
   }
+  
   
   return(data)
 }
@@ -92,6 +145,7 @@ sample_MVN_from_precision <- function(n = 1, mu=rep(0, nrow(Q)), Q){
 # cholesky: whether to simulate phi's from cholesky decomposition.
 # family: Poisson or Normal/Gaussian, for the type of outcome family.
 # sigma2: variance of the normal distribution.
+
 simulate_y <- function(data, adjacency, models = c('M1','M2','M3'), scale_down = 1, pivot = -1, precision_type = 'Leroux', tau2 = 1, rho = 0.3, seed = 10, cholesky = T, family = 'poisson', sigma2 = NULL, ...){
   # set seed for reproducability 
   set.seed(seed)
@@ -287,6 +341,10 @@ run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_
 # burnin: length of burnin period for stan.
 # sigma2: sigma2 value of y distribution.
 multiple_sims <- function(raw_data, models, means, variances, family = 'poisson', N_sims = 10, tau2_fixed = F, stan_path = "code/CAR_leroux_sparse.stan", ...){
+  
+  # capture the arguments
+  arguments <- match.call()
+  
   # check that the path matches the tau2 fixing and the family
   if(tau2_fixed){
     if(!grepl('tau2', stan_path)){
@@ -303,12 +361,12 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
   m <- stan_model(stan_path)
   
   # initialize results
-  res_lst <- list()
+  sim_lst <- list()
   
   # cycle through N simulations
   for(i in 1:N_sims){
     # simulate input model values
-    data <- simulate_models(data = raw_data$data, models = models, seed = i, means = means, variances = variances, ...)
+    data <- simulate_models(data = raw_data$data, adjacency = raw_data$adjacency, models = models, seed = i, means = means, variances = variances, ...)
     
     # simulate y values from input models
     data_lst <- simulate_y(data, raw_data$adjacency, models = models, seed = i, family = family, ...)
@@ -321,8 +379,11 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
     }
     
     # store results
-    res_lst[[i]] <- list(data_list = data_lst, stan_fit = stan_fit)
+    sim_lst[[i]] <- list(data_list = data_lst, stan_fit = stan_fit)
   }
+  
+  # store the final set of the results 
+  res_lst <- list(sim_list = sim_lst, arguments = arguments, models = models)
   
   # return the results
   return(res_lst)
@@ -545,17 +606,18 @@ process_results <- function(data_list, models, stan_fit, ESS = T, likelihoods = 
 
 
 ### Plot the results for multiple simulations. Currently just plots the spatial parameters, but that will likely be adjusted.
-# res_lst: Output list from multiple_sims, containing a list with "data_list" and "stan_fit" for each simulation run.
+# sim_lst: simulation list from multiple_sims, containing a list with "data_list" and "stan_fit" for each simulation run.
 # models: models used in the fitting.
 # ncol: number of columns in output plot.
-plot_multiple_sims <- function(res_lst, models, ncol = 2, ESS = F, likelihoods = F, rho_estimates = T, tau2_estimates = T, sigma2_estimates = F, phi_estimates = F, u_estimates = F, y_estimates = F){
+plot_multiple_sims <- function(sim_lst, models, ncol = 2, ESS = F, likelihoods = F, rho_estimates = T, tau2_estimates = T, sigma2_estimates = F, phi_estimates = F, u_estimates = F, y_estimates = F){
+  
   # initialize the plot list
   plot_list <- list()
   
   # cycle through each simulation
-  for(i in 1:length(res_lst)){
+  for(i in 1:length(sim_lst)){
     # create the param estimate plots
-    pp <- process_results(res_lst[[i]]$data_list, models, res_lst[[i]]$stan_fit, rho_estimates = rho_estimates, tau2_estimates = tau2_estimates, sigma2_estimates = sigma2_estimates, ESS = ESS, likelihoods = likelihoods, phi_estimates = phi_estimates, u_estimates = u_estimates, y_estimates = y_estimates)
+    pp <- process_results(sim_lst[[i]]$data_list, models, sim_lst[[i]]$stan_fit, rho_estimates = rho_estimates, tau2_estimates = tau2_estimates, sigma2_estimates = sigma2_estimates, ESS = ESS, likelihoods = likelihoods, phi_estimates = phi_estimates, u_estimates = u_estimates, y_estimates = y_estimates)
     
     # store the plot
     plot_list[[i]] <- pp
@@ -565,4 +627,22 @@ plot_multiple_sims <- function(res_lst, models, ncol = 2, ESS = F, likelihoods =
   final_plot <- plot_grid(plotlist = plot_list, ncol = ncol)
   
   return(final_plot)
+}
+
+
+### Make the panel plot that extracts different parameters from multiply simulations and plots them all together. This calls plot_multiple_sims
+# res_lst: results list from running multiple sims
+make_panel_plot <- function(res_lst){
+  # plot a single simulation results
+  pp <- process_results(res_lst$sim_list[[1]]$data_list, res_lst$models, res_lst$sim_list[[1]]$stan_fit, tau2_estimates = T, likelihoods = T, sigma2_estimates = T)
+  
+  # plot multiple simulation parameter estimates, u estimates, and y estimates
+  tt1 <- plot_multiple_sims(res_lst$sim_list, res_lst$models, sigma2_estimates = T, ncol = 1)
+  tt2 <- plot_multiple_sims(res_lst$sim_list, res_lst$models, u_estimates = T, rho_estimates = F, tau2_estimates = F, ncol = 1)
+  tt3 <- plot_multiple_sims(res_lst$sim_list, res_lst$models, y_estimates = T, u_estimates = F, rho_estimates = F, tau2_estimates = F, ncol = 1)
+  
+  # combine them all
+  full_plot <- plot_grid(pp, tt1, tt2, tt3, nrow = 1, rel_widths = c(3,3,3,2))
+
+  return(full_plot)
 }
