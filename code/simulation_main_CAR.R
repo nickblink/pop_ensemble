@@ -24,8 +24,8 @@ NY_lst <- subset_data_by_state(D2010, county_adj, 'New York', 'NY')
 
 # parameters for simulations and MCMC fitting
 models = c('M1','M2','M3')
-n.sample = 500
-burnin = 100
+n.sample = 10000
+burnin = 5000
 
 #### MVN model simulation - negative correlation ####
 # run the simulations
