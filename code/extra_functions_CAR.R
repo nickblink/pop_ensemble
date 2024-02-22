@@ -145,8 +145,9 @@ sample_MVN_from_precision <- function(n = 1, mu=rep(0, nrow(Q)), Q){
 # cholesky: whether to simulate phi's from cholesky decomposition.
 # family: Poisson or Normal/Gaussian, for the type of outcome family.
 # sigma2: variance of the normal distribution.
+# direct_weights: If true, the phi values are directly used as weights (centered at 1/M), and no softmax is used.
 
-simulate_y <- function(data, adjacency, models = c('M1','M2','M3'), scale_down = 1, pivot = -1, precision_type = 'Leroux', tau2 = 1, rho = 0.3, seed = 10, cholesky = T, family = 'poisson', sigma2 = NULL, ...){
+simulate_y <- function(data, adjacency, models = c('M1','M2','M3'), scale_down = 1, pivot = -1, precision_type = 'Leroux', tau2 = 1, rho = 0.3, seed = 10, cholesky = T, family = 'poisson', sigma2 = NULL, direct_weights = F, ...){
   # set seed for reproducability 
   set.seed(seed)
   
@@ -183,12 +184,17 @@ simulate_y <- function(data, adjacency, models = c('M1','M2','M3'), scale_down =
   }
   colnames(phi_true) <- models
     
-  # get exponentiated values and sum across models
-  exp_phi = exp(phi_true)
-  exp_phi_rows = rowSums(exp_phi)
-  
-  # get model weights and calculate the mean estimate
-  u_true <- exp_phi/exp_phi_rows
+  if(direct_weights){
+    # directly use phi values to create model weights
+    u_true = 1/length(models) + phi_true
+  }else{
+    # get exponentiated values and sum across models
+    exp_phi = exp(phi_true)
+    exp_phi_rows = rowSums(exp_phi)
+    
+    # get model weights and calculate the mean estimate
+    u_true <- exp_phi/exp_phi_rows
+  }
   
   # get the expected census values
   data$y_expected <- rowSums(u_true*data[,models])
@@ -415,7 +421,7 @@ process_results <- function(data_list, models, stan_fit, ESS = T, likelihoods = 
     p_ESS_spatial <- gridExtra::tableGrob(round(ESS_spatial, 3))
     
     # ESS of phi
-    ind = grep('phi', rownames(stan_summary))
+    ind = grep('^phi', rownames(stan_summary))
     # ind1 = grep('phi\\[[0-9]{1,2},1\\]', rownames(stan_summary))
     # ind2 = grep('phi\\[[0-9]{1,2},2\\]', rownames(stan_summary))
     print(sprintf('median ESS for phi is %s and median rhat is %s', round(median(stan_summary[ind, 'n_eff']), 1), round(median(stan_summary[ind, 'Rhat']), 3)))

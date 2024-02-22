@@ -27,6 +27,30 @@ models = c('M1','M2','M3')
 n.sample = 10000
 burnin = 5000
 
+#### No softmax/direct weights simulation - same mean ####
+
+# run the simulations
+system.time({
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 5, rho = 0.3, tau2 = 0.01, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = T, n.sample = n.sample, burnin = burnin, stan_path = 'code/CAR_leroux_sparse_normal_noSoftmax.stan')
+}) # ~23 minutes
+
+panel_plot <- make_panel_plot(res_lst)
+
+ggsave(panel_plot, filename = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Figures/02202024_normal_3models_mean100_direct_weights.png', root_dir), height = 10, width = 20)
+
+# 
+#### No softmax/direct weights simulation - separated means ####
+
+# run the simulations
+system.time({
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,200,300), N_sims = 5, rho = 0.3, tau2 = 0.01, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = T, n.sample = n.sample, burnin = burnin, stan_path = 'code/CAR_leroux_sparse_normal_noSoftmax.stan')
+}) # ~23 minutes
+
+panel_plot <- make_panel_plot(res_lst)
+
+ggsave(panel_plot, filename = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Figures/02202024_normal_3models_difmeans_direct_weights.png', root_dir), height = 10, width = 20)
+
+# 
 #### MVN model simulation - negative correlation ####
 # run the simulations
 system.time({
