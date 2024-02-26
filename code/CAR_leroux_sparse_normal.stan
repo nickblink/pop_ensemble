@@ -41,6 +41,9 @@ functions {
   int W_n; // Number of adjacency pairs
   matrix[N,N] I; // Identity matrix
   vector[N] lambda; // the eigenvalues of the D - W - I matrix
+  int<lower=0, upper=1> use_softmax; // 0 - no softmax, 1 - use softmax on phi.
+  real<lower=0> sigma2_prior_shape; // prior shape for sigma2
+  real<lower=0> sigma2_prior_rate; // prior rate for sigma2
 }
 transformed data {
   int W_sparse[W_n, 2];   // adjacency pairs
@@ -71,10 +74,8 @@ parameters {
 }
 transformed parameters {
   // variable declarations
-  if(use_softmax){
-    matrix[N, M] exp_phi;
-    matrix[N, M] exp_phi_sum;
-  }
+  matrix[N, M] exp_phi;
+  matrix[N, M] exp_phi_sum;
   matrix[N, M] u;
   vector[N] mu;
   vector[N_obs] observed_est;
@@ -83,11 +84,15 @@ transformed parameters {
   real<lower = 0> sigma;
   
   // variable calculations
-  exp_phi = exp(phi);
-  for(m in 1:M){
-	exp_phi_sum[1:N,m] = (exp_phi * v_ones);
+  if(use_softmax == 1){
+    exp_phi = exp(phi);
+    for(m in 1:M){
+      exp_phi_sum[1:N,m] = (exp_phi * v_ones);
+    }
+    u = exp_phi ./ exp_phi_sum;
+  }else{
+    u = 1.0/M + phi;
   }
-  u = exp_phi ./ exp_phi_sum;
   mu = (X .* u)*v_ones;
   observed_est = mu[ind_obs];
   
@@ -105,7 +110,7 @@ transformed parameters {
 }
 model {
   // prior on sigma2
-  sigma2 ~ gamma(1, 10);
+  sigma2 ~ gamma(sigma2_prior_shape, sigma2_prior_rate);
   // likelihood
   // y_obs ~ poisson(observed_est);
   y_obs ~ normal(observed_est, sigma);

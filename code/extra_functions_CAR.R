@@ -230,8 +230,10 @@ simulate_y <- function(data, adjacency, models = c('M1','M2','M3'), scale_down =
 
 ### prep the data for fitting the stan model
 # data: the observed data with the outcome "y" and the covariates as models. 
-# W: the adjacency matrix
-# models: a vector of the models to use in the ensemble
+# W: the adjacency matrix.
+# models: a vector of the models to use in the ensemble.
+# sigma2_prior_shape: Shape of the gamma distribution prior.
+# sigma2_prior_rate: rate of the gamma distribution prior.
 prep_stan_data_leroux_sparse <- function(data, W, models, use_softmax = F, sigma2_prior_shape = 1, sigma2_prior_rate = 10, ...){
   # checking columns
   if(!('y' %in% colnames(data))){
@@ -302,9 +304,7 @@ run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_
   if(precision_type != 'Leroux'){stop('only have Leroux precision coded')}
   
   # prep the data
-  use_softmax = 1 - direct_weights
-  browser()
-  stan_data <- prep_stan_data_leroux_sparse(data, adjacency, models, use_softmax = use_softmax, ...)
+  stan_data <- prep_stan_data_leroux_sparse(data, adjacency, models, use_softmax = 1 - direct_weights, ...)
   
   # update fixed tau2 value to be of M dimensions.
   if(!is.null(tau2)){

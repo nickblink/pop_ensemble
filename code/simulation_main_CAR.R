@@ -31,7 +31,7 @@ burnin = 500
 
 # run the simulations
 system.time({
-  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 1, rho = 0.3, tau2 = 0.01, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = T, n.sample = n.sample, burnin = burnin, stan_path = 'code/CAR_leroux_sparse_normal_TEST.stan')
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 1, rho = 0.3, tau2 = 0.01, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = T, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 4, stan_path = 'code/CAR_leroux_sparse_normal_TEST.stan')
 }) # ~23 minutes
 
 panel_plot <- make_panel_plot(res_lst)
