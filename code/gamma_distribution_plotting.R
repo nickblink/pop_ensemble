@@ -14,3 +14,6 @@ legend("topright",
        col = c(1:4),
        lty = 1, cex = 0.8)
 dev.off()
+
+dgamma(x = 100, 1, 10)
+dgamma(x = 100, 1000, 10)
