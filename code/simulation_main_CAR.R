@@ -24,9 +24,22 @@ NY_lst <- subset_data_by_state(D2010, county_adj, 'New York', 'NY')
 
 # parameters for simulations and MCMC fitting
 models = c('M1','M2','M3')
-n.sample = 10000
-burnin = 5000
+n.sample = 1000
+burnin = 500
 
+#### No softmax/direct weights simulation - same mean, stronger sigma prior ####
+
+# run the simulations
+system.time({
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 1, rho = 0.3, tau2 = 0.01, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = T, n.sample = n.sample, burnin = burnin, stan_path = 'code/CAR_leroux_sparse_normal_TEST.stan')
+}) # ~23 minutes
+
+panel_plot <- make_panel_plot(res_lst)
+
+
+#ggsave(panel_plot, filename = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Figures/02262024_normal_3models_mean100_direct_weights_sigma_prior1.png', root_dir), height = 10, width = 20)
+
+# 
 #### No softmax/direct weights simulation - same mean ####
 
 # run the simulations

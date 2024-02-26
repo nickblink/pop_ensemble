@@ -232,7 +232,7 @@ simulate_y <- function(data, adjacency, models = c('M1','M2','M3'), scale_down =
 # data: the observed data with the outcome "y" and the covariates as models. 
 # W: the adjacency matrix
 # models: a vector of the models to use in the ensemble
-prep_stan_data_leroux_sparse <- function(data, W, models){
+prep_stan_data_leroux_sparse <- function(data, W, models, use_softmax = F, sigma2_prior_shape = 1, sigma2_prior_rate = 10, ...){
   # checking columns
   if(!('y' %in% colnames(data))){
     stop('need y as a column in data')
@@ -280,7 +280,10 @@ prep_stan_data_leroux_sparse <- function(data, W, models){
     W = W,
     W_n = W_n,
     I = diag(1.0, N),
-    lambda = lambda)
+    lambda = lambda,
+    use_softmax = as.integer(use_softmax),
+    sigma2_prior_shape = sigma2_prior_shape,
+    sigma2_prior_rate = sigma2_prior_rate)
   
   return(stan_data)
 }
@@ -294,12 +297,14 @@ prep_stan_data_leroux_sparse <- function(data, W, models){
 # n.sample: the number of iterations to run the rstan code.
 # burnin: the number of burnin iterations to run the rstan code.
 # seed: a seed for reproducability
-run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_type = 'Leroux', n.sample = 10000, burnin = 5000, seed = 10, stan_m = NULL, stan_path = "code/CAR_leroux_sparse.stan", tau2 = NULL, ...){
+run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_type = 'Leroux', n.sample = 10000, burnin = 5000, seed = 10, stan_m = NULL, stan_path = "code/CAR_leroux_sparse.stan", tau2 = NULL, direct_weights = F, ...){
   # error checking for precision matrix type
   if(precision_type != 'Leroux'){stop('only have Leroux precision coded')}
   
   # prep the data
-  stan_data <- prep_stan_data_leroux_sparse(data, adjacency, models)
+  use_softmax = 1 - direct_weights
+  browser()
+  stan_data <- prep_stan_data_leroux_sparse(data, adjacency, models, use_softmax = use_softmax, ...)
   
   # update fixed tau2 value to be of M dimensions.
   if(!is.null(tau2)){
@@ -310,6 +315,8 @@ run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_
     # add in tau2 fixed
     stan_data$tau2 = tau2
   }
+  
+  
   
   if(is.null(stan_m)){
     stan_m <- stan_model(stan_path)
@@ -365,7 +372,7 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
   
   # compile the stan program
   m <- stan_model(stan_path)
-  
+
   # initialize results
   sim_lst <- list()
   
