@@ -285,7 +285,8 @@ prep_stan_data_leroux_sparse <- function(data, W, models, use_softmax = F, sigma
     lambda = lambda,
     use_softmax = as.integer(use_softmax),
     sigma2_prior_shape = sigma2_prior_shape,
-    sigma2_prior_rate = sigma2_prior_rate)
+    sigma2_prior_rate = sigma2_prior_rate,
+    fix_rho = 1)
   
   return(stan_data)
 }
