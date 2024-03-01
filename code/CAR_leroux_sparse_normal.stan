@@ -74,10 +74,10 @@ parameters {
 }
 transformed parameters {
   // variable declarations
-  if(use_softmax){
-    matrix[N, M] exp_phi;
-    matrix[N, M] exp_phi_sum;
-  }
+  //if(use_softmax == 1){
+  matrix[N, M] exp_phi;
+  matrix[N, M] exp_phi_sum;
+  //}
   matrix[N, M] u;
   vector[N] mu;
   vector[N_obs] observed_est;

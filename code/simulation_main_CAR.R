@@ -27,12 +27,45 @@ models = c('M1','M2','M3')
 n.sample = 10000
 burnin = 5000
 
+#### Same mean, stronger sigma priors ####
+
+# run the simulations
+system.time({
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 5, rho = 0.3, tau2 = 0.01, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = F, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 5, sigma2_prior_rate = 0.05, stan_path = 'code/CAR_leroux_sparse_normal.stan')
+}) # ~3 minutes
+
+panel_plot <- make_panel_plot(res_lst)
+
+# save things
+{
+  warnings = warnings()
+  save(res_lst, warnings, file = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Results/02262024_normal_3models_mean100_sigma_prior505.RData', root_dir))
+  
+  ggsave(panel_plot, filename = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Figures/02262024_normal_3models_mean100_sigma_prior505.png', root_dir), height = 10, width = 20)
+}
+
+### run the simulations Strong prior
+system.time({
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 5, rho = 0.3, tau2 = 0.01, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = F, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 1000, sigma2_prior_rate = 10, stan_path = 'code/CAR_leroux_sparse_normal.stan')
+}) # ~3 minutes
+
+panel_plot <- make_panel_plot(res_lst)
+
+# save things
+{
+  warnings = warnings()
+  save(res_lst, warnings, file = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Results/02262024_normal_3models_mean100_sigma_prior100010.RData', root_dir))
+  
+  ggsave(panel_plot, filename = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Figures/02262024_normal_3models_mean100_sigma_prior100010.png', root_dir), height = 10, width = 20)
+}
+
+# 
 #### No softmax/direct weights simulation - same mean, stronger sigma priors ####
 
 # run the simulations
 system.time({
-  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 1, rho = 0.3, tau2 = 0.01, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = T, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 5, sigma2_prior_rate = 0.05, stan_path = 'code/CAR_leroux_sparse_normal.stan')
-}) # ~1 minute
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 5, rho = 0.3, tau2 = 0.01, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = T, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 5, sigma2_prior_rate = 0.05, stan_path = 'code/CAR_leroux_sparse_normal.stan')
+}) # ~3 minutes
 
 panel_plot <- make_panel_plot(res_lst)
 
@@ -46,8 +79,8 @@ panel_plot <- make_panel_plot(res_lst)
 
 ### run the simulations Strong prior
 system.time({
-  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 1, rho = 0.3, tau2 = 0.01, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = T, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 1000, sigma2_prior_rate = 10, stan_path = 'code/CAR_leroux_sparse_normal.stan')
-}) # ~1 minute
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 5, rho = 0.3, tau2 = 0.01, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = T, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 1000, sigma2_prior_rate = 10, stan_path = 'code/CAR_leroux_sparse_normal.stan')
+}) # ~3 minutes
 
 panel_plot <- make_panel_plot(res_lst)
 
