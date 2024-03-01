@@ -234,7 +234,8 @@ simulate_y <- function(data, adjacency, models = c('M1','M2','M3'), scale_down =
 # models: a vector of the models to use in the ensemble.
 # sigma2_prior_shape: Shape of the gamma distribution prior.
 # sigma2_prior_rate: rate of the gamma distribution prior.
-prep_stan_data_leroux_sparse <- function(data, W, models, use_softmax = F, sigma2_prior_shape = 1, sigma2_prior_rate = 10, ...){
+prep_stan_data_leroux_sparse <- function(data, W, models, use_softmax = F, sigma2_prior_shape = 1, sigma2_prior_rate = 10, fix_rho_value = -1, ...){
+
   # checking columns
   if(!('y' %in% colnames(data))){
     stop('need y as a column in data')
@@ -286,8 +287,8 @@ prep_stan_data_leroux_sparse <- function(data, W, models, use_softmax = F, sigma
     use_softmax = as.integer(use_softmax),
     sigma2_prior_shape = sigma2_prior_shape,
     sigma2_prior_rate = sigma2_prior_rate,
-    fix_rho = 1)
-  
+    rho_value = fix_rho_value)
+
   return(stan_data)
 }
 
@@ -303,7 +304,7 @@ prep_stan_data_leroux_sparse <- function(data, W, models, use_softmax = F, sigma
 run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_type = 'Leroux', n.sample = 10000, burnin = 5000, seed = 10, stan_m = NULL, stan_path = "code/CAR_leroux_sparse.stan", tau2 = NULL, direct_weights = F, ...){
   # error checking for precision matrix type
   if(precision_type != 'Leroux'){stop('only have Leroux precision coded')}
-  
+
   # prep the data
   stan_data <- prep_stan_data_leroux_sparse(data, adjacency, models, use_softmax = 1 - direct_weights, ...)
   
@@ -355,6 +356,17 @@ run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_
 # burnin: length of burnin period for stan.
 # sigma2: sigma2 value of y distribution.
 multiple_sims <- function(raw_data, models, means, variances, family = 'poisson', N_sims = 10, tau2_fixed = F, stan_path = "code/CAR_leroux_sparse.stan", ...){
+  
+  # checking that the rho in the DGP and the model fit are equal (if the rho is fixed in the model fit)
+  if('rho' %in% names(list(...)) & 'fix_rho_value' %in% names(list(...))){
+    if(list(...)$fix_rho_value > 1){
+      stop('rho value cannot be greater than 1')
+    }
+    if(list(...)$fix_rho_value > 0 & list(...)$fix_rho_value != list(...)$rho){
+      print('WARNING: rho in DGP and rho in model not equal')
+    }
+  }
+  
   
   # capture the arguments
   arguments <- match.call()

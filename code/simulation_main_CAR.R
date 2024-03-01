@@ -24,14 +24,34 @@ NY_lst <- subset_data_by_state(D2010, county_adj, 'New York', 'NY')
 
 # parameters for simulations and MCMC fitting
 models = c('M1','M2','M3')
-n.sample = 1000
-burnin = 500
+n.sample = 10000
+burnin = 5000
 
+#### Fixing rho ####
+system.time({
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 5, rho = 0.9, tau2 = 1, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = T, n.sample = n.sample, burnin = burnin, fix_rho_value = 0.9, sigma2_prior_shape = 1000, sigma2_prior_rate = 10, stan_path = 'code/CAR_leroux_sparse_normal.stan')
+}) # 71s for 1.
+# with fix_rho == 1 and setting rho_used = 1, I get "Chain 1: Rejecting initial value: Chain 1:   Log probability evaluates to log(0), i.e. negative infinity."
+# with fix_rho == 1 and setting rho_used = 0.9, I get no errors. Ok so it has to do with rho = 1.
+# Even with rho = 0.99, it works
+
+panel_plot <- make_panel_plot(res_lst)                                                                
+panel_plot
+
+# save things
+{
+  warnings = warnings()
+  save(res_lst, warnings, file = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Results/03012024_normal_3models_mean100_sigma_prior100010_rho_fixed09_tau1.RData', root_dir))
+  
+  ggsave(panel_plot, filename = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Figures/03012024_normal_3models_mean100_sigma_prior100010_rho_fixed09_tau1.png', root_dir), height = 10, width = 20)
+}
+
+#
 #### Same mean, stronger sigma priors ####
 
 # run the simulations
 system.time({
-  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 5, rho = 0.3, tau2 = 0.01, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = F, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 5, sigma2_prior_rate = 0.05, stan_path = 'code/CAR_leroux_sparse_normal.stan')
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 5, rho = 0.3, tau2 = 1, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = F, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 5, sigma2_prior_rate = 0.05, stan_path = 'code/CAR_leroux_sparse_normal.stan')
 }) # ~3 minutes
 
 panel_plot <- make_panel_plot(res_lst)
@@ -39,14 +59,14 @@ panel_plot <- make_panel_plot(res_lst)
 # save things
 {
   warnings = warnings()
-  save(res_lst, warnings, file = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Results/02262024_normal_3models_mean100_sigma_prior505.RData', root_dir))
+  save(res_lst, warnings, file = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Results/03012024_normal_3models_mean100_sigma_prior505_tau1.RData', root_dir))
   
-  ggsave(panel_plot, filename = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Figures/02262024_normal_3models_mean100_sigma_prior505.png', root_dir), height = 10, width = 20)
+  ggsave(panel_plot, filename = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Figures/03012024_normal_3models_mean100_sigma_prior505_tau1.png', root_dir), height = 10, width = 20)
 }
 
 ### run the simulations Strong prior
 system.time({
-  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 5, rho = 0.3, tau2 = 0.01, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = F, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 1000, sigma2_prior_rate = 10, stan_path = 'code/CAR_leroux_sparse_normal.stan')
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 5, rho = 0.3, tau2 = 1, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = F, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 1000, sigma2_prior_rate = 10, stan_path = 'code/CAR_leroux_sparse_normal.stan')
 }) # ~3 minutes
 
 panel_plot <- make_panel_plot(res_lst)
@@ -54,9 +74,9 @@ panel_plot <- make_panel_plot(res_lst)
 # save things
 {
   warnings = warnings()
-  save(res_lst, warnings, file = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Results/02262024_normal_3models_mean100_sigma_prior100010.RData', root_dir))
+  save(res_lst, warnings, file = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Results/03012024_normal_3models_mean100_sigma_prior100010_tau1.RData', root_dir))
   
-  ggsave(panel_plot, filename = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Figures/02262024_normal_3models_mean100_sigma_prior100010.png', root_dir), height = 10, width = 20)
+  ggsave(panel_plot, filename = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Figures/03012024_normal_3models_mean100_sigma_prior100010_tau1.png', root_dir), height = 10, width = 20)
 }
 
 # 
@@ -64,23 +84,25 @@ panel_plot <- make_panel_plot(res_lst)
 
 # Gamma(0.001, 0.001)
 system.time({
-  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 1, rho = 0.3, tau2 = 0.01, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = T, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 0.001, sigma2_prior_rate = 0.001, stan_path = 'code/CAR_leroux_sparse_normal.stan')
-}) # ~1 minute
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 5, rho = 0.3, tau2 = 1, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = T, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 0.001, sigma2_prior_rate = 0.001, stan_path = 'code/CAR_leroux_sparse_normal.stan')
+}) # ~30 minutes for 10 simulations
 
+#res_lst2 <- res_lst
+#res_lst2$sim_list <- res_lst2$sim_list[1:5]
 panel_plot <- make_panel_plot(res_lst)
 
 # save things
 {
   warnings = warnings()
-  save(res_lst, warnings, file = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Results/02262024_normal_3models_mean100_direct_weights_sigma_prior001001.RData', root_dir))
+  save(res_lst, warnings, file = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Results/03012024_normal_3models_mean100_direct_weights_sigma_prior001001_tau1.RData', root_dir))
   
-  ggsave(panel_plot, filename = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Figures/02262024_normal_3models_mean100_direct_weights_sigma_prior001001.png', root_dir), height = 10, width = 20)
+  ggsave(panel_plot, filename = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Figures/03012024_normal_3models_mean100_direct_weights_sigma_prior001001_tau1.png', root_dir), height = 10, width = 20)
 }
 
 
 # Gamma (5, 0.05)
 system.time({
-  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 5, rho = 0.3, tau2 = 0.01, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = T, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 5, sigma2_prior_rate = 0.05, stan_path = 'code/CAR_leroux_sparse_normal.stan')
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 5, rho = 0.3, tau2 = 1, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = T, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 5, sigma2_prior_rate = 0.05, fix_rho_value = -1, stan_path = 'code/CAR_leroux_sparse_normal.stan')
 }) # ~3 minutes
 
 panel_plot <- make_panel_plot(res_lst)
@@ -88,14 +110,14 @@ panel_plot <- make_panel_plot(res_lst)
 # save things
 {
   warnings = warnings()
-  save(res_lst, warnings, file = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Results/02262024_normal_3models_mean100_direct_weights_sigma_prior505.RData', root_dir))
+  save(res_lst, warnings, file = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Results/02262024_normal_3models_mean100_direct_weights_sigma_prior505_tau1.RData', root_dir))
   
-  ggsave(panel_plot, filename = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Figures/02262024_normal_3models_mean100_direct_weights_sigma_prior505.png', root_dir), height = 10, width = 20)
+  ggsave(panel_plot, filename = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Figures/02262024_normal_3models_mean100_direct_weights_sigma_prior505_tau1.png', root_dir), height = 10, width = 20)
 }
 
 # Gamma(1000, 10)
 system.time({
-  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 5, rho = 0.3, tau2 = 0.01, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = T, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 1000, sigma2_prior_rate = 10, stan_path = 'code/CAR_leroux_sparse_normal.stan')
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 5, rho = 0.3, tau2 = 1, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = T, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 1000, sigma2_prior_rate = 10, stan_path = 'code/CAR_leroux_sparse_normal.stan')
 }) # ~3 minutes
 
 panel_plot <- make_panel_plot(res_lst)
@@ -103,9 +125,9 @@ panel_plot <- make_panel_plot(res_lst)
 # save things
 {
   warnings = warnings()
-  save(res_lst, warnings, file = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Results/02262024_normal_3models_mean100_direct_weights_sigma_prior100010.RData', root_dir))
+  save(res_lst, warnings, file = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Results/03012024_normal_3models_mean100_direct_weights_sigma_prior100010_tau1.RData', root_dir))
   
-  ggsave(panel_plot, filename = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Figures/02262024_normal_3models_mean100_direct_weights_sigma_prior100010.png', root_dir), height = 10, width = 20)
+  ggsave(panel_plot, filename = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Figures/03012024_normal_3models_mean100_direct_weights_sigma_prior100010_tau1.png', root_dir), height = 10, width = 20)
 }
 
 # 

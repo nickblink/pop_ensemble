@@ -44,10 +44,11 @@ functions {
   int<lower=0, upper=1> use_softmax; // 0 - no softmax, 1 - use softmax on phi.
   real<lower=0> sigma2_prior_shape; // prior shape for sigma2
   real<lower=0> sigma2_prior_rate; // prior rate for sigma2
-  int<lower=0, upper=1> fix_rho; // the fixed rho value. If < 0, then rho is estimated.
+  real<upper=1> rho_value; // the fixed rho value. If < 0, then rho is estimated.
 }
 transformed data {
   int W_sparse[W_n, 2];   // adjacency pairs
+  int<lower=0, upper=1> estimate_rho;
   vector[N] D_sparse;     // diagonal of D (number of neigbors for each site)
   vector[M] v_ones = rep_vector(1, M); // vector for computing row sums
   
@@ -66,26 +67,30 @@ transformed data {
     }
   }
   for (i in 1:N) D_sparse[i] = sum(W[i]); // Compute the sparse representation of D
+  
+  if(rho_value >= 0){
+    estimate_rho = 0;
+  }else{
+    estimate_rho = 1;
+  }
 }
 parameters {
   real<lower=0> sigma2; // y variance of outcome
   real<lower=0> tau2[M]; // CAR variance parameter for each model
-  real<lower=0, upper=1> rho[fix_rho ? 0 : M]; // spatial correlation for each model
+  real<lower=0, upper=1> rho_estimated[estimate_rho ? M : 0]; // spatial correlation for each model (set to size 0 if rho is fixed)
   matrix[N, M] phi; // CAR parameter: number of observations x number of models
 }
 transformed parameters {
   // variable declarations
-  //if(use_softmax == 1){
-  matrix[N, M] exp_phi;
-  matrix[N, M] exp_phi_sum;
-  //}
+  matrix[use_softmax ? N : 0, use_softmax ? M : 0] exp_phi;
+  matrix[use_softmax ? N : 0, use_softmax ? M : 0] exp_phi_sum;
   matrix[N, M] u;
   vector[N] mu;
   vector[N_obs] observed_est;
   real log_detQ[M];
   matrix[N + 1, M] ldet_vec;
   real<lower = 0> sigma;
-  real rho_used[M];
+  real rho[M];
   
   // variable calculations
   if(use_softmax == 1){
@@ -101,19 +106,19 @@ transformed parameters {
   observed_est = mu[ind_obs];
   
   // store the rho used
-  if(fix_rho == 1){
+  if(estimate_rho == 0){
     for(m in 1:M){
-	  rho_used[m] = 1;
+	  rho[m] = rho_value;
     }
   }else{
-    rho_used = rho;
+    rho = rho_estimated;
   }
   
   // calculate the log determinants
   for (m in 1:M){
 	ldet_vec[N + 1,m] = -N*log(tau2[m]);
 	for (i in 1:N){
-		ldet_vec[i,m] = log1p(rho_used[m]*lambda[i]);
+		ldet_vec[i,m] = log1p(rho[m]*lambda[i]);
 	}
 	log_detQ[m] = sum(ldet_vec[1:N+1,m]);
   }
@@ -129,7 +134,7 @@ model {
   y_obs ~ normal(observed_est, sigma);
   // CAR prior
   for(m in 1:M){
-	phi[1:N, m] ~ sparse_car(tau2[m], rho_used[m], W_sparse, D_sparse, log_detQ[m], N, W_n);
+	phi[1:N, m] ~ sparse_car(tau2[m], rho[m], W_sparse, D_sparse, log_detQ[m], N, W_n);
   }
   // gamma prior on tau2 
   tau2 ~ gamma(1, 5);
