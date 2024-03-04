@@ -140,7 +140,6 @@ model {
   tau2 ~ gamma(1, 5);
 }
 generated quantities {
-  vector[N] y_exp = mu;
-  int y_pred[N] = poisson_rng(mu);
+  real y_pred[N] = normal_rng(mu, sigma);
   real log_likelihood = normal_lpdf(y_obs | observed_est, sigma);
 }
