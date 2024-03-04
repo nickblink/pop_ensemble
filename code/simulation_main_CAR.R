@@ -82,6 +82,8 @@ panel_plot <- make_panel_plot(res_lst)
 # 
 #### No softmax/direct weights simulation - same mean, stronger sigma priors ####
 
+HERE - NEED TO DO REMAINING TAU2 - ERROR WITH THESE TAU1s
+
 # Gamma(0.001, 0.001)
 system.time({
   res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 5, rho = 0.3, tau2 = 1, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = T, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 0.001, sigma2_prior_rate = 0.001, stan_path = 'code/CAR_leroux_sparse_normal.stan')
@@ -98,6 +100,8 @@ panel_plot <- make_panel_plot(res_lst)
   
   ggsave(panel_plot, filename = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Figures/03012024_normal_3models_mean100_direct_weights_sigma_prior001001_tau1.png', root_dir), height = 10, width = 20)
 }
+
+
 
 
 # Gamma (5, 0.05)
