@@ -30,11 +30,10 @@ burnin = 5000
 #
 #### Fixing rho ####
 system.time({
-  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 5, rho = 0.9, tau2 = 1, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = T, n.sample = n.sample, burnin = burnin, fix_rho_value = 0.9, sigma2_prior_shape = 1000, sigma2_prior_rate = 10, stan_path = 'code/CAR_leroux_sparse_normal.stan')
-}) # 71s for 1.
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 5, rho = 0.99, tau2 = 0.1, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = T, n.sample = n.sample, burnin = burnin, fix_rho_value = 0.99, sigma2_prior_shape = 1000, sigma2_prior_rate = 10, stan_path = 'code/CAR_leroux_sparse_normal.stan')
+}) # 4-8 minutes
 # with fix_rho == 1 and setting rho_used = 1, I get "Chain 1: Rejecting initial value: Chain 1:   Log probability evaluates to log(0), i.e. negative infinity."
-# with fix_rho == 1 and setting rho_used = 0.9, I get no errors. Ok so it has to do with rho = 1.
-# Even with rho = 0.99, it works
+# with fix_rho == 1 and setting rho_used = 0.9, I get no errors. Ok so it has to do with rho = 1. Even with rho = 0.99, it works
 
 panel_plot <- make_panel_plot(res_lst)                                                                
 panel_plot
@@ -42,9 +41,9 @@ panel_plot
 # save things
 {
   warnings = warnings()
-  save(res_lst, warnings, file = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Results/03012024_normal_3models_mean100_sigma_prior100010_rho_fixed09_tau1.RData', root_dir))
+  save(res_lst, warnings, file = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Results/03012024_normal_3models_mean100_sigma_prior100010_rho_fixed099.RData', root_dir))
   
-  ggsave(panel_plot, filename = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Figures/03012024_normal_3models_mean100_sigma_prior100010_rho_fixed09_tau1.png', root_dir), height = 10, width = 20)
+  ggsave(panel_plot, filename = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Figures/03012024_normal_3models_mean100_sigma_prior100010_rho_fixed099.png', root_dir), height = 10, width = 20)
 }
 
 #
