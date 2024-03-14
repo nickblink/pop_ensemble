@@ -668,7 +668,7 @@ make_panel_plot <- function(res_lst){
   tt3 <- plot_multiple_sims(res_lst$sim_list, res_lst$models, y_estimates = T, u_estimates = F, rho_estimates = F, tau2_estimates = F, ncol = 1)
   
   # combine them all
-  full_plot <- plot_grid(pp, tt1, tt2, tt3, nrow = 1, rel_widths = c(3,3,3,2))
+  full_plot <- plot_grid(pp, tt1, tt2, tt3, nrow = 1, rel_widths = c(3,3,3,2))#, labels = c('One Sim','Params','Weights','Y'))
 
   return(full_plot)
 }

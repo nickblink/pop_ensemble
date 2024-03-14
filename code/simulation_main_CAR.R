@@ -23,11 +23,11 @@ county_adj = read.csv('data/countyadj2.csv', row.names = 1)
 NY_lst <- subset_data_by_state(D2010, county_adj, 'New York', 'NY')
 
 # parameters for simulations and MCMC fitting
-models = c('M1','M2','M3')
+models = c('X1','X2','X3')
 n.sample = 10000
 burnin = 5000
 
-#
+#### Trying Original Poisson Again?
 #### Fixing rho ####
 system.time({
   res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 5, rho = 0.99, tau2 = 0.1, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = T, n.sample = n.sample, burnin = burnin, fix_rho_value = 0.99, sigma2_prior_shape = 1000, sigma2_prior_rate = 10, stan_path = 'code/CAR_leroux_sparse_normal.stan')
