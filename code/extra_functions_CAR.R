@@ -234,7 +234,7 @@ simulate_y <- function(data, adjacency, models = c('M1','M2','M3'), scale_down =
 # models: a vector of the models to use in the ensemble.
 # sigma2_prior_shape: Shape of the gamma distribution prior.
 # sigma2_prior_rate: rate of the gamma distribution prior.
-prep_stan_data_leroux_sparse <- function(data, W, models, use_softmax = F, sigma2_prior_shape = 1, sigma2_prior_rate = 10, fix_rho_value = -1, ...){
+prep_stan_data_leroux_sparse <- function(data, W, models, use_softmax = F, use_normal = T, sigma2_prior_shape = 1, sigma2_prior_rate = 10, fix_rho_value = -1, ...){
 
   # checking columns
   if(!('y' %in% colnames(data))){
@@ -285,6 +285,7 @@ prep_stan_data_leroux_sparse <- function(data, W, models, use_softmax = F, sigma
     I = diag(1.0, N),
     lambda = lambda,
     use_softmax = as.integer(use_softmax),
+    use_normal = as.integer(use_normal),
     sigma2_prior_shape = sigma2_prior_shape,
     sigma2_prior_rate = sigma2_prior_rate,
     rho_value = fix_rho_value)
@@ -301,12 +302,13 @@ prep_stan_data_leroux_sparse <- function(data, W, models, use_softmax = F, sigma
 # n.sample: the number of iterations to run the rstan code.
 # burnin: the number of burnin iterations to run the rstan code.
 # seed: a seed for reproducability
-run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_type = 'Leroux', n.sample = 10000, burnin = 5000, seed = 10, stan_m = NULL, stan_path = "code/CAR_leroux_sparse.stan", tau2 = NULL, direct_weights = F, ...){
+run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_type = 'Leroux', n.sample = 10000, burnin = 5000, seed = 10, stan_m = NULL, stan_path = "code/CAR_leroux_sparse.stan", tau2 = NULL, direct_weights = F, use_normal = T, ...){
   # error checking for precision matrix type
   if(precision_type != 'Leroux'){stop('only have Leroux precision coded')}
 
+
   # prep the data
-  stan_data <- prep_stan_data_leroux_sparse(data, adjacency, models, use_softmax = 1 - direct_weights, ...)
+  stan_data <- prep_stan_data_leroux_sparse(data, adjacency, models, use_softmax = 1 - direct_weights, use_normal = use_normal, ...)
   
   # update fixed tau2 value to be of M dimensions.
   if(!is.null(tau2)){
@@ -378,9 +380,12 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
     }
   }
   if(tolower(family) %in% c('normal','gaussian')){
-    if(!grepl('normal', stan_path)){
-      stop('should use the stan code that fits a normal distribution')
-    }
+    # if(!grepl('normal', stan_path)){
+    #   stop('should use the stan code that fits a normal distribution')
+    # }
+    use_normal = T
+  }else{
+    use_normal = F
   }
   
   # compile the stan program
@@ -399,9 +404,9 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
     
     # fit the Bayesian model
     if(tau2_fixed){
-      stan_fit <- run_stan_CAR(data_lst$data, data_lst$adjacency, models = models, seed = i, stan_m = m,  ...)
+      stan_fit <- run_stan_CAR(data_lst$data, data_lst$adjacency, models = models, seed = i, stan_m = m, use_normal = use_normal, ...)
     }else{
-      stan_fit <- run_stan_CAR(data_lst$data, data_lst$adjacency, models = models, seed = i, stan_m = m, ...)
+      stan_fit <- run_stan_CAR(data_lst$data, data_lst$adjacency, models = models, seed = i, stan_m = m, use_normal = use_normal, ...)
     }
     
     # store results

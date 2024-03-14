@@ -27,10 +27,18 @@ models = c('X1','X2','X3')
 n.sample = 10000
 burnin = 5000
 
-#### Trying Original Poisson Again?
+#### Testing ####
+n.sample = 500
+burnin = 200
+
+system.time({
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 5, rho = 0.3, tau2 = 1, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = F, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 5, sigma2_prior_rate = 0.05, stan_path = 'code/CAR_leroux_sparse.stan')
+}) # ~3 minutes
+
+#
 #### Fixing rho ####
 system.time({
-  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 5, rho = 0.99, tau2 = 0.1, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = T, n.sample = n.sample, burnin = burnin, fix_rho_value = 0.99, sigma2_prior_shape = 1000, sigma2_prior_rate = 10, stan_path = 'code/CAR_leroux_sparse_normal.stan')
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 1, rho = 0.99, tau2 = 0.1, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = T, n.sample = n.sample, burnin = burnin, fix_rho_value = 0.99, sigma2_prior_shape = 1000, sigma2_prior_rate = 10, stan_path = 'code/CAR_leroux_sparse_normal.stan')
 }) # 4-8 minutes
 # with fix_rho == 1 and setting rho_used = 1, I get "Chain 1: Rejecting initial value: Chain 1:   Log probability evaluates to log(0), i.e. negative infinity."
 # with fix_rho == 1 and setting rho_used = 0.9, I get no errors. Ok so it has to do with rho = 1. Even with rho = 0.99, it works
