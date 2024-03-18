@@ -27,6 +27,42 @@ models = c('X1','X2','X3')
 n.sample = 10000
 burnin = 5000
 
+#### 3/18/2024: Normal, softmax, one run ####
+
+# run the simulations
+system.time({
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 5, rho = 0.3, tau2 = 1, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = F, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 5, sigma2_prior_rate = 0.05, stan_path = 'code/CAR_leroux_sparse_normal.stan')
+}) # ~3 minutes
+
+pp <- process_results(res_lst$sim_list[[1]]$data_list, res_lst$models, res_lst$sim_list[[1]]$stan_fit, tau2_estimates = T, likelihoods = F, sigma2_estimates = T)
+
+# save things
+{
+  warnings = warnings()
+  save(res_lst, warnings, file = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Results/03182024_normal_3models_mean100_softmax_tau1_sigma5005.RData', root_dir))
+  
+  ggsave(pp, filename = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Figures/03182024_normal_3models_mean100_softmax_tau1_sigma5005(single sim).png', root_dir), height = 10, width = 5)
+}
+
+
+#
+#### 3/18/2024: Normal, direct weights, 1 run ####
+# run the simulations
+system.time({
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 1, rho = 0.3, tau2 = 0.1, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = T, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 5, sigma2_prior_rate = 0.05, stan_path = 'code/CAR_leroux_sparse_normal.stan')
+}) # ~3 minutes
+
+pp <- process_results(res_lst$sim_list[[1]]$data_list, res_lst$models, res_lst$sim_list[[1]]$stan_fit, tau2_estimates = T, likelihoods = F, sigma2_estimates = T)
+
+# save things
+{
+  warnings = warnings()
+  save(res_lst, warnings, file = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Results/03182024_normal_3models_mean100_direct_weights_tau01_sigma5005.RData', root_dir))
+  
+  ggsave(pp, filename = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Figures/03182024_normal_3models_mean100_direct_weights_tau01_sigma5005(single sim).png', root_dir), height = 10, width = 5)
+}
+
+#
 #### 3/18/2024: (New) Poisson, direct weights ####
 system.time({
   res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 1, rho = 0.3, tau2 = 0.1, tau2_fixed = F, family = 'poisson', direct_weights = T, n.sample = n.sample, burnin = burnin, stan_path = 'code/CAR_leroux_sparse_poisson.stan')
