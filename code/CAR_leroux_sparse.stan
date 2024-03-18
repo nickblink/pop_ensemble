@@ -52,6 +52,7 @@ transformed data {
   int<lower=0, upper=1> estimate_rho;
   vector[N] D_sparse;     // diagonal of D (number of neigbors for each site)
   vector[M] v_ones = rep_vector(1, M); // vector for computing row sums
+  int<lower=0> y_obs_int[use_normal ? 0 : N_obs];
   
   { // generate sparse representation for W
   int counter;
@@ -73,6 +74,16 @@ transformed data {
     estimate_rho = 0;
   }else{
     estimate_rho = 1;
+  }
+  
+  // create integer valued outcomes for Poisson
+  if(use_normal == 0){
+    for(i in 1:N_obs){
+	  y_obs_int[i] = 0;
+	  while(y_obs_int[i] <= y_obs[i]){
+	    y_obs_int[i] = y_obs_int[i] + 1;
+	  }
+	}
   }
 }
 parameters {
@@ -134,7 +145,7 @@ model {
     sigma2 ~ gamma(sigma2_prior_shape, sigma2_prior_rate); // sigma2 prior
     y_obs ~ normal(observed_est, sigma); // normal likelihood
   }else{
-    y_obs ~ poisson(observed_est); // Poisson likelihood
+    y_obs_int ~ poisson(observed_est); // Poisson likelihood
   }
 
   // CAR prior
@@ -148,10 +159,10 @@ generated quantities {
   if(use_normal == 1){
     vector[N] y_exp = mu;
 	real y_pred[N] = normal_rng(mu, sigma);
-	real log_likelihood = normal_lpdf(y_obs | observed_est, sigma);
+	//real log_likelihood = normal_lpdf(y_obs | observed_est, sigma);
   }else{
     vector[N] y_exp = exp(mu);
 	int y_pred[N] = poisson_rng(y_exp);
-	real log_likelihood = poisson_lpmf(y_obs | observed_est);
+	real log_likelihood = poisson_lpmf(y_obs_int | observed_est);
   }
 }
