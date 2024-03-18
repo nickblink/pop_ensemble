@@ -36,15 +36,12 @@ functions {
   int<lower=0, upper=N> ind_miss[N_miss]; // indices of missing y points
   int<lower=0, upper=N> ind_obs[N_obs]; // indices of observed y points
   matrix[N,M] X; // design matrix of ensemble models
-  vector[N_obs] y_obs;  // output
+  int<lower=0> y_obs[N_obs];  // output
   matrix<lower=0, upper = 1>[N, N] W; //adjacency matrix
   int W_n; // Number of adjacency pairs
   matrix[N,N] I; // Identity matrix
   vector[N] lambda; // the eigenvalues of the D - W - I matrix
   int<lower=0, upper=1> use_softmax; // 0 - no softmax, 1 - use softmax on phi.
-  int<lower=0, upper=1> use_normal; // 0 - Poisson, 1 - Normal
-  real<lower=0> sigma2_prior_shape; // prior shape for sigma2
-  real<lower=0> sigma2_prior_rate; // prior rate for sigma2
   real<upper=1> rho_value; // the fixed rho value. If < 0, then rho is estimated.
 }
 transformed data {
@@ -52,7 +49,6 @@ transformed data {
   int<lower=0, upper=1> estimate_rho;
   vector[N] D_sparse;     // diagonal of D (number of neigbors for each site)
   vector[M] v_ones = rep_vector(1, M); // vector for computing row sums
-  int<lower=0> y_obs_int[use_normal ? 0 : N_obs];
   
   { // generate sparse representation for W
   int counter;
@@ -75,19 +71,8 @@ transformed data {
   }else{
     estimate_rho = 1;
   }
-  
-  // create integer valued outcomes for Poisson
-  if(use_normal == 0){
-    for(i in 1:N_obs){
-	  y_obs_int[i] = 0;
-	  while(y_obs_int[i] <= y_obs[i]){
-	    y_obs_int[i] = y_obs_int[i] + 1;
-	  }
-	}
-  }
 }
 parameters {
-  real<lower=0> sigma2[use_normal ? 1 : 0]; // y variance of outcome
   real<lower=0> tau2[M]; // CAR variance parameter for each model
   real<lower=0, upper=1> rho_estimated[estimate_rho ? M : 0]; // spatial correlation for each model (set to size 0 if rho is fixed)
   matrix[N, M] phi; // CAR parameter: number of observations x number of models
@@ -101,7 +86,6 @@ transformed parameters {
   vector[N_obs] observed_est;
   real log_detQ[M];
   matrix[N + 1, M] ldet_vec;
-  real<lower = 0> sigma[use_normal ? 1 : 0];
   real rho[M];
   
   // variable calculations
@@ -134,20 +118,10 @@ transformed parameters {
 	}
 	log_detQ[m] = sum(ldet_vec[1:N+1,m]);
   }
-  
-  // transform the y Gaussian variance to standard deviation.
-  if(use_normal == 1){
-    sigma = sqrt(sigma2);
-  }
 }
 model {
-  if(use_normal == 1){
-    sigma2 ~ gamma(sigma2_prior_shape, sigma2_prior_rate); // sigma2 prior
-    y_obs ~ normal(observed_est, sigma); // normal likelihood
-  }else{
-    y_obs_int ~ poisson(observed_est); // Poisson likelihood
-  }
-
+  // likelihood
+  y_obs ~ poisson(observed_est);
   // CAR prior
   for(m in 1:M){
 	phi[1:N, m] ~ sparse_car(tau2[m], rho[m], W_sparse, D_sparse, log_detQ[m], N, W_n);
@@ -156,13 +130,7 @@ model {
   tau2 ~ gamma(1, 5);
 }
 generated quantities {
-  if(use_normal == 1){
-    vector[N] y_exp = mu;
-	real y_pred[N] = normal_rng(mu, sigma);
-	//real log_likelihood = normal_lpdf(y_obs | observed_est, sigma);
-  }else{
-    vector[N] y_exp = exp(mu);
-	int y_pred[N] = poisson_rng(y_exp);
-	real log_likelihood = poisson_lpmf(y_obs_int | observed_est);
-  }
+  vector[N] y_exp = mu;
+  int y_pred[N] = poisson_rng(y_exp);
+  real log_likelihood = poisson_lpmf(y_obs | observed_est);
 }
