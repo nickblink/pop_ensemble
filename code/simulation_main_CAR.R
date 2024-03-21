@@ -31,7 +31,7 @@ burnin = 5000
 
 # Gamma(2,1)
 system.time({
-  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 1, rho = 0.3, tau2 = 1, tau2_fixed = F, init_vals = 'truth', family = 'normal', sigma2 = 10^2, direct_weights = F, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 5, sigma2_prior_rate = 0.05, tau2_prior_shape = 2, tau2_prior_rate = 1, stan_path = 'code/CAR_leroux_sparse_normal.stan')
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 1, rho = 0.3, tau2 = 1, tau2_fixed = F, init_vals = 'truth', family = 'normal', sigma2 = 10^2, direct_weights = F, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 5, sigma2_prior_rate = 0.05, tau2_prior_shape = 2, tau2_prior_rate = 1, num_y_samples = 3, stan_path = 'code/CAR_leroux_sparse_normal.stan')
 }) # ~1 minutes
 
 pp <- process_results(res_lst$sim_list[[1]]$data_list, res_lst$models, res_lst$sim_list[[1]]$stan_fit, tau2_estimates = T, likelihoods = F, sigma2_estimates = T)
@@ -46,39 +46,39 @@ pp <- process_results(res_lst$sim_list[[1]]$data_list, res_lst$models, res_lst$s
 
 # Gamma(2,1)
 system.time({
-  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 1, rho = 0.3, tau2 = 1, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = F, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 5, sigma2_prior_rate = 0.05, tau2_prior_shape = 2, tau2_prior_rate = 1, stan_path = 'code/CAR_leroux_sparse_normal.stan')
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 1, rho = 0.3, tau2 = 1, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = F, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 5, sigma2_prior_rate = 0.05, tau2_prior_shape = 2, tau2_prior_rate = 1, num_y_samples = 3, stan_path = 'code/CAR_leroux_sparse_normal.stan')
 }) # ~1 minutes
 
 pp <- process_results(res_lst$sim_list[[1]]$data_list, res_lst$models, res_lst$sim_list[[1]]$stan_fit, tau2_estimates = T, likelihoods = F, sigma2_estimates = T)
 
 # save things
 {
-  ggsave(pp, filename = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Figures/03182024_normal_3models_mean100_softmax_tau1_tauprior21_sigma5005(single sim).png', root_dir), height = 10, width = 5)
+  ggsave(pp, filename = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Figures/03212024_normal_3models_mean100_softmax_tau1_tauprior21_sigma5005(single sim).png', root_dir), height = 10, width = 5)
 }
 
 
 # Gamma(1,1)
 system.time({
-  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 1, rho = 0.3, tau2 = 1, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = F, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 5, sigma2_prior_rate = 0.05, tau2_prior_shape = 1, tau2_prior_rate = 1, stan_path = 'code/CAR_leroux_sparse_normal.stan')
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 1, rho = 0.3, tau2 = 1, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = F, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 5, sigma2_prior_rate = 0.05, tau2_prior_shape = 1, tau2_prior_rate = 1, num_y_samples = 3, stan_path = 'code/CAR_leroux_sparse_normal.stan')
 }) 
 
 pp <- process_results(res_lst$sim_list[[1]]$data_list, res_lst$models, res_lst$sim_list[[1]]$stan_fit, tau2_estimates = T, likelihoods = F, sigma2_estimates = T)
 
 # save things
 {
-  ggsave(pp, filename = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Figures/03182024_normal_3models_mean100_softmax_tau1_tauprior11_sigma5005(single sim).png', root_dir), height = 10, width = 5)
+  ggsave(pp, filename = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Figures/03212024_normal_3models_mean100_softmax_tau1_tauprior11_sigma5005(single sim).png', root_dir), height = 10, width = 5)
 }
 
 # Gamma(.001,.001)
 system.time({
-  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 1, rho = 0.3, tau2 = 1, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = F, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 5, sigma2_prior_rate = 0.05, tau2_prior_shape = .001, tau2_prior_rate = .001, stan_path = 'code/CAR_leroux_sparse_normal.stan')
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 1, rho = 0.3, tau2 = 1, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = F, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 5, sigma2_prior_rate = 0.05, tau2_prior_shape = .001, tau2_prior_rate = .001, num_y_samples = 3, stan_path = 'code/CAR_leroux_sparse_normal.stan')
 }) # 6 minutes (notably 6x slower than the other tau2 priors)
 
 pp <- process_results(res_lst$sim_list[[1]]$data_list, res_lst$models, res_lst$sim_list[[1]]$stan_fit, tau2_estimates = T, likelihoods = F, sigma2_estimates = T)
 
 # save things
 {
-  ggsave(pp, filename = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Figures/03182024_normal_3models_mean100_softmax_tau1_tauprior00010001_sigma5005(single sim).png', root_dir), height = 10, width = 5)
+  ggsave(pp, filename = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Figures/03212024_normal_3models_mean100_softmax_tau1_tauprior00010001_sigma5005(single sim).png', root_dir), height = 10, width = 5)
 }
 
 #### 3/18/2024: Normal, different means, direct weights, 1 run ####

@@ -147,7 +147,7 @@ sample_MVN_from_precision <- function(n = 1, mu=rep(0, nrow(Q)), Q){
 # sigma2: variance of the normal distribution.
 # direct_weights: If true, the phi values are directly used as weights (centered at 1/M), and no softmax is used.
 
-simulate_y <- function(data, adjacency, models = c('M1','M2','M3'), scale_down = 1, pivot = -1, precision_type = 'Leroux', tau2 = 1, rho = 0.3, seed = 10, cholesky = T, family = 'poisson', sigma2 = NULL, direct_weights = F, ...){
+simulate_y <- function(data, adjacency, models = c('M1','M2','M3'), scale_down = 1, pivot = -1, precision_type = 'Leroux', tau2 = 1, rho = 0.3, seed = 10, cholesky = T, family = 'poisson', sigma2 = NULL, direct_weights = F, num_y_samples = 1, ...){
   # set seed for reproducability 
   set.seed(seed)
   
@@ -200,15 +200,29 @@ simulate_y <- function(data, adjacency, models = c('M1','M2','M3'), scale_down =
   data$y_expected <- rowSums(u_true*data[,models])
   
   # simulate the y values
-  if(tolower(family) == 'poisson'){
-    data$y <- rpois(n = nrow(data), lambda = data$y_expected)
-  }else if(tolower(family) %in% c('normal','gaussian')){
-    if(is.null(sigma2)){
-      stop('please put in a sigma2 value if simulating from normal')
+  for(i in 1:num_y_samples){
+    if(tolower(family) == 'poisson'){
+      # first Poisson sample
+      data$y <- rpois(n = nrow(data), lambda = data$y_expected)
+      
+      # sample repeated y instances
+      if(i >= 2){
+        data[,paste0('y',i)] <- rpois(n = nrow(data), lambda = data$y_expected)
+      }
+    }else if(tolower(family) %in% c('normal','gaussian')){
+      if(is.null(sigma2)){
+        stop('please put in a sigma2 value if simulating from normal')
+      }
+      # first Normal sample
+      data$y <- rnorm(n = nrow(data), mean = data$y_expected, sd = sqrt(sigma2))
+      
+      # sample repeated y instances
+      if(i >= 2){
+        data[,paste0('y',i)] <- rnorm(n = nrow(data), mean = data$y_expected, sd = sqrt(sigma2))
+      }
+    }else{
+      stop('please input a proper family')
     }
-    data$y <- rnorm(n = nrow(data), mean = data$y_expected, sd = sqrt(sigma2))
-  }else{
-    stop('please input a proper family')
   }
   
   # create phi and u data frames
@@ -626,6 +640,7 @@ process_results <- function(data_list, models, stan_fit, ESS = T, likelihoods = 
   
   ## compare the true outcomes with the estimated outcomes (compared to just using one model in the outcomes)
   if(y_estimates){
+    # first plot
     ind = grep('y_exp', rownames(stan_summary))
     data_list$data$y_predicted <- stan_summary[ind,'50%']
     p_y <- ggplot(data_list$data, aes(x = y, y_predicted)) + 
@@ -636,7 +651,31 @@ process_results <- function(data_list, models, stan_fit, ESS = T, likelihoods = 
       ylab('median est') + 
       ggtitle('y estimation')
     
+    
     plot_list <- append(plot_list, list(p_y))
+    if('y2' %in% colnames(data_list$data) & 'y3' %in% colnames(data_list$data)){
+      
+      p_y2 <- ggplot(data_list$data, aes(x = y2, y_predicted)) + 
+        geom_point() +
+        geom_smooth(method='lm', formula = y ~ x) + 
+        geom_abline(slope = 1, intercept = 0, col = 'red') + 
+        xlab('observed y') + 
+        ylab('median est') + 
+        ggtitle('y OOS est')
+      
+      p_y3 <- ggplot(data_list$data, aes(x = y3, y_predicted)) + 
+        geom_point() +
+        geom_smooth(method='lm', formula = y ~ x) + 
+        geom_abline(slope = 1, intercept = 0, col = 'red') + 
+        xlab('observed y') + 
+        ylab('median est') + 
+        ggtitle('y OOS est')
+      
+      plot_list <- append(plot_list, list(plot_grid(p_y, p_y2, p_y3, nrow = 1)))
+    }else{
+      plot_list <- append(plot_list, list(p_y))
+    }
+    
   }
   
   ## Combine all the plots!
