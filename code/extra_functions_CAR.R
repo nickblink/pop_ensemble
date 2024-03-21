@@ -145,9 +145,9 @@ sample_MVN_from_precision <- function(n = 1, mu=rep(0, nrow(Q)), Q){
 # cholesky: whether to simulate phi's from cholesky decomposition.
 # family: Poisson or Normal/Gaussian, for the type of outcome family.
 # sigma2: variance of the normal distribution.
-# direct_weights: If true, the phi values are directly used as weights (centered at 1/M), and no softmax is used.
+# use_softmax: If true, softmax is used. If false, the phi values are directly used as weights (centered at 1/M).
 
-simulate_y <- function(data, adjacency, models = c('M1','M2','M3'), scale_down = 1, pivot = -1, precision_type = 'Leroux', tau2 = 1, rho = 0.3, seed = 10, cholesky = T, family = 'poisson', sigma2 = NULL, direct_weights = F, num_y_samples = 1, ...){
+simulate_y <- function(data, adjacency, models = c('M1','M2','M3'), scale_down = 1, pivot = -1, precision_type = 'Leroux', tau2 = 1, rho = 0.3, seed = 10, cholesky = T, family = 'poisson', sigma2 = NULL, use_softmax = F, num_y_samples = 1, use_pivot = F, ...){
   # set seed for reproducability 
   set.seed(seed)
   
@@ -184,16 +184,25 @@ simulate_y <- function(data, adjacency, models = c('M1','M2','M3'), scale_down =
   }
   colnames(phi_true) <- models
     
-  if(direct_weights){
-    # directly use phi values to create model weights
-    u_true = 1/length(models) + phi_true
-  }else{
+  if(use_softmax){
     # get exponentiated values and sum across models
     exp_phi = exp(phi_true)
     exp_phi_rows = rowSums(exp_phi)
     
     # get model weights and calculate the mean estimate
     u_true <- exp_phi/exp_phi_rows
+  }else{
+    # directly use phi values to create model weights
+    if(use_pivot){
+      u_true = matrix(NA, 
+                      nrow = nrow(data), 
+                      ncol = length(models))
+      colnames(u_true) <- models
+      u_true[,1:(length(models) - 1)] = 1/length(models) + phi_true[,1:(length(models) - 1)]
+      u_true[,length(models)] = 1 - rowSums(u_true[,1:(length(models) - 1)])
+    }else{
+      u_true = 1/length(models) + phi_true
+    }
   }
   
   # get the expected census values
@@ -248,7 +257,7 @@ simulate_y <- function(data, adjacency, models = c('M1','M2','M3'), scale_down =
 # models: a vector of the models to use in the ensemble.
 # sigma2_prior_shape: Shape of the gamma distribution prior.
 # sigma2_prior_rate: rate of the gamma distribution prior.
-prep_stan_data_leroux_sparse <- function(data, W, models, use_softmax = F, use_normal = T, sigma2_prior_shape = 1, sigma2_prior_rate = 10, tau2_prior_shape = 1, tau2_prior_rate = 1, fix_rho_value = - 1, ...){
+prep_stan_data_leroux_sparse <- function(data, W, models, use_softmax = F, use_pivot = F, use_normal = T, sigma2_prior_shape = 1, sigma2_prior_rate = 10, tau2_prior_shape = 1, tau2_prior_rate = 1, fix_rho_value = - 1, ...){
 
   # checking columns
   if(!('y' %in% colnames(data))){
@@ -299,6 +308,7 @@ prep_stan_data_leroux_sparse <- function(data, W, models, use_softmax = F, use_n
     I = diag(1.0, N),
     lambda = lambda,
     use_softmax = as.integer(use_softmax),
+    use_pivot = as.integer(use_pivot),
     use_normal = as.integer(use_normal),
     sigma2_prior_shape = sigma2_prior_shape,
     sigma2_prior_rate = sigma2_prior_rate,
@@ -318,13 +328,18 @@ prep_stan_data_leroux_sparse <- function(data, W, models, use_softmax = F, use_n
 # n.sample: the number of iterations to run the rstan code.
 # burnin: the number of burnin iterations to run the rstan code.
 # seed: a seed for reproducability
-run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_type = 'Leroux', n.sample = 10000, burnin = 5000, seed = 10, stan_m = NULL, stan_path = "code/CAR_leroux_sparse.stan", tau2 = NULL, direct_weights = F, use_normal = T, init_vals = '0', ...){
+run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_type = 'Leroux', n.sample = 10000, burnin = 5000, seed = 10, stan_m = NULL, stan_path = "code/CAR_leroux_sparse.stan", tau2 = NULL, use_softmax = T, use_normal = T, use_pivot = F, init_vals = '0', ...){
   
   # error checking for precision matrix type
   if(precision_type != 'Leroux'){stop('only have Leroux precision coded')}
   
+  browser()
+  print('WHAT IS GOING ON WITH FIXED TAU OR NOT?')
+  print('PUT IN ERROR CHECK FOR HAVING TOO HIGH A TAU2 without a softmax')
+  #if(use_softmax == F & tau2 >= 
+  
   # prep the data
-  stan_data <- prep_stan_data_leroux_sparse(data, adjacency, models, use_softmax = 1 - direct_weights, use_normal = use_normal, ...)
+  stan_data <- prep_stan_data_leroux_sparse(data, adjacency, models, use_softmax = use_softmax, use_normal = use_normal, use_pivot = use_pivot, ...)
   
   # update fixed tau2 value to be of M dimensions.
   if(!is.null(tau2)){
@@ -427,12 +442,9 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
       init_vals <- function(){init_list}
     }
     
+   
     # fit the Bayesian model
-    if(tau2_fixed){
-      stan_fit <- run_stan_CAR(data_lst$data, data_lst$adjacency, models = models, seed = i, stan_m = m, use_normal = use_normal, init_vals = init_vals, ...)
-    }else{
-      stan_fit <- run_stan_CAR(data_lst$data, data_lst$adjacency, models = models, seed = i, stan_m = m, use_normal = use_normal, init_vals = init_vals, ...)
-    }
+    stan_fit <- run_stan_CAR(data_lst$data, data_lst$adjacency, models = models, seed = i, stan_m = m, ...)
     
     # store results
     sim_lst[[i]] <- list(data_list = data_lst, stan_fit = stan_fit)
@@ -651,8 +663,6 @@ process_results <- function(data_list, models, stan_fit, ESS = T, likelihoods = 
       ylab('median est') + 
       ggtitle('y estimation')
     
-    
-    plot_list <- append(plot_list, list(p_y))
     if('y2' %in% colnames(data_list$data) & 'y3' %in% colnames(data_list$data)){
       
       p_y2 <- ggplot(data_list$data, aes(x = y2, y_predicted)) + 

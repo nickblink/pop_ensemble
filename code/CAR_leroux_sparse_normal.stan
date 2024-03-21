@@ -42,6 +42,7 @@ functions {
   matrix[N,N] I; // Identity matrix
   vector[N] lambda; // the eigenvalues of the D - W - I matrix
   int<lower=0, upper=1> use_softmax; // 0 - no softmax, 1 - use softmax on phi.
+  int<lower=0, upper=1> use_pivot; // 0 - no direct pivot, 1 - use pivot in last X value.
   real<lower=0> sigma2_prior_shape; // prior shape for sigma2
   real<lower=0> sigma2_prior_rate; // prior rate for sigma2
   real<lower=0> tau2_prior_shape; // prior shape for tau2
@@ -53,6 +54,8 @@ transformed data {
   int<lower=0, upper=1> estimate_rho;
   vector[N] D_sparse;     // diagonal of D (number of neigbors for each site)
   vector[M] v_ones = rep_vector(1, M); // vector for computing row sums
+  //vector[M-1] v_ones2 = rep_vector(1, M-1)
+  int M_phi; // num models estimated for (can be differenty if using pivot.
   
   { // generate sparse representation for W
   int counter;
@@ -75,12 +78,18 @@ transformed data {
   }else{
     estimate_rho = 1;
   }
+  
+  if(use_pivot == 1){
+    M_phi = M - 1;
+  }else{
+    M_phi = M;
+  }
 }
 parameters {
   real<lower=0> sigma2; // y variance of outcome
   real<lower=0> tau2[M]; // CAR variance parameter for each model
   real<lower=0, upper=1> rho_estimated[estimate_rho ? M : 0]; // spatial correlation for each model (set to size 0 if rho is fixed)
-  matrix[N, M] phi; // CAR parameter: number of observations x number of models
+  matrix[N, M_phi] phi; // CAR parameter: number of observations x number of models
 }
 transformed parameters {
   // variable declarations
@@ -102,7 +111,12 @@ transformed parameters {
     }
     u = exp_phi ./ exp_phi_sum;
   }else{
-    u = 1.0/M + phi;
+    if(use_pivot == 1){
+	  u[1:N,1:(M-1)] = 1.0/M + phi;
+	  u[1:N,M] = 1.0 - u[1:N,1:(M-1)] * rep_vector(1, M-1);
+	}else{
+	  u = 1.0/M + phi;
+	}
   }
   mu = (X .* u)*v_ones;
   observed_est = mu[ind_obs];
@@ -133,7 +147,7 @@ model {
   // y_obs ~ poisson(observed_est);
   y_obs ~ normal(observed_est, sigma);
   // CAR prior
-  for(m in 1:M){
+  for(m in 1:M_phi){
 	phi[1:N, m] ~ sparse_car(tau2[m], rho[m], W_sparse, D_sparse, log_detQ[m], N, W_n);
   }
   // gamma prior on tau2 

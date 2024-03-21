@@ -24,9 +24,34 @@ NY_lst <- subset_data_by_state(D2010, county_adj, 'New York', 'NY')
 
 # parameters for simulations and MCMC fitting
 models = c('X1','X2','X3')
-n.sample = 10000
-burnin = 5000
+n.sample = 1000
+burnin = 500
 
+#### 3/21/2024: Normal, direct estimate pivot ####
+# Gamma(2,1)
+system.time({
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 1, rho = 0.3, tau2 = .01, tau2_fixed = F, family = 'normal', sigma2 = 10^2, use_softmax = F, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 5, sigma2_prior_rate = 0.05, tau2_prior_shape = 2, tau2_prior_rate = 1, num_y_samples = 3, use_pivot = T, stan_path = 'code/CAR_leroux_sparse_normal.stan')
+})
+
+tt = res_lst$sim_list[[1]]$stan_fit
+stan_out <- extract(tt)
+u_est = stan_out[['u']]
+
+sum(u_est[1,1,])
+sum(u_est[100,2,])
+apply(u_est, 1, sum) -> xx
+table(xx)
+# ok so at least the u's correctly sum to 1.
+
+pp <- process_results(res_lst$sim_list[[1]]$data_list, res_lst$models, res_lst$sim_list[[1]]$stan_fit, tau2_estimates = T, likelihoods = F, sigma2_estimates = T)
+
+# save things
+{
+  ggsave(pp, filename = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Figures/03212024_normal_3models_mean100_direct_weights_pivot_tau1_tauprior21_sigma5005(single sim).png', root_dir), height = 10, width = 5)
+}
+
+
+#
 #### 3/21/2024: Normal, softmax, initializing with truth ####
 
 # Gamma(2,1)
