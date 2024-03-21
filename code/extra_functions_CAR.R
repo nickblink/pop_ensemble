@@ -234,7 +234,7 @@ simulate_y <- function(data, adjacency, models = c('M1','M2','M3'), scale_down =
 # models: a vector of the models to use in the ensemble.
 # sigma2_prior_shape: Shape of the gamma distribution prior.
 # sigma2_prior_rate: rate of the gamma distribution prior.
-prep_stan_data_leroux_sparse <- function(data, W, models, use_softmax = F, use_normal = T, sigma2_prior_shape = 1, sigma2_prior_rate = 10, fix_rho_value = - 1, ...){
+prep_stan_data_leroux_sparse <- function(data, W, models, use_softmax = F, use_normal = T, sigma2_prior_shape = 1, sigma2_prior_rate = 10, tau2_prior_shape = 1, tau2_prior_rate = 1, fix_rho_value = - 1, ...){
 
   # checking columns
   if(!('y' %in% colnames(data))){
@@ -288,6 +288,8 @@ prep_stan_data_leroux_sparse <- function(data, W, models, use_softmax = F, use_n
     use_normal = as.integer(use_normal),
     sigma2_prior_shape = sigma2_prior_shape,
     sigma2_prior_rate = sigma2_prior_rate,
+    tau2_prior_shape = tau2_prior_shape,
+    tau2_prior_rate = tau2_prior_rate,
     rho_value = fix_rho_value)
 
   return(stan_data)
@@ -302,7 +304,8 @@ prep_stan_data_leroux_sparse <- function(data, W, models, use_softmax = F, use_n
 # n.sample: the number of iterations to run the rstan code.
 # burnin: the number of burnin iterations to run the rstan code.
 # seed: a seed for reproducability
-run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_type = 'Leroux', n.sample = 10000, burnin = 5000, seed = 10, stan_m = NULL, stan_path = "code/CAR_leroux_sparse.stan", tau2 = NULL, direct_weights = F, use_normal = T, ...){
+run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_type = 'Leroux', n.sample = 10000, burnin = 5000, seed = 10, stan_m = NULL, stan_path = "code/CAR_leroux_sparse.stan", tau2 = NULL, direct_weights = F, use_normal = T, init_vals = '0', ...){
+  
   # error checking for precision matrix type
   if(precision_type != 'Leroux'){stop('only have Leroux precision coded')}
   
@@ -319,19 +322,18 @@ run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_
     stan_data$tau2 = tau2
   }
   
-  
-  
+  # create the stan model if not done already
   if(is.null(stan_m)){
     stan_m <- stan_model(stan_path)
   }
-  
+
   # fit the stan model
   stan_fit <- rstan::sampling(object = stan_m,
                    data = stan_data, 
                    iter = n.sample, 
                    warmup = burnin,
                    chains = 1, 
-                   init = '0',
+                   init = init_vals,
                    cores = 1,
                    seed = seed)
 
@@ -356,7 +358,7 @@ run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_
 # n.sample: number of stan chain samples.
 # burnin: length of burnin period for stan.
 # sigma2: sigma2 value of y distribution.
-multiple_sims <- function(raw_data, models, means, variances, family = 'poisson', N_sims = 10, tau2_fixed = F, stan_path = "code/CAR_leroux_sparse_poisson.stan", family_name_check = T, ...){
+multiple_sims <- function(raw_data, models, means, variances, family = 'poisson', N_sims = 10, tau2_fixed = F, stan_path = "code/CAR_leroux_sparse_poisson.stan", init_vals = '0', family_name_check = T, ...){
   
   # Checking the name and family match
   if(!grepl(family, stan_path) & family_name_check){
@@ -372,7 +374,6 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
       print('WARNING: rho in DGP and rho in model not equal')
     }
   }
-  
   
   # capture the arguments
   arguments <- match.call()
@@ -406,11 +407,17 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
     # simulate y values from input models
     data_lst <- simulate_y(data, raw_data$adjacency, models = models, seed = i, family = family, ...)
     
+    # update the initialization to start at the true values.
+    if(tolower(init_vals) == 't' | tolower(init_vals) == 'truth'){
+      init_list = list(phi = as.matrix(data_lst$phi_true[,-ncol(data_lst$phi_true)]))
+      init_vals <- function(){init_list}
+    }
+    
     # fit the Bayesian model
     if(tau2_fixed){
-      stan_fit <- run_stan_CAR(data_lst$data, data_lst$adjacency, models = models, seed = i, stan_m = m, use_normal = use_normal, ...)
+      stan_fit <- run_stan_CAR(data_lst$data, data_lst$adjacency, models = models, seed = i, stan_m = m, use_normal = use_normal, init_vals = init_vals, ...)
     }else{
-      stan_fit <- run_stan_CAR(data_lst$data, data_lst$adjacency, models = models, seed = i, stan_m = m, use_normal = use_normal, ...)
+      stan_fit <- run_stan_CAR(data_lst$data, data_lst$adjacency, models = models, seed = i, stan_m = m, use_normal = use_normal, init_vals = init_vals, ...)
     }
     
     # store results

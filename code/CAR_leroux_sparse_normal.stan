@@ -44,6 +44,8 @@ functions {
   int<lower=0, upper=1> use_softmax; // 0 - no softmax, 1 - use softmax on phi.
   real<lower=0> sigma2_prior_shape; // prior shape for sigma2
   real<lower=0> sigma2_prior_rate; // prior rate for sigma2
+  real<lower=0> tau2_prior_shape; // prior shape for tau2
+  real<lower=0> tau2_prior_rate; // prior rate for tau2
   real<upper=1> rho_value; // the fixed rho value. If < 0, then rho is estimated.
 }
 transformed data {
@@ -135,7 +137,7 @@ model {
 	phi[1:N, m] ~ sparse_car(tau2[m], rho[m], W_sparse, D_sparse, log_detQ[m], N, W_n);
   }
   // gamma prior on tau2 
-  tau2 ~ gamma(1, 5);
+  tau2 ~ gamma(tau2_prior_shape, tau2_prior_rate);
 }
 generated quantities {
   vector[N] y_exp = mu;

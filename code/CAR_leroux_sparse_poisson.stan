@@ -122,12 +122,15 @@ transformed parameters {
 model {
   // likelihood
   y_obs ~ poisson(observed_est);
+  
   // CAR prior
   for(m in 1:M){
 	phi[1:N, m] ~ sparse_car(tau2[m], rho[m], W_sparse, D_sparse, log_detQ[m], N, W_n);
   }
   // gamma prior on tau2 
   tau2 ~ gamma(1, 5);
+  
+  // should there be a rho prior?
 }
 generated quantities {
   vector[N] y_exp = mu;
