@@ -334,8 +334,6 @@ run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_
   # error checking for precision matrix type
   if(precision_type != 'Leroux'){stop('only have Leroux precision coded')}
   
-  print('WHAT IS GOING ON WITH FIXED TAU OR NOT?')
-  
   # prep the data
   stan_data <- prep_stan_data_leroux_sparse(data, adjacency, models, use_softmax = use_softmax, use_normal = use_normal, use_pivot = use_pivot, ...)
   

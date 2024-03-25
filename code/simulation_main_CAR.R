@@ -24,13 +24,13 @@ NY_lst <- subset_data_by_state(D2010, county_adj, 'New York', 'NY')
 
 # parameters for simulations and MCMC fitting
 models = c('X1','X2','X3')
-n.sample = 1000
-burnin = 500
+n.sample = 10000
+burnin = 5000
 
 #### 3/21/2024: Normal, direct estimate pivot ####
 # Gamma(2,1)
 system.time({
-  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 1, rho = 0.3, tau2 = 1, tau2_fixed = F, family = 'normal', sigma2 = 10^2, use_softmax = F, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 5, sigma2_prior_rate = 0.05, tau2_prior_shape = 2, tau2_prior_rate = 1, num_y_samples = 3, use_pivot = T, stan_path = 'code/CAR_leroux_sparse_normal.stan')
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 1, rho = 0.3, tau2 = 1, family = 'normal', sigma2 = 10^2, use_softmax = F, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 5, sigma2_prior_rate = 0.05, tau2_prior_shape = 2, tau2_prior_rate = 1, num_y_samples = 3, use_pivot = T, stan_path = 'code/CAR_leroux_sparse_normal.stan')
 })
 
 tt = res_lst$sim_list[[1]]$stan_fit
@@ -56,7 +56,7 @@ pp <- process_results(res_lst$sim_list[[1]]$data_list, res_lst$models, res_lst$s
 
 # Gamma(2,1)
 system.time({
-  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 1, rho = 0.3, tau2 = 1, tau2_fixed = F, init_vals = 'truth', family = 'normal', sigma2 = 10^2, direct_weights = F, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 5, sigma2_prior_rate = 0.05, tau2_prior_shape = 2, tau2_prior_rate = 1, num_y_samples = 3, stan_path = 'code/CAR_leroux_sparse_normal.stan')
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 1, rho = 0.3, tau2 = 1, init_vals = 'truth', family = 'normal', sigma2 = 10^2, direct_weights = F, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 5, sigma2_prior_rate = 0.05, tau2_prior_shape = 2, tau2_prior_rate = 1, num_y_samples = 3, stan_path = 'code/CAR_leroux_sparse_normal.stan')
 }) # ~1 minutes
 
 pp <- process_results(res_lst$sim_list[[1]]$data_list, res_lst$models, res_lst$sim_list[[1]]$stan_fit, tau2_estimates = T, likelihoods = F, sigma2_estimates = T)
@@ -69,9 +69,21 @@ pp <- process_results(res_lst$sim_list[[1]]$data_list, res_lst$models, res_lst$s
 #
 #### 3/21/2024: Normal, softmax, different tau2 priors ####
 
+# Gamma(1,5)
+system.time({
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 1, rho = 0.3, tau2 = 1, family = 'normal', sigma2 = 10^2, direct_weights = F, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 50, sigma2_prior_rate = 0.5, tau2_prior_shape = 1, tau2_prior_rate = 5, num_y_samples = 3, stan_path = 'code/CAR_leroux_sparse_normal.stan')
+}) # ~1 minutes
+
+pp <- process_results(res_lst$sim_list[[1]]$data_list, res_lst$models, res_lst$sim_list[[1]]$stan_fit, tau2_estimates = T, likelihoods = F, sigma2_estimates = T)
+
+# save things
+{
+  ggsave(pp, filename = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Figures/03212024_normal_3models_mean100_softmax_tau1_tauprior15_sigma5005(single sim).png', root_dir), height = 10, width = 5)
+}
+
 # Gamma(2,1)
 system.time({
-  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 1, rho = 0.3, tau2 = 1, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = F, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 5, sigma2_prior_rate = 0.05, tau2_prior_shape = 2, tau2_prior_rate = 1, num_y_samples = 3, stan_path = 'code/CAR_leroux_sparse_normal.stan')
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 1, rho = 0.3, tau2 = 1, family = 'normal', sigma2 = 10^2, direct_weights = F, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 50, sigma2_prior_rate = 0.5, tau2_prior_shape = 2, tau2_prior_rate = 1, num_y_samples = 3, stan_path = 'code/CAR_leroux_sparse_normal.stan')
 }) # ~1 minutes
 
 pp <- process_results(res_lst$sim_list[[1]]$data_list, res_lst$models, res_lst$sim_list[[1]]$stan_fit, tau2_estimates = T, likelihoods = F, sigma2_estimates = T)
@@ -84,7 +96,7 @@ pp <- process_results(res_lst$sim_list[[1]]$data_list, res_lst$models, res_lst$s
 
 # Gamma(1,1)
 system.time({
-  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 1, rho = 0.3, tau2 = 1, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = F, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 5, sigma2_prior_rate = 0.05, tau2_prior_shape = 1, tau2_prior_rate = 1, num_y_samples = 3, stan_path = 'code/CAR_leroux_sparse_normal.stan')
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 1, rho = 0.3, tau2 = 1, family = 'normal', sigma2 = 10^2, direct_weights = F, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 50, sigma2_prior_rate = 0.5, tau2_prior_shape = 1, tau2_prior_rate = 1, num_y_samples = 3, stan_path = 'code/CAR_leroux_sparse_normal.stan')
 }) 
 
 pp <- process_results(res_lst$sim_list[[1]]$data_list, res_lst$models, res_lst$sim_list[[1]]$stan_fit, tau2_estimates = T, likelihoods = F, sigma2_estimates = T)
@@ -96,7 +108,7 @@ pp <- process_results(res_lst$sim_list[[1]]$data_list, res_lst$models, res_lst$s
 
 # Gamma(.001,.001)
 system.time({
-  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 1, rho = 0.3, tau2 = 1, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = F, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 5, sigma2_prior_rate = 0.05, tau2_prior_shape = .001, tau2_prior_rate = .001, num_y_samples = 3, stan_path = 'code/CAR_leroux_sparse_normal.stan')
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 1, rho = 0.3, tau2 = 1, family = 'normal', sigma2 = 10^2, direct_weights = F, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 50, sigma2_prior_rate = 0.5, tau2_prior_shape = .001, tau2_prior_rate = .001, num_y_samples = 3, stan_path = 'code/CAR_leroux_sparse_normal.stan')
 }) # 6 minutes (notably 6x slower than the other tau2 priors)
 
 pp <- process_results(res_lst$sim_list[[1]]$data_list, res_lst$models, res_lst$sim_list[[1]]$stan_fit, tau2_estimates = T, likelihoods = F, sigma2_estimates = T)
@@ -109,7 +121,7 @@ pp <- process_results(res_lst$sim_list[[1]]$data_list, res_lst$models, res_lst$s
 #### 3/18/2024: Normal, different means, direct weights, 1 run ####
 # run the simulations
 system.time({
-  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,200,300), N_sims = 1, rho = 0.3, tau2 = 0.01, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = T, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 5, sigma2_prior_rate = 0.05, stan_path = 'code/CAR_leroux_sparse_normal.stan')
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,200,300), N_sims = 1, rho = 0.3, tau2 = 0.01, family = 'normal', sigma2 = 10^2, direct_weights = T, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 5, sigma2_prior_rate = 0.05, stan_path = 'code/CAR_leroux_sparse_normal.stan')
 }) # 
 
 pp <- process_results(res_lst$sim_list[[1]]$data_list, res_lst$models, res_lst$sim_list[[1]]$stan_fit, tau2_estimates = T, likelihoods = F, sigma2_estimates = T)
@@ -127,7 +139,7 @@ pp <- process_results(res_lst$sim_list[[1]]$data_list, res_lst$models, res_lst$s
 
 # run the simulations
 system.time({
-  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 1, rho = 0.3, tau2 = 1, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = F, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 5, sigma2_prior_rate = 0.05, stan_path = 'code/CAR_leroux_sparse_normal.stan')
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 1, rho = 0.3, tau2 = 1, family = 'normal', sigma2 = 10^2, direct_weights = F, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 5, sigma2_prior_rate = 0.05, stan_path = 'code/CAR_leroux_sparse_normal.stan')
 }) # ~3 minutes
 
 pp <- process_results(res_lst$sim_list[[1]]$data_list, res_lst$models, res_lst$sim_list[[1]]$stan_fit, tau2_estimates = T, likelihoods = F, sigma2_estimates = T)
@@ -145,7 +157,7 @@ pp <- process_results(res_lst$sim_list[[1]]$data_list, res_lst$models, res_lst$s
 #### 3/18/2024: Normal, direct weights, 1 run ####
 # run the simulations
 system.time({
-  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 1, rho = 0.3, tau2 = 0.01, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = T, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 5, sigma2_prior_rate = 0.05, stan_path = 'code/CAR_leroux_sparse_normal.stan')
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 1, rho = 0.3, tau2 = 0.01, family = 'normal', sigma2 = 10^2, direct_weights = T, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 5, sigma2_prior_rate = 0.05, stan_path = 'code/CAR_leroux_sparse_normal.stan')
 }) # ~3 minutes
 
 pp <- process_results(res_lst$sim_list[[1]]$data_list, res_lst$models, res_lst$sim_list[[1]]$stan_fit, tau2_estimates = T, likelihoods = F, sigma2_estimates = T)
@@ -161,7 +173,7 @@ pp <- process_results(res_lst$sim_list[[1]]$data_list, res_lst$models, res_lst$s
 #
 #### 3/18/2024: (New) Poisson, direct weights ####
 system.time({
-  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 1, rho = 0.3, tau2 = 0.01, tau2_fixed = F, family = 'poisson', direct_weights = T, n.sample = n.sample, burnin = burnin, stan_path = 'code/CAR_leroux_sparse_poisson.stan')
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 1, rho = 0.3, tau2 = 0.01, family = 'poisson', direct_weights = T, n.sample = n.sample, burnin = burnin, stan_path = 'code/CAR_leroux_sparse_poisson.stan')
 }) 
 
 pp <- process_results(res_lst$sim_list[[1]]$data_list, res_lst$models, res_lst$sim_list[[1]]$stan_fit, tau2_estimates = T, likelihoods = F, sigma2_estimates = F)
@@ -178,7 +190,7 @@ pp <- process_results(res_lst$sim_list[[1]]$data_list, res_lst$models, res_lst$s
 
 #### 3/18/2024: (New) Poisson, softmax ####
 system.time({
-  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 1, rho = 0.3, tau2 = 1, tau2_fixed = F, family = 'poisson', direct_weights = F, n.sample = n.sample, burnin = burnin, stan_path = 'code/CAR_leroux_sparse_poisson.stan')
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 1, rho = 0.3, tau2 = 1, family = 'poisson', direct_weights = F, n.sample = n.sample, burnin = burnin, stan_path = 'code/CAR_leroux_sparse_poisson.stan')
 }) 
 
 pp <- process_results(res_lst$sim_list[[1]]$data_list, res_lst$models, res_lst$sim_list[[1]]$stan_fit, tau2_estimates = T, likelihoods = F, sigma2_estimates = F)
@@ -194,7 +206,7 @@ pp <- process_results(res_lst$sim_list[[1]]$data_list, res_lst$models, res_lst$s
 #
 #### Fixing rho ####
 system.time({
-  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 1, rho = 0.99, tau2 = 0.1, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = T, n.sample = n.sample, burnin = burnin, fix_rho_value = 0.99, sigma2_prior_shape = 1000, sigma2_prior_rate = 10, stan_path = 'code/CAR_leroux_sparse_normal.stan')
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 1, rho = 0.99, tau2 = 0.1, family = 'normal', sigma2 = 10^2, direct_weights = T, n.sample = n.sample, burnin = burnin, fix_rho_value = 0.99, sigma2_prior_shape = 1000, sigma2_prior_rate = 10, stan_path = 'code/CAR_leroux_sparse_normal.stan')
 }) # 4-8 minutes
 # with fix_rho == 1 and setting rho_used = 1, I get "Chain 1: Rejecting initial value: Chain 1:   Log probability evaluates to log(0), i.e. negative infinity."
 # with fix_rho == 1 and setting rho_used = 0.9, I get no errors. Ok so it has to do with rho = 1. Even with rho = 0.99, it works
@@ -215,7 +227,7 @@ panel_plot
 
 # run the simulations
 system.time({
-  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 5, rho = 0.3, tau2 = 1, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = F, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 5, sigma2_prior_rate = 0.05, stan_path = 'code/CAR_leroux_sparse_normal.stan')
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 5, rho = 0.3, tau2 = 1, family = 'normal', sigma2 = 10^2, direct_weights = F, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 5, sigma2_prior_rate = 0.05, stan_path = 'code/CAR_leroux_sparse_normal.stan')
 }) # ~3 minutes
 
 panel_plot <- make_panel_plot(res_lst)
@@ -230,7 +242,7 @@ panel_plot <- make_panel_plot(res_lst)
 
 ### run the simulations Strong prior
 system.time({
-  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 5, rho = 0.3, tau2 = 1, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = F, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 1000, sigma2_prior_rate = 10, stan_path = 'code/CAR_leroux_sparse_normal.stan')
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 5, rho = 0.3, tau2 = 1, family = 'normal', sigma2 = 10^2, direct_weights = F, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 1000, sigma2_prior_rate = 10, stan_path = 'code/CAR_leroux_sparse_normal.stan')
 }) # ~3 minutes
 
 panel_plot <- make_panel_plot(res_lst)
@@ -248,7 +260,7 @@ panel_plot <- make_panel_plot(res_lst)
 
 # Gamma(0.001, 0.001)
 system.time({
-  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 5, rho = 0.3, tau2 = 1, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = T, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 0.001, sigma2_prior_rate = 0.001, stan_path = 'code/CAR_leroux_sparse_normal.stan')
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 5, rho = 0.3, tau2 = 1, family = 'normal', sigma2 = 10^2, direct_weights = T, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 0.001, sigma2_prior_rate = 0.001, stan_path = 'code/CAR_leroux_sparse_normal.stan')
 }) # ~30 minutes for 10 simulations
 
 panel_plot <- make_panel_plot(res_lst)
@@ -266,7 +278,7 @@ panel_plot <- make_panel_plot(res_lst)
 
 # Gamma (5, 0.05)
 system.time({
-  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 5, rho = 0.3, tau2 = 1, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = T, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 5, sigma2_prior_rate = 0.05, fix_rho_value = -1, stan_path = 'code/CAR_leroux_sparse_normal.stan')
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 5, rho = 0.3, tau2 = 1, family = 'normal', sigma2 = 10^2, direct_weights = T, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 5, sigma2_prior_rate = 0.05, fix_rho_value = -1, stan_path = 'code/CAR_leroux_sparse_normal.stan')
 }) # ~3 minutes
 
 panel_plot <- make_panel_plot(res_lst)
@@ -281,7 +293,7 @@ panel_plot <- make_panel_plot(res_lst)
 
 # Gamma(1000, 10)
 system.time({
-  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 5, rho = 0.3, tau2 = 1, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = T, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 1000, sigma2_prior_rate = 10, stan_path = 'code/CAR_leroux_sparse_normal.stan')
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 5, rho = 0.3, tau2 = 1, family = 'normal', sigma2 = 10^2, direct_weights = T, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 1000, sigma2_prior_rate = 10, stan_path = 'code/CAR_leroux_sparse_normal.stan')
 }) # ~3 minutes
 
 panel_plot <- make_panel_plot(res_lst)
@@ -300,7 +312,7 @@ panel_plot <- make_panel_plot(res_lst)
 
 # run the simulations
 system.time({
-  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 5, rho = 0.3, tau2 = 0.01, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = T, n.sample = n.sample, burnin = burnin, stan_path = 'code/CAR_leroux_sparse_normal_noSoftmax.stan')
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 5, rho = 0.3, tau2 = 0.01, family = 'normal', sigma2 = 10^2, direct_weights = T, n.sample = n.sample, burnin = burnin, stan_path = 'code/CAR_leroux_sparse_normal_noSoftmax.stan')
 }) # ~23 minutes
 
 panel_plot <- make_panel_plot(res_lst)
@@ -312,7 +324,7 @@ ggsave(panel_plot, filename = sprintf('%s/Dropbox/Academic/HSPH/Research/Populat
 
 # run the simulations
 system.time({
-  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,200,300), N_sims = 5, rho = 0.3, tau2 = 0.01, tau2_fixed = F, family = 'normal', sigma2 = 10^2, direct_weights = T, n.sample = n.sample, burnin = burnin, stan_path = 'code/CAR_leroux_sparse_normal_noSoftmax.stan')
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,200,300), N_sims = 5, rho = 0.3, tau2 = 0.01, family = 'normal', sigma2 = 10^2, direct_weights = T, n.sample = n.sample, burnin = burnin, stan_path = 'code/CAR_leroux_sparse_normal_noSoftmax.stan')
 }) # ~23 minutes
 
 panel_plot <- make_panel_plot(res_lst)
@@ -323,7 +335,7 @@ ggsave(panel_plot, filename = sprintf('%s/Dropbox/Academic/HSPH/Research/Populat
 #### MVN model simulation - negative correlation ####
 # run the simulations
 system.time({
-  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 5, rho = 0.3, tau2 = 1, tau2_fixed = F, family = 'normal', sigma2 = 10^2, n.sample = n.sample, burnin = burnin, M_MVN_alpha = -50, stan_path = 'code/CAR_leroux_sparse_normal.stan')
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 5, rho = 0.3, tau2 = 1, family = 'normal', sigma2 = 10^2, n.sample = n.sample, burnin = burnin, M_MVN_alpha = -50, stan_path = 'code/CAR_leroux_sparse_normal.stan')
 })
 # 78m, though maybe due to comp sleeping?
 
@@ -341,7 +353,7 @@ panel_plot <- make_panel_plot(res_lst)
 #### MVN model simulation - positive correlation ####
 # run the simulations
 system.time({
-  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 5, rho = 0.3, tau2 = 1, tau2_fixed = F, family = 'normal', sigma2 = 10^2, n.sample = n.sample, burnin = burnin, M_MVN_alpha = 50, stan_path = 'code/CAR_leroux_sparse_normal.stan')
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 5, rho = 0.3, tau2 = 1, family = 'normal', sigma2 = 10^2, n.sample = n.sample, burnin = burnin, M_MVN_alpha = 50, stan_path = 'code/CAR_leroux_sparse_normal.stan')
 })
 # 78m, though maybe due to comp sleeping?
 
@@ -361,7 +373,7 @@ panel_plot <- make_panel_plot(res_lst)
 
 # run the simulations
 system.time({
-  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 5, rho = 0.3, tau2 = 1, tau2_fixed = F, family = 'normal', sigma2 = 10^2, n.sample = n.sample, burnin = burnin, M_CAR_tau2 = 100, M_CAR_rho = 0.4, M_BYM_variance = T, stan_path = 'code/CAR_leroux_sparse_normal.stan')
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 5, rho = 0.3, tau2 = 1, family = 'normal', sigma2 = 10^2, n.sample = n.sample, burnin = burnin, M_CAR_tau2 = 100, M_CAR_rho = 0.4, M_BYM_variance = T, stan_path = 'code/CAR_leroux_sparse_normal.stan')
 })
 # 78m, though maybe due to comp sleeping?
 
@@ -380,7 +392,7 @@ panel_plot <- make_panel_plot(res_lst)
 #### 3 models + CAR variance ####
 # run the simulations
 system.time({
-  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 5, rho = 0.3, tau2 = 1, tau2_fixed = F, family = 'normal', sigma2 = 10^2, n.sample = n.sample, burnin = burnin, M_CAR_tau2 = 100, M_CAR_rho = 0.4, stan_path = 'code/CAR_leroux_sparse_normal.stan')
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 5, rho = 0.3, tau2 = 1, family = 'normal', sigma2 = 10^2, n.sample = n.sample, burnin = burnin, M_CAR_tau2 = 100, M_CAR_rho = 0.4, stan_path = 'code/CAR_leroux_sparse_normal.stan')
 })
 # 78m, though maybe due to comp sleeping?
 
@@ -401,7 +413,7 @@ panel_plot <- make_panel_plot(res_lst)
 
 # run the simulations
 system.time({
-  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 5, rho = 0.3, tau2 = 1, tau2_fixed = F, family = 'normal', sigma2 = 10^2, n.sample = n.sample, burnin = burnin, stan_path = 'code/CAR_leroux_sparse_normal.stan')
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 5, rho = 0.3, tau2 = 1, family = 'normal', sigma2 = 10^2, n.sample = n.sample, burnin = burnin, stan_path = 'code/CAR_leroux_sparse_normal.stan')
 })
 # 78m, though maybe due to comp sleeping?
 
@@ -422,7 +434,7 @@ models = c('M1','M2','M3')
 
 # run the simulations
 system.time({
-  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,200,300), N_sims = 10, rho = 0.3, tau2 = 1, tau2_fixed = F, family = 'normal', sigma2 = 10^2, stan_path = 'code/CAR_leroux_sparse_normal.stan')
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,200,300), N_sims = 10, rho = 0.3, tau2 = 1, family = 'normal', sigma2 = 10^2, stan_path = 'code/CAR_leroux_sparse_normal.stan')
 })
 # 78m, though maybe due to comp sleeping?
 
@@ -450,7 +462,7 @@ models = c('M1','M2')
 
 # run the simulations
 system.time({
-  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2), means = c(100,200), N_sims = 10, rho = 0.3, tau2 = 1, tau2_fixed = F, family = 'normal', sigma2 = 10^2, stan_path = 'code/CAR_leroux_sparse_normal.stan')
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2), means = c(100,200), N_sims = 10, rho = 0.3, tau2 = 1, family = 'normal', sigma2 = 10^2, stan_path = 'code/CAR_leroux_sparse_normal.stan')
 })
 # 18m
 

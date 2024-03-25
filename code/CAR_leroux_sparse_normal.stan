@@ -169,7 +169,9 @@ model {
 	phi[1:N, m] ~ sparse_car(tau2[m], rho[m], W_sparse, D_sparse, log_detQ[m], N, W_n);
   }
   // gamma prior on tau2 
-  tau2 ~ gamma(tau2_prior_shape, tau2_prior_rate);
+  if(estimate_tau2 == 1){
+    tau2_estimated ~ gamma(tau2_prior_shape, tau2_prior_rate);
+  }
 }
 generated quantities {
   vector[N] y_exp = mu;
