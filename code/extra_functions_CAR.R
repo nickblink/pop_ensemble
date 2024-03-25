@@ -390,34 +390,36 @@ run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_
 # sigma2: sigma2 value of y distribution.
 multiple_sims <- function(raw_data, models, means, variances, family = 'poisson', N_sims = 10, stan_path = "code/CAR_leroux_sparse_poisson.stan", init_vals = '0', family_name_check = T, ...){
   
-  # Checking the name and family match
-  if(!grepl(family, stan_path) & family_name_check){
-    stop('The code does not have the family name in it')
-  }
-  
-  # checking that the rho in the DGP and the model fit are equal (if the rho is fixed in the model fit)
-  if('rho' %in% names(list(...)) & 'fix_rho_value' %in% names(list(...))){
-    if(list(...)$fix_rho_value > 1){
-      stop('rho value cannot be greater than 1')
+  ### Parameter error checks
+  {
+    # Checking the name and family match
+    if(!grepl(family, stan_path) & family_name_check){
+      stop('The code does not have the family name in it')
     }
-    if(list(...)$fix_rho_value > 0 & list(...)$fix_rho_value != list(...)$rho){
-      print('WARNING: rho in DGP and rho in model not equal')
+    
+    # checking that the rho in the DGP and the model fit are equal (if the rho is fixed in the model fit)
+    if('rho' %in% names(list(...)) & 'fix_rho_value' %in% names(list(...))){
+      if(list(...)$fix_rho_value > 1){
+        stop('rho value cannot be greater than 1')
+      }
+      if(list(...)$fix_rho_value > 0 & list(...)$fix_rho_value != list(...)$rho){
+        print('WARNING: rho in DGP and rho in model not equal')
+      }
     }
-  }
+    
+    # checking that the rho in the DGP and the model fit are equal (if the rho is fixed in the model fit)
+    if('tau2' %in% names(list(...)) & 'fix_tau2_value' %in% names(list(...))){
+      if(list(...)$fix_tau2_value > 0 & list(...)$fix_tau2_value != list(...)$tau2){
+        print('WARNING: tau2 in DGP and tau2 in model not equal')
+      }
+    }
   
+  }
   # capture the arguments
   arguments <- match.call()
   
-  # # check that the path matches the tau2 fixing and the family
-  # if(tau2_fixed){
-  #   if(!grepl('tau2', stan_path)){
-  #     stop('need to use the stan code that fixes tau2')
-  #   }
-  # }
+  # set use_normal variable
   if(tolower(family) %in% c('normal','gaussian')){
-    # if(!grepl('normal', stan_path)){
-    #   stop('should use the stan code that fits a normal distribution')
-    # }
     use_normal = T
   }else{
     use_normal = F
