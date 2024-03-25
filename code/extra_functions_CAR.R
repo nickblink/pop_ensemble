@@ -257,7 +257,7 @@ simulate_y <- function(data, adjacency, models = c('M1','M2','M3'), scale_down =
 # models: a vector of the models to use in the ensemble.
 # sigma2_prior_shape: Shape of the gamma distribution prior.
 # sigma2_prior_rate: rate of the gamma distribution prior.
-prep_stan_data_leroux_sparse <- function(data, W, models, use_softmax = F, use_pivot = F, use_normal = T, sigma2_prior_shape = 1, sigma2_prior_rate = 10, tau2_prior_shape = 1, tau2_prior_rate = 1, fix_rho_value = - 1, ...){
+prep_stan_data_leroux_sparse <- function(data, W, models, use_softmax = F, use_pivot = F, use_normal = T, sigma2_prior_shape = 1, sigma2_prior_rate = 10, tau2_prior_shape = 1, tau2_prior_rate = 1, fix_rho_value = - 1, fix_tau2_value = -1, ...){
 
   # checking columns
   if(!('y' %in% colnames(data))){
@@ -314,7 +314,8 @@ prep_stan_data_leroux_sparse <- function(data, W, models, use_softmax = F, use_p
     sigma2_prior_rate = sigma2_prior_rate,
     tau2_prior_shape = tau2_prior_shape,
     tau2_prior_rate = tau2_prior_rate,
-    rho_value = fix_rho_value)
+    rho_value = fix_rho_value,
+    tau2_value = fix_tau2_value)
 
   return(stan_data)
 }
@@ -333,23 +334,20 @@ run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_
   # error checking for precision matrix type
   if(precision_type != 'Leroux'){stop('only have Leroux precision coded')}
   
-  browser()
   print('WHAT IS GOING ON WITH FIXED TAU OR NOT?')
-  print('PUT IN ERROR CHECK FOR HAVING TOO HIGH A TAU2 without a softmax')
-  #if(use_softmax == F & tau2 >= 
   
   # prep the data
   stan_data <- prep_stan_data_leroux_sparse(data, adjacency, models, use_softmax = use_softmax, use_normal = use_normal, use_pivot = use_pivot, ...)
   
-  # update fixed tau2 value to be of M dimensions.
-  if(!is.null(tau2)){
-    if(length(tau2) == 1 & length(models) > 1){
-      tau2 = rep(tau2, length(models))
-    }
-
-    # add in tau2 fixed
-    stan_data$tau2 = tau2
-  }
+  # # update fixed tau2 value to be of M dimensions.
+  # if(!is.null(tau2)){
+  #   if(length(tau2) == 1 & length(models) > 1){
+  #     tau2 = rep(tau2, length(models))
+  #   }
+  # 
+  #   # add in tau2 fixed
+  #   stan_data$tau2 = tau2
+  # }
   
   # create the stan model if not done already
   if(is.null(stan_m)){
@@ -366,6 +364,10 @@ run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_
                    cores = 1,
                    seed = seed)
 
+  if(!use_softmax & tau2 > 0.1){
+    print('Are you sure you want tau2 so high?')
+  }
+  
   # return the results!
   return(stan_fit)
 }
@@ -374,7 +376,6 @@ run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_
 ### Run multiple simulation runs. This calls the data creation functions and run_stan_CAR.
 # raw_data: data list containing "data" and "adjacency".
 # models: list of input models to put in function.
-# tau2_fixed: whether to keep tau2_fixed in the data generation.
 # stan_path: path to stan code.
 # means: means of the input models' data creation.
 # variances: variances of the input models' data creation.
@@ -387,7 +388,7 @@ run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_
 # n.sample: number of stan chain samples.
 # burnin: length of burnin period for stan.
 # sigma2: sigma2 value of y distribution.
-multiple_sims <- function(raw_data, models, means, variances, family = 'poisson', N_sims = 10, tau2_fixed = F, stan_path = "code/CAR_leroux_sparse_poisson.stan", init_vals = '0', family_name_check = T, ...){
+multiple_sims <- function(raw_data, models, means, variances, family = 'poisson', N_sims = 10, stan_path = "code/CAR_leroux_sparse_poisson.stan", init_vals = '0', family_name_check = T, ...){
   
   # Checking the name and family match
   if(!grepl(family, stan_path) & family_name_check){
@@ -407,12 +408,12 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
   # capture the arguments
   arguments <- match.call()
   
-  # check that the path matches the tau2 fixing and the family
-  if(tau2_fixed){
-    if(!grepl('tau2', stan_path)){
-      stop('need to use the stan code that fixes tau2')
-    }
-  }
+  # # check that the path matches the tau2 fixing and the family
+  # if(tau2_fixed){
+  #   if(!grepl('tau2', stan_path)){
+  #     stop('need to use the stan code that fixes tau2')
+  #   }
+  # }
   if(tolower(family) %in% c('normal','gaussian')){
     # if(!grepl('normal', stan_path)){
     #   stop('should use the stan code that fits a normal distribution')

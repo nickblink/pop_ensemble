@@ -27,10 +27,15 @@ models = c('X1','X2','X3')
 n.sample = 1000
 burnin = 500
 
+
+system.time({
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 1, rho = 0.3, tau2 = 1, family = 'normal', sigma2 = 10^2, use_softmax = F, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 5, sigma2_prior_rate = 0.05, tau2_prior_shape = 2, tau2_prior_rate = 1, num_y_samples = 3, use_pivot = T, fix_tau2_value = 1, stan_path = 'code/CAR_leroux_sparse_normal.stan')
+})
+
 #### 3/21/2024: Normal, direct estimate pivot ####
 # Gamma(2,1)
 system.time({
-  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 1, rho = 0.3, tau2 = .01, tau2_fixed = F, family = 'normal', sigma2 = 10^2, use_softmax = F, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 5, sigma2_prior_rate = 0.05, tau2_prior_shape = 2, tau2_prior_rate = 1, num_y_samples = 3, use_pivot = T, stan_path = 'code/CAR_leroux_sparse_normal.stan')
+  res_lst <- multiple_sims(NY_lst, models, variances = c(10^2, 10^2, 10^2), means = c(100,100,100), N_sims = 1, rho = 0.3, tau2 = 1, tau2_fixed = F, family = 'normal', sigma2 = 10^2, use_softmax = F, n.sample = n.sample, burnin = burnin, sigma2_prior_shape = 5, sigma2_prior_rate = 0.05, tau2_prior_shape = 2, tau2_prior_rate = 1, num_y_samples = 3, use_pivot = T, stan_path = 'code/CAR_leroux_sparse_normal.stan')
 })
 
 tt = res_lst$sim_list[[1]]$stan_fit

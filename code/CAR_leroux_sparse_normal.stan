@@ -48,13 +48,14 @@ functions {
   real<lower=0> tau2_prior_shape; // prior shape for tau2
   real<lower=0> tau2_prior_rate; // prior rate for tau2
   real<upper=1> rho_value; // the fixed rho value. If < 0, then rho is estimated.
+  real tau2_value; // the fixed tau2 value. If < 0, then tau2 is estimated
 }
 transformed data {
   int W_sparse[W_n, 2];   // adjacency pairs
-  int<lower=0, upper=1> estimate_rho;
+  int<lower=0, upper=1> estimate_rho; // whether to estimate rho
+  int<lower=0, upper=1> estimate_tau2; // whether to estimate tau2
   vector[N] D_sparse;     // diagonal of D (number of neigbors for each site)
   vector[M] v_ones = rep_vector(1, M); // vector for computing row sums
-  //vector[M-1] v_ones2 = rep_vector(1, M-1)
   int M_phi; // num models estimated for (can be differenty if using pivot.
   
   { // generate sparse representation for W
@@ -79,6 +80,12 @@ transformed data {
     estimate_rho = 1;
   }
   
+  if(tau2_value >= 0){
+    estimate_tau2 = 0;
+  }else{
+    estimate_tau2 = 1;
+  }
+  
   if(use_pivot == 1){
     M_phi = M - 1;
   }else{
@@ -87,7 +94,8 @@ transformed data {
 }
 parameters {
   real<lower=0> sigma2; // y variance of outcome
-  real<lower=0> tau2[M]; // CAR variance parameter for each model
+  //real<lower=0> tau2[M]; // CAR variance parameter for each model
+  real<lower=0> tau2_estimated[estimate_tau2 ? M : 0]; // 
   real<lower=0, upper=1> rho_estimated[estimate_rho ? M : 0]; // spatial correlation for each model (set to size 0 if rho is fixed)
   matrix[N, M_phi] phi; // CAR parameter: number of observations x number of models
 }
@@ -102,6 +110,7 @@ transformed parameters {
   matrix[N + 1, M] ldet_vec;
   real<lower = 0> sigma;
   real rho[M];
+  real tau2[M];
   
   // variable calculations
   if(use_softmax == 1){
@@ -128,6 +137,15 @@ transformed parameters {
     }
   }else{
     rho = rho_estimated;
+  }
+  
+  // store the tau2 used
+  if(estimate_tau2 == 0){
+    for(m in 1:M){
+	  tau2[m] = tau2_value;
+    }
+  }else{
+    tau2 = tau2_estimated;
   }
   
   // calculate the log determinants
