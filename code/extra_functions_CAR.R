@@ -147,7 +147,7 @@ sample_MVN_from_precision <- function(n = 1, mu=rep(0, nrow(Q)), Q){
 # sigma2: variance of the normal distribution.
 # use_softmax: If true, softmax is used. If false, the phi values are directly used as weights (centered at 1/M).
 
-simulate_y <- function(data, adjacency, models = c('M1','M2','M3'), scale_down = 1, pivot = -1, precision_type = 'Leroux', tau2 = 1, rho = 0.3, seed = 10, cholesky = T, family = 'poisson', sigma2 = NULL, use_softmax = F, num_y_samples = 1, use_pivot = F, ...){
+simulate_y <- function(data, adjacency, models = c('M1','M2','M3'), scale_down = 1, pivot = -1, precision_type = 'Leroux', tau2 = 1, rho = 0.3, seed = 10, cholesky = T, family = 'poisson', sigma2 = NULL, use_softmax = NULL, num_y_samples = 1, use_pivot = F, ...){
   # set seed for reproducability 
   set.seed(seed)
   
@@ -329,7 +329,7 @@ prep_stan_data_leroux_sparse <- function(data, W, models, use_softmax = F, use_p
 # n.sample: the number of iterations to run the rstan code.
 # burnin: the number of burnin iterations to run the rstan code.
 # seed: a seed for reproducability
-run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_type = 'Leroux', n.sample = 10000, burnin = 5000, seed = 10, stan_m = NULL, stan_path = "code/CAR_leroux_sparse.stan", tau2 = NULL, use_softmax = T, use_normal = T, use_pivot = F, init_vals = '0', ...){
+run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_type = 'Leroux', n.sample = 10000, burnin = 5000, seed = 10, stan_m = NULL, stan_path = "code/CAR_leroux_sparse.stan", tau2 = NULL, use_softmax = NULL, use_normal = T, use_pivot = F, init_vals = '0', ...){
   
   # error checking for precision matrix type
   if(precision_type != 'Leroux'){stop('only have Leroux precision coded')}
@@ -386,7 +386,7 @@ run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_
 # n.sample: number of stan chain samples.
 # burnin: length of burnin period for stan.
 # sigma2: sigma2 value of y distribution.
-multiple_sims <- function(raw_data, models, means, variances, family = 'poisson', N_sims = 10, stan_path = "code/CAR_leroux_sparse_poisson.stan", init_vals = '0', family_name_check = T, ...){
+multiple_sims <- function(raw_data, models, means, variances, family = 'poisson', N_sims = 10, stan_path = "code/CAR_leroux_sparse_poisson.stan", init_vals = '0', family_name_check = T, use_softmax = F, ...){
   
   ### Parameter error checks
   {
@@ -435,7 +435,7 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
     data <- simulate_models(data = raw_data$data, adjacency = raw_data$adjacency, models = models, seed = i, means = means, variances = variances, ...)
     
     # simulate y values from input models
-    data_lst <- simulate_y(data, raw_data$adjacency, models = models, seed = i, family = family, ...)
+    data_lst <- simulate_y(data, raw_data$adjacency, models = models, seed = i, family = family, use_softmax = use_softmax, ...)
     
     # update the initialization to start at the true values.
     if(tolower(init_vals) == 't' | tolower(init_vals) == 'truth'){
@@ -445,7 +445,7 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
     
    
     # fit the Bayesian model
-    stan_fit <- run_stan_CAR(data_lst$data, data_lst$adjacency, models = models, seed = i, stan_m = m, ...)
+    stan_fit <- run_stan_CAR(data_lst$data, data_lst$adjacency, models = models, seed = i, stan_m = m, use_softmax = use_softmax, ...)
     
     # store results
     sim_lst[[i]] <- list(data_list = data_lst, stan_fit = stan_fit)
