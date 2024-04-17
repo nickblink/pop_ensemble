@@ -27,6 +27,20 @@ models = c('X1','X2','X3')
 n.sample = 10000
 burnin = 5000
 
+#### 4/17/2024: Normal, softmax, tau2 ~ Gamma(1,1) #### 
+
+# Gamma(1,1)
+system.time({
+  res_lst <- multiple_sims(NY_lst, models, N_sims = 1, n.sample = n.sample, burnin = burnin, family = 'normal', use_softmax = T, # (shared params)
+                           variances = c(10^2, 10^2, 10^2),  means = c(100,100,100), rho = 0.3, tau2 = 1, sigma2 = 10^2, # (DGP params)
+                           sigma2_prior_shape = 50, sigma2_prior_rate = 0.5, tau2_prior_shape = 1, tau2_prior_rate = 1, num_y_samples = 3, stan_path = 'code/CAR_leroux_sparse_normal.stan') # (stan params)
+})
+
+tt <- res_lst$sim_list[[1]]$stan_fit
+
+traceplot(tt)
+
+# 
 #### 3/21/2024: Normal, direct estimate pivot ####
 # Gamma(1,5)
 system.time({
@@ -52,6 +66,22 @@ pp <- process_results(res_lst$sim_list[[1]]$data_list, res_lst$models, res_lst$s
 {
   ggsave(pp, filename = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Figures/03212024_normal_3models_mean100_direct_weights_pivot_tau001_tauprior15_sigma5005(single sim).png', root_dir), height = 10, width = 5)
 }
+
+
+# Gamma(1,1)
+system.time({
+  res_lst <- multiple_sims(NY_lst, models, N_sims = 1, n.sample = n.sample, burnin = burnin, family = 'normal', use_softmax = F, use_pivot = T, # (shared params)
+                           variances = c(10^2, 10^2, 10^2),  means = c(100,100,100), rho = 0.3, tau2 = .01, sigma2 = 10^2, # (DGP params)
+                           sigma2_prior_shape = 50, sigma2_prior_rate = 0.5, tau2_prior_shape = 1, tau2_prior_rate = 1, num_y_samples = 3, stan_path = 'code/CAR_leroux_sparse_normal.stan') # (stan params)
+})
+
+pp <- process_results(res_lst$sim_list[[1]]$data_list, res_lst$models, res_lst$sim_list[[1]]$stan_fit, tau2_estimates = T, likelihoods = F, sigma2_estimates = T)
+
+# save things
+{
+  ggsave(pp, filename = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Figures/04172024_normal_3models_mean100_direct_weights_pivot_tau001_tauprior11_sigma5005(single sim).png', root_dir), height = 10, width = 5)
+}
+
 
 
 #
