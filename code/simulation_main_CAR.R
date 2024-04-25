@@ -24,8 +24,18 @@ NY_lst <- subset_data_by_state(D2010, county_adj, 'New York', 'NY')
 
 # parameters for simulations and MCMC fitting
 models = c('X1','X2','X3')
-n.sample = 10000
-burnin = 5000
+n.sample = 1000
+burnin = 500
+
+#### 4/25/2024: Testing the CV blocking ####
+system.time({
+  res_lst <- multiple_sims(NY_lst, models, N_sims = 2, n.sample = n.sample, burnin = burnin, family = 'normal', use_softmax = T, # (shared params)
+                           variances = c(10^2, 10^2, 10^2),  means = c(100,100,100), rho = 0.3, tau2 = 1, sigma2 = 10^2, # (DGP params)
+                           sigma2_prior_shape = 50, sigma2_prior_rate = 0.5, tau2_prior_shape = 1, tau2_prior_rate = 1, num_y_samples = 3, stan_path = 'code/CAR_leroux_sparse_normal.stan', CV_blocks = 5) # (stan params)
+})
+
+WHY ARE ONLY TWO THINGS BEING PRINTED???
+
 
 #### 4/17/2024: Normal, softmax, tau2 ~ Gamma(1,1) #### 
 
