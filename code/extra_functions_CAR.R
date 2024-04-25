@@ -517,20 +517,20 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
   # store the final set of the results 
   res_lst <- list(sim_list = sim_lst, arguments = arguments, models = models)
   
-  browser
   # return the results
   return(res_lst)
 }
 
 
-### process the results. Prints ESS for spatial params and returns a plot of various results for parameter estimates
+### process the results. Prints ESS for spatial params and returns a plot of various results for parameter estimates.
 # data_list: List containing data used for the fit, the true phi values, and the true u values.
 # models: Vector of models used for fitting.
 # stan_fit: The result of the stan fit on this data.
 # ESS: Whether to include the ESS of the parameters.
-# likelihoods: whether to include the prior, likelihood, and posterior
-# <XX>_estimates: whether to include the <XX> estimates
-process_results <- function(data_list, models, stan_fit, ESS = T, likelihoods = T, rho_estimates = T, tau2_estimates = T, sigma2_estimates = F, phi_estimates = T, u_estimates = T, y_estimates = T){
+# likelihoods: whether to include the prior, likelihood, and posterior.
+# <XX>_estimates: whether to include the <XX> estimates.
+# RMSE_CP_values: whether to include the RMSE_values and coverage probabilities.
+process_results <- function(data_list, models, stan_fit, ESS = T, likelihoods = T, rho_estimates = T, tau2_estimates = T, sigma2_estimates = F, phi_estimates = T, u_estimates = T, y_estimates = T, RMSE_CP_values = T){
   N = nrow(data_list$data)
   
   plot_list = NULL
@@ -750,6 +750,32 @@ process_results <- function(data_list, models, stan_fit, ESS = T, likelihoods = 
     }else{
       plot_list <- append(plot_list, list(p_y))
     }
+    
+  }
+  
+  if(RMSE_values){
+    # get the median, lower, and upper predictions from this set.
+    ind = grep('y_pred', rownames(stan_summary))
+    median_y_pred <- stan_summary[ind,'50%']
+    
+    browser()
+    lower_y_pred <- stan_summary[ind,'2.5%']
+    upper_y_pred <- stan_summary[ind,'97.5%']
+    
+    # get the training set RMSE and CP
+    y = data_list$data$y
+    RMSE_train = sqrt(mean((median_y_pred - y)^2))
+    CP_train = mean(y >= lower_y_pred & y <= upper_y_pred)
+    
+    # get the generalization RMSE in a new set.
+    y2 = data_list$data$y2
+    RMSE_general = sqrt(mean((median_y_pred - y2)^2))
+    CP_train = mean(y2 >= lower_y_pred & y2 <= upper_y_pred)
+    
+    # # get the CV RMSE, if CV was run.
+    # median_y_pred_CV <- stan_summary[ind,'50%']
+    # lower_y_pred <- stan_summary[ind,'2.5%']
+    # upper_y_pred <- stan_summary[ind,'97.5%']
     
   }
   
