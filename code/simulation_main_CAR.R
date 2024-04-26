@@ -1,6 +1,7 @@
 library(dplyr)
 library(rstan)
 library(ggplot2)
+library(cowplot)
 
 rstan_options(auto_write = TRUE)
 
@@ -34,7 +35,7 @@ system.time({
                            sigma2_prior_shape = 50, sigma2_prior_rate = 0.5, tau2_prior_shape = 1, tau2_prior_rate = 1, num_y_samples = 3, stan_path = 'code/CAR_leroux_sparse_normal.stan', CV_blocks = 5) # (stan params)
 })
 
-WHY ARE ONLY TWO THINGS BEING PRINTED???
+lWHY ARE ONLY TWO THINGS BEING PRINTED???
 
 
 #### 4/17/2024: Normal, softmax, tau2 ~ Gamma(1,1) #### 
