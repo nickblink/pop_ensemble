@@ -24,19 +24,39 @@ NY_lst <- subset_data_by_state(D2010, county_adj, 'New York', 'NY')
 
 # parameters for simulations and MCMC fitting
 models = c('X1','X2','X3')
-n.sample = 1000
-burnin = 500
+n.sample = 10000
+burnin = 5000
 
 #### 4/25/2024: Testing the CV blocking ####
+# 5-fold validation.
 system.time({
-  res_lst <- multiple_sims(NY_lst, models, N_sims = 2, n.sample = n.sample, burnin = burnin, family = 'normal', use_softmax = T, # (shared params)
+  res_lst <- multiple_sims(NY_lst, models, N_sims = 1, n.sample = n.sample, burnin = burnin, family = 'normal', use_softmax = T, # (shared params)
                            variances = c(10^2, 10^2, 10^2),  means = c(100,100,100), rho = 0.3, tau2 = 1, sigma2 = 10^2, # (DGP params)
                            sigma2_prior_shape = 50, sigma2_prior_rate = 0.5, tau2_prior_shape = 1, tau2_prior_rate = 1, num_y_samples = 3, stan_path = 'code/CAR_leroux_sparse_normal.stan', CV_blocks = 5) # (stan params)
 })
 
-WHY ARE ONLY TWO THINGS BEING PRINTED???
+pp <- process_results(res_lst$sim_list[[1]]$data_list, res_lst$models, res_lst$sim_list[[1]]$stan_fit, CV_pred = res_lst$sim_list[[1]]$CV_pred, tau2_estimates = T, likelihoods = F, sigma2_estimates = T)
 
+# save things
+{
+  ggsave(pp, filename = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Figures/04262024_normal_3models_mean100_softmax_tau001_tauprior11_sigma5005_CV5(single sim).png', root_dir), height = 10, width = 5)
+}
 
+# 10-fold validation.
+system.time({
+  res_lst <- multiple_sims(NY_lst, models, N_sims = 1, n.sample = n.sample, burnin = burnin, family = 'normal', use_softmax = T, # (shared params)
+                           variances = c(10^2, 10^2, 10^2),  means = c(100,100,100), rho = 0.3, tau2 = 1, sigma2 = 10^2, # (DGP params)
+                           sigma2_prior_shape = 50, sigma2_prior_rate = 0.5, tau2_prior_shape = 1, tau2_prior_rate = 1, num_y_samples = 3, stan_path = 'code/CAR_leroux_sparse_normal.stan', CV_blocks = 10) # (stan params)
+})
+
+pp <- process_results(res_lst$sim_list[[1]]$data_list, res_lst$models, res_lst$sim_list[[1]]$stan_fit, CV_pred = res_lst$sim_list[[1]]$CV_pred, tau2_estimates = T, likelihoods = F, sigma2_estimates = T)
+
+# save things
+{
+  ggsave(pp, filename = sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Figures/04262024_normal_3models_mean100_softmax_tau001_tauprior11_sigma5005_CV10(single sim).png', root_dir), height = 10, width = 5)
+}
+
+#
 #### 4/17/2024: Normal, softmax, tau2 ~ Gamma(1,1) #### 
 
 # Gamma(1,1)
