@@ -24,8 +24,8 @@ NY_lst <- subset_data_by_state(D2010, county_adj, 'New York', 'NY')
 
 # parameters for simulations and MCMC fitting
 models = c('X1','X2','X3')
-n.sample = 10000
-burnin = 5000
+n.sample = 1000
+burnin = 500
 
 #### 4/25/2024: Testing the CV blocking ####
 # 5-fold validation.
