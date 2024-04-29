@@ -1,4 +1,4 @@
-
+library(cowplot)
 
 ### Make an adjacency list out of an adjacency matrix.
 # adj_mat: An adjacency matrix of 0's and 1's
@@ -385,7 +385,9 @@ run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_
                    chains = 1, 
                    init = init_vals,
                    cores = 1,
-                   seed = seed)
+                   seed = seed,
+                   show_messages = F,
+                   verbose = F)
 
   if(!use_softmax & tau2 > 0.1){
     print('Are you sure you want tau2 so high?')
@@ -476,7 +478,8 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
       block_y_pred <- list()
       
       # cycle through the blocks.
-      for(k in CV_blocks){
+      for(k in 1:CV_blocks){
+        print(sprintf('------------%s------------', k))
         # pull out the data
         block_data <- data_lst$data
         
@@ -485,9 +488,6 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
         
         # set y values to 0 of current block
         block_data$y[ind] <- NA
-        
-        # (temporary) print the y values
-        print(block_data$y)
         
         # run the model!
         tmp_stan_fit <- run_stan_CAR(block_data, data_lst$adjacency, models = models, seed = i, stan_m = m, use_softmax = use_softmax, ...)
@@ -529,8 +529,8 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
 # ESS: Whether to include the ESS of the parameters.
 # likelihoods: whether to include the prior, likelihood, and posterior.
 # <XX>_estimates: whether to include the <XX> estimates.
-# RMSE_CP_values: whether to include the RMSE_values and coverage probabilities.
-process_results <- function(data_list, models, stan_fit, ESS = T, likelihoods = T, rho_estimates = T, tau2_estimates = T, sigma2_estimates = F, phi_estimates = T, u_estimates = T, y_estimates = T, RMSE_CP_values = T){
+# RMSE_CP_values: whether to include the RMSE values and coverage probabilities.
+process_results <- function(data_list, models, stan_fit, CV_pred = NULL, ESS = T, likelihoods = T, rho_estimates = T, tau2_estimates = T, sigma2_estimates = F, phi_estimates = T, u_estimates = T, y_estimates = T, RMSE_CP_values = T){
   N = nrow(data_list$data)
   
   plot_list = NULL
@@ -753,12 +753,13 @@ process_results <- function(data_list, models, stan_fit, ESS = T, likelihoods = 
     
   }
   
-  if(RMSE_values){
+  if(RMSE_CP_values){
+    # initialize data frame:
+    RMSE_CP_df <- data.frame(dataset = as.character(NA), RMSE = as.numeric(NA), CP.95 = as.numeric(NA))
+    
     # get the median, lower, and upper predictions from this set.
     ind = grep('y_pred', rownames(stan_summary))
     median_y_pred <- stan_summary[ind,'50%']
-    
-    browser()
     lower_y_pred <- stan_summary[ind,'2.5%']
     upper_y_pred <- stan_summary[ind,'97.5%']
     
@@ -766,17 +767,33 @@ process_results <- function(data_list, models, stan_fit, ESS = T, likelihoods = 
     y = data_list$data$y
     RMSE_train = sqrt(mean((median_y_pred - y)^2))
     CP_train = mean(y >= lower_y_pred & y <= upper_y_pred)
+    RMSE_CP_df[1,1] <- 'train'
+    RMSE_CP_df[1,2:3] <- c(RMSE_train, CP_train)
     
     # get the generalization RMSE in a new set.
     y2 = data_list$data$y2
     RMSE_general = sqrt(mean((median_y_pred - y2)^2))
-    CP_train = mean(y2 >= lower_y_pred & y2 <= upper_y_pred)
+    CP_general = mean(y2 >= lower_y_pred & y2 <= upper_y_pred)
+    RMSE_CP_df[2,1] <- 'generalize'
+    RMSE_CP_df[2,2:3] <- c(RMSE_general, CP_general)
     
-    # # get the CV RMSE, if CV was run.
-    # median_y_pred_CV <- stan_summary[ind,'50%']
-    # lower_y_pred <- stan_summary[ind,'2.5%']
-    # upper_y_pred <- stan_summary[ind,'97.5%']
+    # get the CV RMSE, if CV was run.
+    if(!is.null(CV_pred)){
+      CV_quants = t(apply(CV_pred, 1, function(xx){
+        quantile(xx, probs = c(0.025, 0.5, 0.975))
+      }))
+      
+      RMSE_CV = sqrt(mean((CV_quants[,2] - y)^2))
+      CP_CV = mean(y >= CV_quants[,1] & y <= CV_quants[,3])
+      RMSE_CP_df[3,1] <- 'train-CV'
+      RMSE_CP_df[3,2:3] <- c(RMSE_CV, CP_CV)
+    }
     
+    # rounding for display
+    RMSE_CP_df[,2:3] <- round(RMSE_CP_df[,2:3], 3)
+    p_RMSE_CP <- gridExtra::tableGrob(RMSE_CP_df)
+    
+    plot_list <- append(plot_list, list(p_RMSE_CP))
   }
   
   ## Combine all the plots!
