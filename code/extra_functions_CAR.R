@@ -1,5 +1,3 @@
-library(cowplot)
-
 ### Make an adjacency list out of an adjacency matrix.
 # adj_mat: An adjacency matrix of 0's and 1's
 make_adjacency_list <- function(adj_mat){
