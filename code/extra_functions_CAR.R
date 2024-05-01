@@ -411,7 +411,7 @@ run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_
 # n.sample: number of stan chain samples.
 # burnin: length of burnin period for stan.
 # sigma2: sigma2 value of y distribution.
-multiple_sims <- function(raw_data, models, means, variances, family = 'poisson', N_sims = 10, stan_path = "code/CAR_leroux_sparse_poisson.stan", init_vals = '0', family_name_check = T, use_softmax = F, CV_blocks = NULL, ...){
+multiple_sims <- function(raw_data, models, means, variances, family = 'poisson', N_sims = 10, stan_path = "code/CAR_leroux_sparse_poisson.stan", init_vals = '0', family_name_check = T, use_softmax = F, CV_blocks = NULL, seed_start = 0, ...){
   
   ### Parameter error checks
   {
@@ -456,11 +456,14 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
   
   # cycle through N simulations
   for(i in 1:N_sims){
+    # set the seed value
+    seed_val = i + seed_start
+    
     # simulate input model values
-    data <- simulate_models(data = raw_data$data, adjacency = raw_data$adjacency, models = models, seed = i, means = means, variances = variances, ...)
+    data <- simulate_models(data = raw_data$data, adjacency = raw_data$adjacency, models = models, seed = seed_val, means = means, variances = variances, ...)
     
     # simulate y values from input models
-    data_lst <- simulate_y(data, raw_data$adjacency, models = models, seed = i, family = family, use_softmax = use_softmax, ...)
+    data_lst <- simulate_y(data, raw_data$adjacency, models = models, seed = seed_val, family = family, use_softmax = use_softmax, ...)
     
     # update the initialization to start at the true values.
     if(tolower(init_vals) == 't' | tolower(init_vals) == 'truth'){
@@ -488,7 +491,7 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
         block_data$y[ind] <- NA
         
         # run the model!
-        tmp_stan_fit <- run_stan_CAR(block_data, data_lst$adjacency, models = models, seed = i, stan_m = m, use_softmax = use_softmax, ...)
+        tmp_stan_fit <- run_stan_CAR(block_data, data_lst$adjacency, models = models, seed = seed_val, stan_m = m, use_softmax = use_softmax, ...)
         # store the outcome values:
         tmp_y_pred <- t(extract(tmp_stan_fit, pars = 'y_pred')[[1]])
         for(i_block in ind){
@@ -500,7 +503,7 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
     }
    
     # fit the Bayesian model
-    stan_fit <- run_stan_CAR(data_lst$data, data_lst$adjacency, models = models, seed = i, stan_m = m, use_softmax = use_softmax, ...)
+    stan_fit <- run_stan_CAR(data_lst$data, data_lst$adjacency, models = models, seed = seed_val, stan_m = m, use_softmax = use_softmax, ...)
     
     # store results
     tmp_lst <- list(data_list = data_lst, stan_fit = stan_fit)
