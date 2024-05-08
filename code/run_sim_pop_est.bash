@@ -8,5 +8,5 @@
 #SBATCH -o errors_outputs/%x_%A_%a.sim.out
 
 module load R/4.3.3-fasrc01
-export R_LIBS_USER=$HOME/apps/R_version:$R_LIBS_USER
+export R_LIBS_USER=$HOME/apps/R-4.3.3:$R_LIBS_USER
 Rscript code/simulation_main_CAR.R $1 ${SLURM_ARRAY_TASK_ID}
