@@ -27,9 +27,6 @@ models = c('X1','X2','X3')
 n.sample = 1000
 burnin = 500
 
-##### String version
-
-
 #### 4/25/2024: Testing the CV blocking ####
 # 5-fold validation.
 system.time({

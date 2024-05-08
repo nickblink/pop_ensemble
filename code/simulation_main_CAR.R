@@ -21,7 +21,7 @@ if(file.exists('C:/Users/Admin-Dell')){
 source('code/extra_functions_CAR.R')
 
 # Local inputs
-inputs = c('N_sims=1:dataset=NY:N_models=3:n.sample=1000:burnin=500:family=normal:use_softmax=T:variances=100,100,100:means=100,100,100:rho=0.3:tau2=1:sigma2=100:sigma2_prior_shape=50:sigma2_prior_rate=0.5:tau2_prior_shape=1:tau2_prior_rate=1:num_y_samples=3:stan_path=code/CAR_leroux_sparse_normal.stan:CV_blocks=5:output_path=simTEST_today-not\r','3')
+inputs = c('N_sims=1:dataset=NY:N_models=3:n.sample=1000:burnin=500:family=normal:use_softmax=T:variances=100,100,100:means=100,100,100:rho=0.3:tau2=1:sigma2=100:sigma2_prior_shape=50:sigma2_prior_rate=0.5:tau2_prior_shape=1:tau2_prior_rate=1:num_y_samples=3:stan_path=code/CAR_leroux_sparse_normal.stan:CV_blocks=5:return_quantiles=T:output_path=simTEST_today-not\r','3')
 
 # cluster inputs
 inputs <- commandArgs(trailingOnly = TRUE)
@@ -73,8 +73,8 @@ if(params[['dataset']] == 'ny'){
 }
 }
 
+# set up the output folder
 {
-  # set up the output folder
   date <- gsub('-','_', Sys.Date())
   if(!('output_path' %in% names(params))){
     params[['output_path']] <- sprintf('results/simulation_%s', date)

@@ -539,7 +539,7 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
     
     if(!is.null(CV_blocks)){
       if(return_quantiles){
-        CV_quants <- apply(CV_pred, 2, function(x) {quantile(x, probs = c(0.025, 0.05, 0.25, 0.5, 0.75, 0.95, 0.975))})
+        CV_quants <- apply(CV_pred, 1, function(x) {quantile(x, probs = c(0.025, 0.05, 0.25, 0.5, 0.75, 0.95, 0.975))})
         rownames(CV_quants) <- as.numeric(gsub('\\%','',rownames(CV_quants)))/100
         tmp_lst[['CV_pred']] <- CV_quants
       }else{
