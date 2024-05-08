@@ -180,7 +180,10 @@ sample_MVN_from_precision <- function(n = 1, mu=rep(0, nrow(Q)), Q){
 # use_softmax: If true, softmax is used. If false, the phi values are directly used as weights (centered at 1/M).
 simulate_y <- function(data, adjacency, models = c('M1','M2','M3'), scale_down = 1, pivot = -1, precision_type = 'Leroux', tau2 = 1, rho = 0.3, seed = 10, cholesky = T, family = 'poisson', sigma2 = NULL, use_softmax = NULL, num_y_samples = 1, use_pivot = F, ...){
   # set seed for reproducability 
-  set.seed(seed)
+  # set.seed(seed)
+  
+  # setting the seed so that u and phi are the same each time.
+  set.seed(1)
   
   # transform to be for each model
   if(length(tau2) == 1 & length(models) > 1){
@@ -238,6 +241,9 @@ simulate_y <- function(data, adjacency, models = c('M1','M2','M3'), scale_down =
   
   # get the expected census values
   data$y_expected <- rowSums(u_true*data[,models])
+  
+  # setting the seed so that y is now sampled differently.
+  set.seed(seed)
   
   # simulate the y values
   for(i in 1:num_y_samples){
