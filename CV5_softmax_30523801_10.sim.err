@@ -1,0 +1,45 @@
+
+Attaching package: ‘dplyr’
+
+The following objects are masked from ‘package:stats’:
+
+    filter, lag
+
+The following objects are masked from ‘package:base’:
+
+    intersect, setdiff, setequal, union
+
+Loading required package: StanHeaders
+
+rstan version 2.32.6 (Stan version 2.32.2)
+
+For execution on a local, multicore CPU with excess RAM we recommend calling
+options(mc.cores = parallel::detectCores()).
+To avoid recompilation of unchanged Stan programs, we recommend calling
+rstan_options(auto_write = TRUE)
+For within-chain threading using `reduce_sum()` or `map_rect()` Stan functions,
+change `threads_per_chain` option:
+rstan_options(threads_per_chain = 1)
+
+Warning message:
+In as.numeric(strsplit(val, ",")[[1]]) : NAs introduced by coercion
+Error in FUN(X[[i]], ...) : Stan does not support NA (in X) in data
+In addition: Warning messages:
+1: In rnorm(nrow(data), means[i], sd = sqrt(variances[i])) : NAs produced
+2: In rnorm(n = nrow(data), mean = data$y_expected, sd = sqrt(sigma2)) :
+  NAs produced
+3: In rnorm(n = nrow(data), mean = data$y_expected, sd = sqrt(sigma2)) :
+  NAs produced
+4: In rnorm(n = nrow(data), mean = data$y_expected, sd = sqrt(sigma2)) :
+  NAs produced
+5: In rnorm(n = nrow(data), mean = data$y_expected, sd = sqrt(sigma2)) :
+  NAs produced
+6: In rnorm(n = nrow(data), mean = data$y_expected, sd = sqrt(sigma2)) :
+  NAs produced
+7: Unable to color with 5 colors. Adjacent polygons may have the same color. 
+failed to preprocess the data; sampling not done
+Error in t.default(extract(tmp_stan_fit, pars = "y_pred")[[1]]) : 
+  argument is not a matrix
+Calls: system.time -> do.call -> <Anonymous> -> t -> t.default
+Timing stopped at: 2.501 0.116 3.855
+Execution halted

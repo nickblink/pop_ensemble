@@ -1,0 +1,37 @@
+
+Attaching package: ‘dplyr’
+
+The following objects are masked from ‘package:stats’:
+
+    filter, lag
+
+The following objects are masked from ‘package:base’:
+
+    intersect, setdiff, setequal, union
+
+Loading required package: StanHeaders
+
+rstan version 2.32.6 (Stan version 2.32.2)
+
+For execution on a local, multicore CPU with excess RAM we recommend calling
+options(mc.cores = parallel::detectCores()).
+To avoid recompilation of unchanged Stan programs, we recommend calling
+rstan_options(auto_write = TRUE)
+For within-chain threading using `reduce_sum()` or `map_rect()` Stan functions,
+change `threads_per_chain` option:
+rstan_options(threads_per_chain = 1)
+
+Warning message:
+In as.numeric(strsplit(gsub("c\\(|\\)", "", val), ",")[[1]]) :
+  NAs introduced by coercion
+Error in file(fname, "rt") : cannot open the connection
+In addition: Warning messages:
+1: In normalizePath(file) :
+  path[1]="code/car_leroux_sparse_normal.stan": No such file or directory
+2: In file(fname, "rt") :
+  cannot open file 'code/car_leroux_sparse_normal.stan': No such file or directory
+Error in get_model_strcode(file, model_code) : 
+  cannot open model file "code/car_leroux_sparse_normal.stan"
+Calls: system.time ... stan_model -> stanc -> stanc_process -> get_model_strcode
+Timing stopped at: 0.041 0.002 0.043
+Execution halted

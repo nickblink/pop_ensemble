@@ -1,32 +1,45 @@
 library(dplyr)
 library(rstan)
 library(ggplot2)
+#library(doParallel)
 
 rstan_options(auto_write = TRUE)
 
-# set working directory
+# register the cores
+#registerDoParallel(cores = 40)
+
+# set working directory for home or laptop
 if(file.exists('C:/Users/Admin-Dell')){
   root_dir = 'C:/Users/Admin-Dell'
-}else{
+  setwd(sprintf('%s/Documents/github_projects/pop_ensemble/', root_dir))
+}else if(file.exists('C:/Users/nickl')){
   root_dir = 'C:/Users/nickl'
+  setwd(sprintf('%s/Documents/github_projects/pop_ensemble/', root_dir))
 }
-setwd(sprintf('%s/Documents/github_projects/pop_ensemble/', root_dir))
 
 # load extra functions
 source('code/extra_functions_CAR.R')
 
-# Take in the inputs
-inputs = c('N_sims=1:dataset=NY:N_models=3:n.sample=1000:burnin=500:family=normal:use_softmax=T:variances=c(100,100,100):means=c(100,100,100):rho=0.3:tau2=1:sigma2=100:sigma2_prior_shape=50:sigma2_prior_rate=0.5:tau2_prior_shape=1:tau2_prior_rate=1:num_y_samples=3:stan_path=code/CAR_leroux_sparse_normal.stan:CV_blocks=5\r','3')
-inputs <- commandArgs(trailingOnly = TRUE)
-params <- list()
+# Local inputs
+inputs = c('N_sims=1:dataset=NY:N_models=3:n.sample=1000:burnin=500:family=normal:use_softmax=T:variances=100,100,100:means=100,100,100:rho=0.3:tau2=1:sigma2=100:sigma2_prior_shape=50:sigma2_prior_rate=0.5:tau2_prior_shape=1:tau2_prior_rate=1:num_y_samples=3:stan_path=code/CAR_leroux_sparse_normal.stan:CV_blocks=5:output_path=simTEST_today-not\r','3')
 
+# cluster inputs
+inputs <- commandArgs(trailingOnly = TRUE)
+
+# create params list from inputs
+{
+params <- list()
 inputs[[1]] <- gsub('\r', '', inputs[[1]])
 params[['job_id']] <- as.integer(inputs[[2]])
 for(str in strsplit(inputs[[1]],':')[[1]]){
   tmp = strsplit(str, '=')[[1]]
-  print(tmp)
   nn = tmp[1]
-  val = tolower(tmp[2])
+  if(nn %in% c('stan_path', 'output_path')){
+    val = tmp[2]
+  }else{
+    val = tolower(tmp[2])
+  }
+  
   if(nn %in% c('N_sims', 'n.sample', 'burnin', 'rho', 'tau2', 'sigma2', 'sigma2_prior_shape', 'sigma2_prior_rate', 'tau2_prior_shape', 'tau2_prior_rate', 'num_y_samples', 'CV_blocks')){
     val = as.numeric(val)
   }else if(nn == 'N_models'){
@@ -34,7 +47,7 @@ for(str in strsplit(inputs[[1]],':')[[1]]){
     params[['models']] <- models
     next
   }else if(nn %in% c('means', 'variances')){
-    val <- as.numeric(strsplit(gsub('c\\(|\\)', '', val), ',')[[1]])
+    val <- as.numeric(strsplit(val, ',')[[1]])
   }else if(val %in% c('t','f')){
     val = as.logical(ifelse(val == 't', T, F))
   }
@@ -42,6 +55,8 @@ for(str in strsplit(inputs[[1]],':')[[1]]){
 }
 
 params[['seed_start']] = (params[['job_id']] - 1)*params[['N_sims']]
+
+print(params)
 
 # pull in the data
 D2010 = read.csv('data/merged_wp_census_data2_081122.csv')
@@ -56,14 +71,41 @@ if(params[['dataset']] == 'ny'){
 }else{
   stop('only taking NY data right now')
 }
+}
+
+{
+  # set up the output folder
+  date <- gsub('-','_', Sys.Date())
+  if(!('output_path' %in% names(params))){
+    params[['output_path']] <- sprintf('results/simulation_%s', date)
+  }else{
+    if(!grepl('results', params[['output_path']])){
+      params[['output_path']] <- sprintf('results/%s', params[['output_path']])
+    }
+  }
+  
+  if(!file.exists(params[['output_path']])){
+    dir.create(params[['output_path']], recursive = T)
+  }
+  results_file <- sprintf('%s/sim_results_%i.RData', params[['output_path']],  params[['job_id']])
+  
+  # if there is already a results file, change name to not over-write it.
+  if(file.exists(results_file)){
+    iter = 0
+    while(file.exists(results_file)){
+      iter = iter + 1
+      results_file <- sprintf('%s/sim_results_%i(%i).RData', params[['output_path']], params[['job_id']], iter)
+    }
+  }
+}
 
 # run the code!
 system.time({
   res_lst <- do.call(multiple_sims, params)
 })
-
+# foreach(i=1:R_new)
 
 # RUN WITH PARALLEL POWER
 
-# SAVE THE RESULTS
-### Need to create the output folder for this run.
+# save the results
+save(res_lst, params, file = results_file)
