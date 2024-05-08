@@ -78,6 +78,7 @@ for(f in file_names){
     
     metrics_lst[[iter]] <- list(RMSE_train = sqrt(mean((median_y_pred - y)^2)),
                                 RMSE_general = sqrt(mean((median_y_pred - y2)^2)),
+                                RMSE_CV = sqrt(mean((tmp$CV_pred['0.5',] - y)^2)),
                                 CP_90_train = (y >= y_pred_05 & y <= y_pred_95),
                                 CP_90_general = (y2 >= y_pred_05 & y2 <= y_pred_95),
                                 CP_90_phi = (phi_true_flat >= phi_est_05 & phi_true_flat <= phi_est_95),
