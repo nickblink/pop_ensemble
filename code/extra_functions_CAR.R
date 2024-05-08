@@ -73,7 +73,6 @@ subset_data_by_state <- function(data, adjacency, state, abbrev = NULL){
 # M_BYM_variance: if running CAR, to add in normal variance as well (== T) or just CAR variance (== F).
 # precision_type: precision type for the CAR model. Only relevant if running CAR simulation.
 # M_MVN_alpha: value of multivariate normal covariance level (same covariance for all off-diagonals).
-
 simulate_models <- function(data, models, means, variances, seed = 10, adjacency = NULL, M_CAR_rho = NULL, M_CAR_tau2 = NULL, M_BYM_variance = F, precision_type = 'Leroux', M_MVN_alpha = NULL, ...){
   # set random seed.
   set.seed(seed)
@@ -179,7 +178,6 @@ sample_MVN_from_precision <- function(n = 1, mu=rep(0, nrow(Q)), Q){
 # family: Poisson or Normal/Gaussian, for the type of outcome family.
 # sigma2: variance of the normal distribution.
 # use_softmax: If true, softmax is used. If false, the phi values are directly used as weights (centered at 1/M).
-
 simulate_y <- function(data, adjacency, models = c('M1','M2','M3'), scale_down = 1, pivot = -1, precision_type = 'Leroux', tau2 = 1, rho = 0.3, seed = 10, cholesky = T, family = 'poisson', sigma2 = NULL, use_softmax = NULL, num_y_samples = 1, use_pivot = F, ...){
   # set seed for reproducability 
   set.seed(seed)
@@ -283,6 +281,23 @@ simulate_y <- function(data, adjacency, models = c('M1','M2','M3'), scale_down =
   return(res_list)
 }
 
+
+### Get quantiles from a stan fit
+# stan_fit: An stan fit object.
+# quantiles: what quantiles to return.
+get_stan_quantiles <- function(stan_fit, quantiles = c(0.025, 0.05, 0.25, 0.5, 0.75, 0.95, 0.975)){
+  # convert to a data frame.
+  tmp <- as.matrix(stan_fit)
+  
+  # get the quantiles.
+  quants <- apply(tmp, 2, function(x) {quantile(x, probs = quantiles)})
+  
+  # rename the rows to be in [0,1]
+  rownames(quants) <- as.numeric(gsub('\\%','',rownames(quants)))/100
+  
+  # return!
+  return(quants)
+}
 
 ### prep the data for fitting the stan model
 # data: the observed data with the outcome "y" and the covariates as models. 
@@ -404,6 +419,8 @@ run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_
 # variances: variances of the input models' data creation.
 # family: family of y distribution for simulation.
 # CV_blocks: Number of blocks for running cross-validation. If null, only running the full model on the data.
+# seed_start: Value to shift the seed starting by.
+# return_quantiles: If true, only return quantiles of simulation results. If false, return the full simulation results.
 ## Optional arguments
 # precision_type: Leroux or Cressie.
 # tau2: scalar or vector of CAR variance parameter.
@@ -411,7 +428,7 @@ run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_
 # n.sample: number of stan chain samples.
 # burnin: length of burnin period for stan.
 # sigma2: sigma2 value of y distribution.
-multiple_sims <- function(raw_data, models, means, variances, family = 'poisson', N_sims = 10, stan_path = "code/CAR_leroux_sparse_poisson.stan", init_vals = '0', family_name_check = T, use_softmax = F, CV_blocks = NULL, seed_start = 0, ...){
+multiple_sims <- function(raw_data, models, means, variances, family = 'poisson', N_sims = 10, stan_path = "code/CAR_leroux_sparse_poisson.stan", init_vals = '0', family_name_check = T, use_softmax = F, CV_blocks = NULL, seed_start = 0, return_quantiles = T, ...){
   
   ### Parameter error checks
   {
@@ -506,10 +523,22 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
     stan_fit <- run_stan_CAR(data_lst$data, data_lst$adjacency, models = models, seed = seed_val, stan_m = m, use_softmax = use_softmax, ...)
     
     # store results
-    tmp_lst <- list(data_list = data_lst, stan_fit = stan_fit)
+    if(return_quantiles){
+      stan_quants <- get_stan_quantiles(stan_fit)
+      tmp_lst <- list(data_list = data_lst, stan_fit = stan_quants)
+    }else{
+      tmp_lst <- list(data_list = data_lst, stan_fit = stan_fit)
+    }
+    
     
     if(!is.null(CV_blocks)){
-      tmp_lst[['CV_pred']] <- CV_pred
+      if(return_quantiles){
+        CV_quants <- apply(CV_pred, 2, function(x) {quantile(x, probs = c(0.025, 0.05, 0.25, 0.5, 0.75, 0.95, 0.975))})
+        rownames(CV_quants) <- as.numeric(gsub('\\%','',rownames(CV_quants)))/100
+        tmp_lst[['CV_pred']] <- CV_quants
+      }else{
+        tmp_lst[['CV_pred']] <- CV_pred
+      }
     }
     
     sim_lst[[i]] <- tmp_lst
