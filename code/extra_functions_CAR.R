@@ -654,12 +654,13 @@ generate_metrics_list <- function(folder = NULL, root = NULL){
       u_est_95 <- tmp$stan_fit['0.95', ind_u]
       median_u_mat <- medians[ind_u] %>% 
         vec_to_mat(., n_models = 3)
-      
+
       metrics_lst[[iter]] <- list(RMSE_train = sqrt(mean((median_y_pred - y)^2)),
                                   RMSE_general = sqrt(mean((median_y_pred - y2)^2)),
                                   RMSE_CV = sqrt(mean((tmp$CV_pred['0.5',] - y)^2)),
                                   CP_90_train = (y >= y_pred_05 & y <= y_pred_95),
                                   CP_90_general = (y2 >= y_pred_05 & y2 <= y_pred_95),
+                                  CP_90_CV = (y >= tmp$CV_pred['0.05',] & y <= tmp$CV_pred['0.95',]),
                                   CP_90_phi = (phi_true_flat >= phi_est_05 & phi_true_flat <= phi_est_95),
                                   CP_90_u = (u_true_flat >= u_est_05 & u_true_flat <= u_est_95),
                                   rank_equal = sapply(1:nrow(median_u_mat), function(xx){
@@ -980,6 +981,78 @@ plot_multiple_sims_estimates <- function(sim_lst, models, ncol = 2, ESS = F, lik
   return(final_plot)
 }
 
+
+### Plots the metrics across a set of simulations.
+# metrics_lst: Results from the function "generate_metrics_list"
+plot_metrics <- function(metrics_lst){
+  # number of locations in dataset.
+  n_loc <- length(metrics_lst[[1]]$CP_90_train)
+  
+  ## RMSE plot
+  {
+    RMSE_df <- NULL
+    for(rmse in c('RMSE_train', 'RMSE_general', 'RMSE_CV')){
+      tmp <- data.frame(val = sapply(metrics_lst, function(xx) xx[[rmse]]),
+                        source = rmse)
+      RMSE_df <- rbind(RMSE_df, tmp)
+    }
+    
+    RMSE_df$source <- factor(RMSE_df$source, levels = c('RMSE_train', 'RMSE_general', 'RMSE_CV'))
+    
+    p_RMSE <- ggplot(data = RMSE_df, aes(x = source, y = val)) + 
+      geom_boxplot() + 
+      ggtitle('RMSE values')
+  }
+  
+  ## y coverage plot
+  {
+    y_CP_df <- NULL
+    for(CP in c('CP_90_train', 'CP_90_general', 'CP_90_CV')){
+      tmp <- data.frame(val = rowMeans(sapply(metrics_lst, function(xx) xx[[CP]])),
+                        source = CP)
+      y_CP_df <- rbind(y_CP_df, tmp)
+    }
+    
+    y_CP_df$source <- factor(y_CP_df$source, levels = c('CP_90_train', 'CP_90_general', 'CP_90_CV'))
+    
+    p_y_CP <- ggplot(data = y_CP_df, aes(x = source, y = val)) + 
+      geom_boxplot() + 
+      ggtitle('y prediction 90% coverage')
+  }
+  
+  ## phi and u coverage plots
+  {
+    # phi coverage plot
+    phi_CP <- data.frame(CP = rowMeans(sapply(metrics_lst, function(xx) xx[['CP_90_phi']])))
+    
+    p_phi_CP <- ggplot(data = phi_CP, aes(y = CP)) + 
+      geom_boxplot() + 
+      ggtitle('phi 90% coverage')
+    
+    # u coverage plot
+    u_CP <- data.frame(CP = rowMeans(sapply(metrics_lst, function(xx) xx[['CP_90_u']])))
+    
+    p_u_CP <- ggplot(data = u_CP, aes(y = CP)) + 
+      geom_boxplot() + 
+      ggtitle('u 90% coverage')
+  }
+  
+  ## u rank plot
+  u_rank <- data.frame(rank = rowMeans(sapply(metrics_lst, function(xx) xx[['rank_equal']])))
+  
+  p_u_rank <- ggplot(data = u_rank, aes(y = rank)) + 
+    geom_boxplot() + 
+    ggtitle('u-rank scores')
+  
+  ## full plot
+  full_plot <- cowplot::plot_grid(p_RMSE, 
+                                  p_y_CP,
+                                  p_phi_CP,
+                                  p_u_CP,
+                                  p_u_rank)
+  
+  return(full_plot)
+}
 
 ### Make the panel plot that extracts different parameters from multiply simulations and plots them all together. This calls plot_multiple_sims
 # res_lst: results list from running multiple sims
