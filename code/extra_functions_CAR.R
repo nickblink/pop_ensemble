@@ -657,7 +657,7 @@ generate_metrics_list <- function(folder = NULL, root = NULL){
       
       metrics_lst[[iter]] <- list(RMSE_train = sqrt(mean((median_y_pred - y)^2)),
                                   RMSE_general = sqrt(mean((median_y_pred - y2)^2)),
-                                  #RMSE_CV = sqrt(mean((tmp$CV_pred['0.5',] - y)^2)),
+                                  RMSE_CV = sqrt(mean((tmp$CV_pred['0.5',] - y)^2)),
                                   CP_90_train = (y >= y_pred_05 & y <= y_pred_95),
                                   CP_90_general = (y2 >= y_pred_05 & y2 <= y_pred_95),
                                   CP_90_phi = (phi_true_flat >= phi_est_05 & phi_true_flat <= phi_est_95),
@@ -960,7 +960,7 @@ process_results <- function(data_list, models, stan_fit, CV_pred = NULL, ESS = T
 # sim_lst: simulation list from multiple_sims, containing a list with "data_list" and "stan_fit" for each simulation run.
 # models: models used in the fitting.
 # ncol: number of columns in output plot.
-plot_multiple_sims <- function(sim_lst, models, ncol = 2, ESS = F, likelihoods = F, rho_estimates = T, tau2_estimates = T, sigma2_estimates = F, phi_estimates = F, u_estimates = F, y_estimates = F){
+plot_multiple_sims_estimates <- function(sim_lst, models, ncol = 2, ESS = F, likelihoods = F, rho_estimates = T, tau2_estimates = T, sigma2_estimates = F, phi_estimates = F, u_estimates = F, y_estimates = F){
   
   # initialize the plot list
   plot_list <- list()
