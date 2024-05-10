@@ -1,12 +1,10 @@
 library(dplyr)
 library(rstan)
 library(ggplot2)
-#library(doParallel)
+library(doRNG)
+library(doParallel)
 
 rstan_options(auto_write = TRUE)
-
-# register the cores
-#registerDoParallel(cores = 40)
 
 # set working directory for home or laptop
 if(file.exists('C:/Users/Admin-Dell')){
@@ -21,7 +19,7 @@ if(file.exists('C:/Users/Admin-Dell')){
 source('code/extra_functions_CAR.R')
 
 # Local inputs
-inputs = c('N_sims=1:dataset=NY:N_models=3:n.sample=1000:burnin=500:family=normal:use_softmax=T:variances=100,100,100:means=100,100,100:rho=0.3:tau2=1:sigma2=100:sigma2_prior_shape=50:sigma2_prior_rate=0.5:tau2_prior_shape=1:tau2_prior_rate=1:num_y_samples=3:stan_path=code/CAR_leroux_sparse_normal.stan:CV_blocks=5:return_quantiles=T:output_path=simTEST_today-not\r','3')
+inputs = c('R=2:dataset=NY:N_models=3:n.sample=1000:burnin=500:family=normal:use_softmax=T:variances=100,100,100:means=100,100,100:rho=0.3:tau2=1:sigma2=100:sigma2_prior_shape=50:sigma2_prior_rate=0.5:tau2_prior_shape=1:tau2_prior_rate=1:num_y_samples=3:stan_path=code/CAR_leroux_sparse_normal.stan:CV_blocks=5:return_quantiles=T:parallel=F:output_path=simTEST_today-not\r','3')
 
 # cluster inputs
 inputs <- commandArgs(trailingOnly = TRUE)
@@ -40,7 +38,7 @@ for(str in strsplit(inputs[[1]],':')[[1]]){
     val = tolower(tmp[2])
   }
   
-  if(nn %in% c('N_sims', 'n.sample', 'burnin', 'rho', 'tau2', 'sigma2', 'sigma2_prior_shape', 'sigma2_prior_rate', 'tau2_prior_shape', 'tau2_prior_rate', 'num_y_samples', 'CV_blocks')){
+  if(nn %in% c('R', 'n.sample', 'burnin', 'rho', 'tau2', 'sigma2', 'sigma2_prior_shape', 'sigma2_prior_rate', 'tau2_prior_shape', 'tau2_prior_rate', 'num_y_samples', 'CV_blocks')){
     val = as.numeric(val)
   }else if(nn == 'N_models'){
     models <- paste0('X', 1:as.numeric(val))
@@ -54,7 +52,7 @@ for(str in strsplit(inputs[[1]],':')[[1]]){
   params[[nn]] = val
 }
 
-params[['seed_start']] = (params[['job_id']] - 1)*params[['N_sims']]
+params[['seed_start']] = (params[['job_id']] - 1)*params[['R']]
 
 print(params)
 
@@ -100,10 +98,33 @@ if(params[['dataset']] == 'ny'){
 }
 
 # run the code!
-system.time({
-  res_lst <- do.call(multiple_sims, params)
-})
-# foreach(i=1:R_new)
+if(params[['parallel']]){
+  # register the cores
+  registerDoParallel(cores = params[['R']])
+  
+  # set number of sims within one node to be 1.
+  params[['N_sims']] <- 1
+  
+  # one run of the code.
+  one_run <- function(params, i){
+    # update the seed start.
+    params[['seed_start']] <- params[['seed_start']] + i
+    
+    # run model and return!
+    tmp <- do.call(multiple_sims, params)
+    return(tmp)
+  }
+
+  system.time({
+    res_lst <- foreach(i=1:params[['R']]) %dorng% one_run(params, i)
+  })
+  
+}else{
+  params[['N_sims']] <- params[['R']]
+  system.time({
+    res_lst <- do.call(multiple_sims, params)
+  })
+}
 
 # RUN WITH PARALLEL POWER
 

@@ -576,6 +576,10 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
       }
     }
     
+    # store the seed for checking later.
+    tmp_lst[['seed_val']] <- seed_val
+    
+    # store the list!
     sim_lst[[i]] <- tmp_lst
   }
   

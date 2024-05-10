@@ -1,0 +1,17 @@
+#!/bin/bash
+#SBATCH -p shared
+#SBATCH -t 0-05:00
+#SBATCH -c 10
+#SBATCH --mem=20G
+#SBATCH --mail-type=END
+#SBATCH -e errors_outputs/new/%x_%A_%a.sim.err
+#SBATCH -o errors_outputs/new/%x_%A_%a.sim.out
+
+now=$(date +"%y%m%d-%H%M")
+logpath="errors_outputs/$now"
+mkdir -p $logpath
+logfile="$logpath/%x_%A_%a_${SLURM_ARRAY_TASK_ID}.out"
+
+module load R/4.3.3-fasrc01
+export R_LIBS_USER=$HOME/apps/R-4.3.3:$R_LIBS_USER
+Rscript code/simulation_main_CAR.R $1 ${SLURM_ARRAY_TASK_ID} > ${logfile}
