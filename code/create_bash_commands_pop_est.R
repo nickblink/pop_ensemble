@@ -1,5 +1,6 @@
-## This script makes bash commands for given simulations
+library(dplyr)
 
+## This script makes bash commands for given simulations
 bash_command <- function(R=40, dataset='NY', N_models=3, n.sample=10000, burnin=5000, family='normal',use_softmax=F,variances=c(100,100,100), means=c(100,100,100), rho = 0.3, tau2 = 1, sigma2 = 100, sigma2_prior_shape = 50, sigma2_prior_rate = 0.5, tau2_prior_shape = 1, tau2_prior_rate=1, num_y_samples=3, stan_path='code/CAR_leroux_sparse_normal.stan', CV_blocks = 5, return_quantiles = T,parallel = T, output_path = NULL, array_length = 5){
   
   # make the output path

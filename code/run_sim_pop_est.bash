@@ -2,7 +2,7 @@
 #SBATCH -p shared
 #SBATCH -t 0-05:00
 #SBATCH -c 10
-#SBATCH --mem=20G
+#SBATCH --mem=100G
 #SBATCH --mail-type=END
 #SBATCH -e errors_outputs/%x_%A_%a.sim.err
 #SBATCH -o errors_outputs/%x_%A_%a.sim.out
