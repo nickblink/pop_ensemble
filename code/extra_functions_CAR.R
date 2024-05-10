@@ -43,21 +43,23 @@ make_adjacency_list <- function(adj_mat){
 
 ### Make K non-neighboring folds of data from an adjacency matrix.
 # adj_mat: An adjacency matrix of 0's and 1's
-# K: Number of folds. Should be at least 5.
+# K: Number of folds. If equal to 0, perform LOOCV. Otherwise, this should be at least 5.
 make_data_folds <- function(adj_mat, K){
   
-  if(K < 5){
+  # LOOCV
+  if(K == 0){
+    groups <- 1:nrow(adj_mat)
+  }else if(K < 5){
     stop('too few folds.')
+  }else{
+    # make the adjacency list
+    adj_list <- make_adjacency_list(adj_mat)
+    
+    # make the map
+    groups <- tmaptools::map_coloring(adj_list, ncols = K)
   }
   
-  # make the adjacency list
-  adj_list <- make_adjacency_list(adj_mat)
-  
-  # make the map
-  groups <- tmaptools::map_coloring(adj_list, ncols = K)
-  
   print(table(groups))
-  
   return(groups)
 }
 
@@ -382,7 +384,7 @@ prep_stan_data_leroux_sparse <- function(data, W, models, use_softmax = F, use_p
     N = N, # number of observations
     N_miss = N_miss, # number of missing y points
     N_obs = N_obs,
-    ind_miss = ind_miss, # indices of missing y points
+    ind_miss = as.array(ind_miss), # indices of missing y points
     ind_obs = ind_obs,
     X = X, # design matrix
     y_obs = y_obs, # outcome variable 

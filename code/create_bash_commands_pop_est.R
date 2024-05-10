@@ -25,5 +25,4 @@ bash_command <- function(R=40, dataset='NY', N_models=3, n.sample=10000, burnin=
 
 bash_command(CV_blocks = 5)
 
-bash_command(CV_blocks = 10)
-
+bash_command(CV_blocks = 0)
