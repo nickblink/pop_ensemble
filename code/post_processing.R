@@ -21,6 +21,28 @@ setwd(root_git)
 # load extra functions
 source('code/extra_functions_CAR.R')
 
+#### Master plotter ####
+
+plot_all <- function(folder){
+  metrics_lst <- generate_metrics_list(folder)
+  metrics_plot <- plot_metrics(metrics_lst)
+  
+  
+}
+
+#### Results 5/13/2024 ####
+folder_K10 <- 'simulation_direct_est_normal_3models_CV10_ID512833_2024_05_10'
+metrics_K10 <- generate_metrics_list(folder_K10)
+p_K10 <- plot_metrics(metrics_K10)
+
+folder_K20 <- 'simulation_direct_est_normal_3models_CV20_ID915154_2024_05_10'
+metrics_K20 <- generate_metrics_list(folder_K20)
+p_K20 <- plot_metrics(metrics_K20)
+
+folder_LOOCV <- 'simulation_direct_est_normal_3models_CV0_ID723970_2024_05_10'
+metrics_LOOCV <- generate_metrics_list(folder_LOOCV)
+p_LOOCV <- plot_metrics(metrics_LOOCV)
+
 #### Testing metric list generation function. ####
 folder <- 'softmax_tau21_tauprior11_CV5_05082024'
 metrics_lst <- generate_metrics_list(folder)

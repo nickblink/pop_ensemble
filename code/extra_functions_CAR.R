@@ -596,7 +596,8 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
 ### Function to generate a list of results across simulations 
 # folder: name of folder containing results files.
 # root: directory where this folder is located.
-generate_metrics_list <- function(folder = NULL, root = NULL){
+# debug_mode: pauses the code right after loading results.
+generate_metrics_list <- function(folder = NULL, root = NULL, debug_mode = F){
   print('CV RMSE commented out right now.')
   
   # get the root if necessary
@@ -628,11 +629,27 @@ generate_metrics_list <- function(folder = NULL, root = NULL){
   for(f in file_names){
     load(f)
     
+    if(debug_mode){
+      browser()
+    }
+    
     # cycle through simulations within this file.
-    for(i in 1:length(res_lst$sim_list)){
+    for(i in 1:length(res_lst)){
       iter <- iter + 1
-      tmp <- res_lst$sim_list[[i]]  
+      
+      # check length for error.
+      if(length(res_lst[[i]]$sim_list) > 1){
+        browser()
+      }else{
+        # extract the simulation results.
+        tmp <- res_lst[[i]]$sim_list[[1]]  
+      }
+      
+      # extract the medians.
       medians <- tmp$stan_fit['0.5',]
+      
+      # printing for error checking.
+      # print(sprintf('seed start = %s: sum(u) = %s: sum(y) = %s',  res_lst[[i]]$arguments$seed_start, sum(tmp$data_list$u_true), sum(tmp$data_list$data$y)))
       
       # pull out the y predictions
       ind_y_pred <- grep('y_pred', names(medians))
@@ -677,7 +694,9 @@ generate_metrics_list <- function(folder = NULL, root = NULL){
     }
   }
   
-  return(metrics_lst)
+  return_lst <- list(metrics_list = metrics_lst, 
+                     single_sim = tmp)
+  return(return_lst)
 }
 
 
@@ -689,15 +708,21 @@ generate_metrics_list <- function(folder = NULL, root = NULL){
 # likelihoods: whether to include the prior, likelihood, and posterior.
 # <XX>_estimates: whether to include the <XX> estimates.
 # RMSE_CP_values: whether to include the RMSE values and coverage probabilities.
-process_results <- function(data_list, models, stan_fit, CV_pred = NULL, ESS = T, likelihoods = T, rho_estimates = T, tau2_estimates = T, sigma2_estimates = F, phi_estimates = T, u_estimates = T, y_estimates = T, RMSE_CP_values = T){
+process_results <- function(data_list, models, stan_fit, stan_fit_quantiles = F, CV_pred = NULL, ESS = T, likelihoods = T, rho_estimates = T, tau2_estimates = T, sigma2_estimates = F, phi_estimates = T, u_estimates = T, y_estimates = T, RMSE_CP_values = T){
   N = nrow(data_list$data)
   
   plot_list = NULL
   
   ## grab the results
   #stan_summary = summary(stan_fit, pars = c('tau2','rho', 'phi', 'u','y_exp','lp__'))$summary
-  stan_summary = summary(stan_fit)$summary
-  stan_out <- extract(stan_fit)
+  if(!stan_fit_quantiles){
+    stan_summary = summary(stan_fit)$summary
+    stan_out <- extract(stan_fit)
+  }else{
+    if(ESS | likelihoods){
+      stop('cant return ESS or likelihoods when only quantiles of MCMC results are input.')
+    }
+  }
   
   ## get the convergence parameters
   if(ESS){
@@ -877,8 +902,15 @@ process_results <- function(data_list, models, stan_fit, CV_pred = NULL, ESS = T
   ## compare the true outcomes with the estimated outcomes (compared to just using one model in the outcomes)
   if(y_estimates){
     # first plot
-    ind = grep('y_exp', rownames(stan_summary))
-    data_list$data$y_predicted <- stan_summary[ind,'50%']
+    
+    if(stan_fit_quantiles){
+      ind = grep('y_pred', colnames(stan_fit))
+      data_list$data$y_predicted <- stan_fit['0.5', ind]
+    }else{
+      ind = grep('y_pred', rownames(stan_summary))
+      data_list$data$y_predicted <- stan_summary[ind, '50%']
+    }
+    
     p_y <- ggplot(data_list$data, aes(x = y, y_predicted)) + 
       geom_point() +
       geom_smooth(method='lm', formula = y ~ x) + 
@@ -989,8 +1021,17 @@ plot_multiple_sims_estimates <- function(sim_lst, models, ncol = 2, ESS = F, lik
 
 
 ### Plots the metrics across a set of simulations.
-# metrics_lst: Results from the function "generate_metrics_list"
-plot_metrics <- function(metrics_lst){
+# input_list: Results from the function "generate_metrics_list"
+plot_metrics <- function(input_lst, single_sim_res = NULL){
+  # get correct list of metrics and singe simulation results
+  if('metrics_list' %in% names(input_lst)){
+    print('extracting metrics AND single simulation results.')
+    metrics_lst <- input_lst$metrics_list
+    single_sim_res <- input_lst$single_sim
+  }else{
+    metrics_lst <- input_lst
+  }
+  
   # number of locations in dataset.
   n_loc <- length(metrics_lst[[1]]$CP_90_train)
   
@@ -1049,6 +1090,18 @@ plot_metrics <- function(metrics_lst){
   p_u_rank <- ggplot(data = u_rank, aes(y = rank)) + 
     geom_boxplot() + 
     ggtitle('u-rank scores')
+  
+  # single sim plot
+  if(!is.null(single_sim_res)){
+    # plot the y predictions for a single simulation.
+    y <- single_sim_res$data_list$data$y
+    y2 <- single_sim_res$data_list$data$y2
+    
+    browser()
+    
+    tt <- process_results(single_sim_res$data_list,
+                          models = c('X1','X2','X3'))
+  }
   
   ## full plot
   full_plot <- cowplot::plot_grid(p_RMSE, 
