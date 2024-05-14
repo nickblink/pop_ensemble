@@ -1,6 +1,7 @@
 library(dplyr)
 library(rstan)
 library(ggplot2)
+library(cowplot)
 
 rstan_options(auto_write = TRUE)
 
@@ -20,15 +21,6 @@ setwd(root_git)
 
 # load extra functions
 source('code/extra_functions_CAR.R')
-
-#### Master plotter ####
-
-plot_all <- function(folder){
-  metrics_lst <- generate_metrics_list(folder)
-  metrics_plot <- plot_metrics(metrics_lst)
-  
-  
-}
 
 #### Results 5/13/2024 ####
 folder_K10 <- 'simulation_direct_est_normal_3models_CV10_ID512833_2024_05_10'

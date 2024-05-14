@@ -598,7 +598,6 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
 # root: directory where this folder is located.
 # debug_mode: pauses the code right after loading results.
 generate_metrics_list <- function(folder = NULL, root = NULL, debug_mode = F){
-  print('CV RMSE commented out right now.')
   
   # get the root if necessary
   if(is.null(root)){
@@ -702,14 +701,26 @@ generate_metrics_list <- function(folder = NULL, root = NULL, debug_mode = F){
 
 ### process the results. Prints ESS for spatial params and returns a plot of various results for parameter estimates.
 # data_list: List containing data used for the fit, the true phi values, and the true u values.
-# models: Vector of models used for fitting.
 # stan_fit: The result of the stan fit on this data.
+# stan_fit_quantiles: True if the stan fit input is just in the quantiles of the estimates.
+# models: Vector of models used for fitting.
 # ESS: Whether to include the ESS of the parameters.
 # likelihoods: whether to include the prior, likelihood, and posterior.
 # <XX>_estimates: whether to include the <XX> estimates.
 # RMSE_CP_values: whether to include the RMSE values and coverage probabilities.
-process_results <- function(data_list, models, stan_fit, stan_fit_quantiles = F, CV_pred = NULL, ESS = T, likelihoods = T, rho_estimates = T, tau2_estimates = T, sigma2_estimates = F, phi_estimates = T, u_estimates = T, y_estimates = T, RMSE_CP_values = T){
+process_results <- function(data_list, stan_fit, stan_fit_quantiles = F, models = NULL, CV_pred = NULL, ESS = T, likelihoods = T, rho_estimates = T, tau2_estimates = T, sigma2_estimates = F, phi_estimates = T, u_estimates = T, y_estimates = T, RMSE_CP_values = T){
+  
+  # checking stan fit type.
+  if(any(class(stan_fit) == 'matrix') & stan_fit_quantiles == F){
+    print('setting stan_fit_quantiles to true.')
+    stan_fit_quantiles = T
+  }
+  
+  # extracting N and models
   N = nrow(data_list$data)
+  if(is.null(models)){
+    models = grep('^X', colnames(data_list$data), value = T)
+  }
   
   plot_list = NULL
   
@@ -733,8 +744,6 @@ process_results <- function(data_list, models, stan_fit, stan_fit_quantiles = F,
     
     # ESS of phi
     ind = grep('^phi', rownames(stan_summary))
-    # ind1 = grep('phi\\[[0-9]{1,2},1\\]', rownames(stan_summary))
-    # ind2 = grep('phi\\[[0-9]{1,2},2\\]', rownames(stan_summary))
     print(sprintf('median ESS for phi is %s and median rhat is %s', round(median(stan_summary[ind, 'n_eff']), 1), round(median(stan_summary[ind, 'Rhat']), 3)))
     x = data.frame(n_eff = stan_summary[ind, 'n_eff'])
     p_ESS_phi <- ggplot(data = x, aes(x = n_eff)) + 
@@ -919,7 +928,7 @@ process_results <- function(data_list, models, stan_fit, stan_fit_quantiles = F,
       ylab('median est') + 
       ggtitle('y estimation')
     
-    if('y2' %in% colnames(data_list$data) & 'y3' %in% colnames(data_list$data)){
+    if('y2' %in% colnames(data_list$data)){
       
       p_y2 <- ggplot(data_list$data, aes(x = y2, y_predicted)) + 
         geom_point() +
@@ -929,15 +938,37 @@ process_results <- function(data_list, models, stan_fit, stan_fit_quantiles = F,
         ylab('median est') + 
         ggtitle('y OOS est')
       
-      p_y3 <- ggplot(data_list$data, aes(x = y3, y_predicted)) + 
-        geom_point() +
-        geom_smooth(method='lm', formula = y ~ x) + 
-        geom_abline(slope = 1, intercept = 0, col = 'red') + 
-        xlab('observed y') + 
-        ylab('median est') + 
-        ggtitle('y OOS est')
+      # get the CV RMSE, if CV was run.
+      if(!is.null(CV_pred)){
+        if(!stan_fit_quantiles){
+          data_list$data$y_predicted_CV = apply(CV_pred, 1, median)
+        }else{
+          data_list$data$y_predicted_CV <- CV_pred['0.5',]
+        }
+        
+        p_y3 <- ggplot(data_list$data, aes(x = y, y_predicted_CV)) + 
+          geom_point() +
+          geom_smooth(method='lm', formula = y ~ x) + 
+          geom_abline(slope = 1, intercept = 0, col = 'red') + 
+          xlab('observed y') + 
+          ylab('CV est') + 
+          ggtitle('y CV est')
+        
+        plot_list <- append(plot_list, list(plot_grid(p_y, p_y2, p_y3, nrow = 1)))
+      }else if('y3' %in% colnames(data_list$data)){
+        p_y3 <- ggplot(data_list$data, aes(x = y3, y_predicted)) + 
+          geom_point() +
+          geom_smooth(method='lm', formula = y ~ x) + 
+          geom_abline(slope = 1, intercept = 0, col = 'red') + 
+          xlab('observed y') + 
+          ylab('median est') + 
+          ggtitle('y OOS est')
+        
+        plot_list <- append(plot_list, list(plot_grid(p_y, p_y2, p_y3, nrow = 1)))
+      }else{
+        plot_list <- append(plot_list, list(plot_grid(p_y, p_y2, nrow = 1)))
+      }
       
-      plot_list <- append(plot_list, list(plot_grid(p_y, p_y2, p_y3, nrow = 1)))
     }else{
       plot_list <- append(plot_list, list(p_y))
     }
@@ -1035,6 +1066,41 @@ plot_metrics <- function(input_lst, single_sim_res = NULL){
   # number of locations in dataset.
   n_loc <- length(metrics_lst[[1]]$CP_90_train)
   
+  # initialize plot list
+  plot_list <- NULL
+  phi_u_plot <- NULL
+  
+  ## phi and u coverage plots
+  {
+    # phi coverage plot
+    phi_CP <- data.frame(CP = rowMeans(sapply(metrics_lst, function(xx) xx[['CP_90_phi']])))
+    
+    p_phi_CP <- ggplot(data = phi_CP, aes(y = CP)) + 
+      geom_boxplot() + 
+      ggtitle('phi 90% coverage')
+    
+    phi_u_plot <- append(phi_u_plot, list(p_phi_CP))
+    
+    # u coverage plot
+    u_CP <- data.frame(CP = rowMeans(sapply(metrics_lst, function(xx) xx[['CP_90_u']])))
+    
+    p_u_CP <- ggplot(data = u_CP, aes(y = CP)) + 
+      geom_boxplot() + 
+      ggtitle('u 90% coverage')
+    
+    phi_u_plot <- append(phi_u_plot, list(p_u_CP))
+  }
+  
+  ## u rank plot
+  u_rank <- data.frame(rank = rowMeans(sapply(metrics_lst, function(xx) xx[['rank_equal']])))
+  
+  p_u_rank <- ggplot(data = u_rank, aes(y = rank)) + 
+    geom_boxplot() + 
+    ggtitle('u-rank scores')
+  
+  phi_u_plot <- append(phi_u_plot, list(p_u_rank))
+  plot_list <- append(plot_list, list(plot_grid(plotlist = phi_u_plot, nrow = 1)))
+  
   ## RMSE plot
   {
     RMSE_df <- NULL
@@ -1049,6 +1115,8 @@ plot_metrics <- function(input_lst, single_sim_res = NULL){
     p_RMSE <- ggplot(data = RMSE_df, aes(x = source, y = val)) + 
       geom_boxplot() + 
       ggtitle('RMSE values')
+    
+    plot_list <- append(plot_list, list(p_RMSE))
   }
   
   ## y coverage plot
@@ -1065,31 +1133,9 @@ plot_metrics <- function(input_lst, single_sim_res = NULL){
     p_y_CP <- ggplot(data = y_CP_df, aes(x = source, y = val)) + 
       geom_boxplot() + 
       ggtitle('y prediction 90% coverage')
+    
+    plot_list <- append(plot_list, list(p_y_CP))
   }
-  
-  ## phi and u coverage plots
-  {
-    # phi coverage plot
-    phi_CP <- data.frame(CP = rowMeans(sapply(metrics_lst, function(xx) xx[['CP_90_phi']])))
-    
-    p_phi_CP <- ggplot(data = phi_CP, aes(y = CP)) + 
-      geom_boxplot() + 
-      ggtitle('phi 90% coverage')
-    
-    # u coverage plot
-    u_CP <- data.frame(CP = rowMeans(sapply(metrics_lst, function(xx) xx[['CP_90_u']])))
-    
-    p_u_CP <- ggplot(data = u_CP, aes(y = CP)) + 
-      geom_boxplot() + 
-      ggtitle('u 90% coverage')
-  }
-  
-  ## u rank plot
-  u_rank <- data.frame(rank = rowMeans(sapply(metrics_lst, function(xx) xx[['rank_equal']])))
-  
-  p_u_rank <- ggplot(data = u_rank, aes(y = rank)) + 
-    geom_boxplot() + 
-    ggtitle('u-rank scores')
   
   # single sim plot
   if(!is.null(single_sim_res)){
@@ -1097,18 +1143,18 @@ plot_metrics <- function(input_lst, single_sim_res = NULL){
     y <- single_sim_res$data_list$data$y
     y2 <- single_sim_res$data_list$data$y2
     
-    browser()
+    p_yfit <- process_results(single_sim_res$data_list, 
+                          CV_pred = single_sim_res$CV_pred, 
+                          stan_fit = single_sim_res$stan_fit, 
+                          ESS = F, likelihoods = F, rho_estimates = F, tau2_estimates = F, sigma2_estimates = F, phi_estimates = F, u_estimates = F, RMSE_CP_values = F, 
+                          y_estimates = T)
     
-    tt <- process_results(single_sim_res$data_list,
-                          models = c('X1','X2','X3'))
+    plot_list <- append(plot_list, list(p_yfit))
   }
   
   ## full plot
-  full_plot <- cowplot::plot_grid(p_RMSE, 
-                                  p_y_CP,
-                                  p_phi_CP,
-                                  p_u_CP,
-                                  p_u_rank)
+  full_plot <- cowplot::plot_grid(plotlist = plot_list,
+                                  ncol = 1)
   
   return(full_plot)
 }
