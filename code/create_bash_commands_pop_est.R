@@ -1,7 +1,11 @@
 library(dplyr)
 
 ## This script makes bash commands for given simulations
-bash_command <- function(R=40, dataset='NY', N_models=3, n.sample=10000, burnin=5000, family='normal',use_softmax=F,variances=c(100,100,100), means=c(100,100,100), rho = 0.3, tau2 = 1, sigma2 = 100, sigma2_prior_shape = 50, sigma2_prior_rate = 0.5, tau2_prior_shape = 1, tau2_prior_rate=1, num_y_samples=3, stan_path='code/CAR_leroux_sparse_normal.stan', CV_blocks = 5, return_quantiles = T,parallel = T, output_path = NULL, array_length = 5){
+bash_command <- function(R=40, dataset='NY', N_models=3, n.sample=10000, burnin=5000, family='normal',use_softmax=F,variances=c(100,100,100), means=c(100,100,100), rho = 0.3, tau2 = .01, sigma2 = 100, sigma2_prior_shape = 50, sigma2_prior_rate = 0.5, tau2_prior_shape = 1, tau2_prior_rate=1, num_y_samples=3, stan_path='code/CAR_leroux_sparse_normal.stan', CV_blocks = 5, return_quantiles = T,parallel = T, output_path = NULL, array_length = 5){
+  
+  if(!use_softmax & tau2 > 0.1){
+    print('Are you sure you want tau2 so high?')
+  }
   
   # make the output path
   if(is.null(output_path)){
@@ -26,8 +30,14 @@ bash_command <- function(R=40, dataset='NY', N_models=3, n.sample=10000, burnin=
 
 bash_command(CV_blocks = 5)
 
-bash_command(CV_blocks = 10)
+bash_command(CV_blocks = 10, tau2 = 0.01)
 
-bash_command(CV_blocks = 20)
+bash_command(CV_blocks = 20, tau2 = 0.01)
 
-bash_command(CV_blocks = 0)
+bash_command(CV_blocks = 0, tau2 = 0.01)
+
+bash_command(CV_blocks = 10, use_softmax = T, tau2 = 1)
+
+bash_command(CV_blocks = 20, use_softmax = T, tau2 = 1)
+
+bash_command(CV_blocks = 0, use_softmax = T, tau2 = 1)
