@@ -15,7 +15,7 @@ bash_command <- function(R=40, dataset='NY', N_models=3, n.sample=10000, burnin=
   
   job_name = sprintf('%s_%s_%smodels_CV%s', ifelse(use_softmax, 'softmax', 'directest'), family, N_models, CV_blocks)
   
-  params <- list(R=R, dataset=dataset, N_models=N_models, n.sample=n.sample, burnin=burnin, family=family,use_softmax=F,variances=variances, means=means, rho = rho, tau2 = tau2, sigma2 = sigma2, sigma2_prior_shape = sigma2_prior_shape, sigma2_prior_rate = sigma2_prior_rate, tau2_prior_shape = tau2_prior_shape, tau2_prior_rate=tau2_prior_rate, num_y_samples=num_y_samples, stan_path=stan_path, CV_blocks = CV_blocks, return_quantiles = return_quantiles, parallel = parallel, output_path = output_path)
+  params <- list(R=R, dataset=dataset, N_models=N_models, n.sample=n.sample, burnin=burnin, family=family,use_softmax=use_softmax,variances=variances, means=means, rho = rho, tau2 = tau2, sigma2 = sigma2, sigma2_prior_shape = sigma2_prior_shape, sigma2_prior_rate = sigma2_prior_rate, tau2_prior_shape = tau2_prior_shape, tau2_prior_rate=tau2_prior_rate, num_y_samples=num_y_samples, stan_path=stan_path, CV_blocks = CV_blocks, return_quantiles = return_quantiles, parallel = parallel, output_path = output_path)
   
   param_str = paste(paste(names(params), params, sep = '='), collapse=':') %>%
     gsub(' |c\\(|\\)','',.) %>%

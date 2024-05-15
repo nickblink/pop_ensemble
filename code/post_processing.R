@@ -22,6 +22,39 @@ setwd(root_git)
 # load extra functions
 source('code/extra_functions_CAR.R')
 
+#### Results 5/15/2024 ####
+setwd(root_results)
+folder_DE_K10 <- 'simulation_direct_est_normal_3models_CV10_ID660099_2024_05_14/'
+metrics_DE_K10 <- generate_metrics_list(folder_DE_K10)
+p_DE_K10 <- plot_metrics(metrics_DE_K10)
+ggsave(plot = p_DE_K10, filename = '../Figures/05152024_direct_est_CV10.png', height = 8, width = 6)
+
+folder_DE_K20 <- 'simulation_direct_est_normal_3models_CV20_ID365609_2024_05_14/'
+metrics_DE_K20 <- generate_metrics_list(folder_DE_K20, debug_mode = T)
+p_DE_K20 <- plot_metrics(metrics_DE_K20)
+ggsave(plot = p_DE_K20, filename = '../Figures/05152024_direct_est_CV20.png', height = 8, width = 6)
+
+folder_DE_K0 <- 'simulation_direct_est_normal_3models_CV0_ID862997_2024_05_14/'
+metrics_DE_K0 <- generate_metrics_list(folder_DE_K0)
+p_DE_K0 <- plot_metrics(metrics_DE_K0)
+ggsave(plot = p_DE_K0, filename = '../Figures/05152024_direct_est_CV0.png', height = 8, width = 6)
+
+#folder_softmax_K10 <- 'simulation_softmax_normal_3models_CV10_ID576461_2024_05_14/'
+metrics_softmax_K10 <- generate_metrics_list(folder_softmax_K10)
+p_softmax_K10 <- plot_metrics(metrics_softmax_K10)
+ggsave(plot = p_softmax_K10, filename = '../Figures/05152024_softmax_CV10.png', height = 8, width = 6)
+
+#folder_softmax_K20 <- 'simulation_softmax_normal_3models_CV20_ID673201_2024_05_14/'
+metrics_softmax_K20 <- generate_metrics_list(folder_softmax_K20)
+p_softmax_K20 <- plot_metrics(metrics_softmax_K20)
+ggsave(plot = p_softmax_K20, filename = '../Figures/05152024_softmax_CV20.png', height = 8, width = 6)
+
+#folder_softmax_K0 <- 'simulation_softmax_normal_3models_CV0_ID900288_2024_05_14/'
+metrics_softmax_K0 <- generate_metrics_list(folder_softmax_K0)
+p_softmax_K0 <- plot_metrics(metrics_softmax_K0)
+ggsave(plot = p_softmax_K0, filename = '../Figures/05152024_softmax_CV0.png', height = 8, width = 6)
+
+#
 #### Results 5/13/2024 ####
 folder_K10 <- 'simulation_direct_est_normal_3models_CV10_ID512833_2024_05_10'
 metrics_K10 <- generate_metrics_list(folder_K10)
@@ -35,13 +68,7 @@ folder_LOOCV <- 'simulation_direct_est_normal_3models_CV0_ID723970_2024_05_10'
 metrics_LOOCV <- generate_metrics_list(folder_LOOCV)
 p_LOOCV <- plot_metrics(metrics_LOOCV)
 
-#### Testing metric list generation function. ####
-folder <- 'softmax_tau21_tauprior11_CV5_05082024'
-metrics_lst <- generate_metrics_list(folder)
-plot_metrics(metrics_lst)
-
-#
-#### REDO THIS PLZ Checking if u's and phi's stay the same across simulations. ####
+#### Checking if u's and phi's stay the same across simulations. ####
 setwd(root_results)
 load('softmax_tau21_tauprior11_CV5_05082024/sim_results_1.RData')
 
