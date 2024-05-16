@@ -533,7 +533,8 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
       block_y_pred <- list()
       
       # cycle through the blocks.
-      for(k in 1:CV_blocks){
+      nrow(data_lst$data)
+      for(k in 1:ifelse(CV_blocks == 0, nrow(data_lst$data), CV_blocks)){
         print(sprintf('------------%s------------', k))
         # pull out the data
         block_data <- data_lst$data

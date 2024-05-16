@@ -35,16 +35,16 @@ p_DE_K20 <- plot_metrics(metrics_DE_K20)
 ggsave(plot = p_DE_K20, filename = '../Figures/05152024_direct_est_CV20.png', height = 8, width = 6)
 
 folder_DE_K0 <- 'simulation_direct_est_normal_3models_CV0_ID862997_2024_05_14/'
-metrics_DE_K0 <- generate_metrics_list(folder_DE_K0)
+metrics_DE_K0 <- generate_metrics_list(folder_DE_K0, debug_mode = T)
 p_DE_K0 <- plot_metrics(metrics_DE_K0)
 ggsave(plot = p_DE_K0, filename = '../Figures/05152024_direct_est_CV0.png', height = 8, width = 6)
 
-#folder_softmax_K10 <- 'simulation_softmax_normal_3models_CV10_ID576461_2024_05_14/'
+folder_softmax_K10 <- 'simulation_softmax_normal_3models_CV10_ID958515_2024_05_15/'
 metrics_softmax_K10 <- generate_metrics_list(folder_softmax_K10)
 p_softmax_K10 <- plot_metrics(metrics_softmax_K10)
 ggsave(plot = p_softmax_K10, filename = '../Figures/05152024_softmax_CV10.png', height = 8, width = 6)
 
-#folder_softmax_K20 <- 'simulation_softmax_normal_3models_CV20_ID673201_2024_05_14/'
+folder_softmax_K20 <- 'simulation_softmax_normal_3models_CV20_ID999614_2024_05_15/'
 metrics_softmax_K20 <- generate_metrics_list(folder_softmax_K20)
 p_softmax_K20 <- plot_metrics(metrics_softmax_K20)
 ggsave(plot = p_softmax_K20, filename = '../Figures/05152024_softmax_CV20.png', height = 8, width = 6)
