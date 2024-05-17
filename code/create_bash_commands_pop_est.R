@@ -37,6 +37,6 @@ bash_command(CV_blocks = 0, tau2 = 0.01)
 bash_command(CV_blocks = 0, use_softmax = T, tau2 = 1)
 
 
-bash_command(CV_blocks = 20, tau2 = 0.01, rho = 0.7, output_path_addition = 'rho07')
+bash_command(CV_blocks = 0, tau2 = 0.01, rho = 0.99, output_path_addition = 'rho099')
 
-bash_command(CV_blocks = 20, tau2 = 1, use_softmax = T, rho = 0.7, output_path_addition = 'rho07')
+bash_command(CV_blocks = 0, tau2 = 1, use_softmax = T, rho = 0.99, output_path_addition = 'rho099')
