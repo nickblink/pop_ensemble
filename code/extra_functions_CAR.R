@@ -1,3 +1,44 @@
+### Print the most recent files in a directory (makes post processing easier).
+# l: Number of files to show.
+recent_files <- function(l = 5){
+  dd <- dir()
+  file_df <- data.frame(file = dd,
+                        time = unlist(lapply(dd, function(xx) {return(as.character(file.info(xx)$ctime))}))) %>% 
+    mutate(time = as.Date(time)) %>%
+    arrange(desc(time))
+  print(head(file_df, l))
+}
+
+
+### Compare the parameters between two simulation runs.
+# folder1: First folder to compare.
+# folder2: Second folder to compare.
+compare_parameters <- function(folder1, folder2){
+  # load the parameters
+  load(dir(folder1, full.names = T)[1])
+  params1 <- params
+  load(dir(folder2, full.names = T)[1])
+  params2 <- params
+  rm(params)
+  
+  sd_12 <- setdiff(names(params1), names(params2))
+  sd_21 <- setdiff(names(params2), names(params1))
+  if(length(sd_12) > 0){
+    print(sprintf('%s is in folder 1 parameters but not folder 2', sd_12))
+  }
+  if(length(sd_21) > 0){
+    print(sprintf('%s is in folder 2 parameters but not folder 1', sd_21))
+  }
+  
+  params_to_compare <- setdiff(intersect(names(params1), names(params2)), c('raw_data', 'output_path'))
+  for(pp in params_to_compare){
+    if(!identical(params1[[pp]], params2[[pp]])){
+      print(sprintf('%s is different in folder 1 (%s) than in folder 2 (%s)', pp, params1[[pp]], params2[[pp]]))
+    }
+  }
+}
+
+
 ### Convert vector of outputs to a matrix
 # vec: Vector where values are arranged by column.
 # n_models: number of models to split the vector by (e.g. number of rows of output matrix.)
@@ -628,6 +669,11 @@ generate_metrics_list <- function(folder = NULL, root = NULL, debug_mode = F){
   # cycle through each results file and pull in results.
   for(f in file_names){
     load(f)
+    if(iter == 0){
+      param_printer = params
+      param_printer[['raw_data']] = NULL
+      print(param_printer)
+    }
     
     if(debug_mode){
       browser()

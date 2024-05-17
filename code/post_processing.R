@@ -22,6 +22,37 @@ setwd(root_git)
 # load extra functions
 source('code/extra_functions_CAR.R')
 
+
+#### Results 5/17/2024 ####
+setwd(root_results)
+recent_files()
+
+folder_DE_CV0 <- 'simulation_direct_est_normal_3models_CV0_ID689308_2024_05_16/'
+folder_softmax_CV0 <- 'simulation_softmax_normal_3models_CV0_ID769482_2024_05_16/'
+folder_DE_rho07 <- 'simulation_rho07_direct_est_normal_3models_CV20_ID832432_2024_05_16/'
+folder_softmax_rho07 <- 'simulation_rho07_softmax_normal_3models_CV20_ID431503_2024_05_16/'
+
+compare_parameters(folder_DE_rho07, folder_DE_CV0)
+compare_parameters(folder_softmax_rho07, folder_DE_CV0)
+# good.
+
+metrics_DE_CV0 <- generate_metrics_list(folder_DE_CV0)
+p_DE_CV0 <- plot_metrics(metrics_DE_CV0)
+ggsave(plot = p_DE_CV0, filename = '../Figures/05162024_direct_est_CV0.png', height = 8, width = 6)
+
+metrics_softmax_CV0 <- generate_metrics_list(folder_softmax_CV0)
+p_softmax_CV0 <- plot_metrics(metrics_softmax_CV0)
+ggsave(plot = p_softmax_CV0, filename = '../Figures/05162024_softmax_CV0.png', height = 8, width = 6)
+
+metrics_DE_rho07 <- generate_metrics_list(folder_DE_rho07)
+p_DE_rho07 <- plot_metrics(metrics_DE_rho07)
+ggsave(plot = p_DE_rho07, filename = '../Figures/05162024_direct_est_rho07.png', height = 8, width = 6)
+
+metrics_softmax_rho07 <- generate_metrics_list(folder_softmax_rho07)
+p_softmax_rho07 <- plot_metrics(metrics_softmax_rho07)
+ggsave(plot = p_softmax_rho07, filename = '../Figures/05162024_softmax_rho07.png', height = 8, width = 6)
+
+#
 #### Results 5/15/2024 ####
 setwd(root_results)
 folder_DE_K10 <- 'simulation_direct_est_normal_3models_CV10_ID660099_2024_05_14/'
