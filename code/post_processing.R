@@ -34,7 +34,7 @@ compare_parameters(folder_softmax_rho099, folder_compare)
 compare_parameters(folder_softmax_rho099, folder_DE_rho099)
 # good
 
-metrics_softmax_rho099 <- generate_metrics_list(folder_softmaxDE_rho099)
+metrics_softmax_rho099 <- generate_metrics_list(folder_softmax_rho099)
 p_softmax_rho099 <- plot_metrics(metrics_softmax_rho099)
 ggsave(plot = p_softmax_rho099, filename = '../Figures/05202024_softmax_CV0_rho099.png', height = 8, width = 6)
 
