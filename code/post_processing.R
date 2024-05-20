@@ -23,6 +23,26 @@ setwd(root_git)
 source('code/extra_functions_CAR.R')
 
 
+#### Results 5/20/2024 ####
+setwd(root_results)
+recent_files()
+
+folder_softmax_rho099 <- 'simulation_rho099_softmax_normal_3models_CV0_ID956416_2024_05_17/'
+folder_DE_rho099 <- 'simulation_rho099_direct_est_normal_3models_CV0_ID310314_2024_05_17/'
+folder_compare <- 'simulation_rho07_direct_est_normal_3models_CV20_ID832432_2024_05_16/'
+compare_parameters(folder_softmax_rho099, folder_compare)
+compare_parameters(folder_softmax_rho099, folder_DE_rho099)
+# good
+
+metrics_softmax_rho099 <- generate_metrics_list(folder_softmaxDE_rho099)
+p_softmax_rho099 <- plot_metrics(metrics_softmax_rho099)
+ggsave(plot = p_softmax_rho099, filename = '../Figures/05202024_softmax_CV0_rho099.png', height = 8, width = 6)
+
+metrics_DE_rho099 <- generate_metrics_list(folder_DE_rho099)
+p_DE_rho099 <- plot_metrics(metrics_DE_rho099)
+ggsave(plot = p_DE_rho099, filename = '../Figures/05202024_direct_est_CV0_rho099.png', height = 8, width = 6)
+
+#
 #### Results 5/17/2024 ####
 setwd(root_results)
 recent_files()
