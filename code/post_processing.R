@@ -22,8 +22,20 @@ setwd(root_git)
 # load extra functions
 source('code/extra_functions_CAR.R')
 
+#### Results 5/20/2024 - means = 0,0,0 ####
+setwd(root_results)
+recent_files()
 
-#### Results 5/20/2024 ####
+mean0 <- 'simulation_mean0_softmax_normal_3models_CV20_ID612954_2024_05_20/'
+comparison <- 'simulation_softmax_normal_3models_CV0_ID769482_2024_05_16/'
+compare_parameters(mean0, comparison)
+
+p_mean0 <- generate_metrics_list(mean0) %>%
+  plot_metrics()
+ggsave(plot = p_mean0, filename = '../Figures/05202024_softmax_CV20_means0.png', height = 8, width = 6)
+
+#
+#### Results 5/20/2024 - rho = 0.99 ####
 setwd(root_results)
 recent_files()
 
