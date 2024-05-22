@@ -457,18 +457,23 @@ prep_stan_data_leroux_sparse <- function(data, W, models, use_softmax = F, use_p
 # seed: a seed for reproducability
 run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_type = 'Leroux', n.sample = 10000, burnin = 5000, seed = 10, stan_m = NULL, stan_path = "code/CAR_leroux_sparse.stan", tau2 = NULL, use_softmax = NULL, use_normal = T, use_pivot = F, init_vals = '0', ...){
   
-  # error checking for precision matrix type
+  # error checking for precision matrix type.
   if(precision_type != 'Leroux'){stop('only have Leroux precision coded')}
   
-  # prep the data
+  # checking about softmax and tau2 values.
+  if(!use_softmax & tau2 > 0.1){
+    print('Are you sure you want tau2 so high?')
+  }
+  
+  # prep the data.
   stan_data <- prep_stan_data_leroux_sparse(data, adjacency, models, use_softmax = use_softmax, use_normal = use_normal, use_pivot = use_pivot, ...)
   
-  # create the stan model if not done already
+  # create the stan model if not done already.
   if(is.null(stan_m)){
     stan_m <- stan_model(stan_path)
   }
 
-  # fit the stan model
+  # fit the stan model.
   stan_fit <- rstan::sampling(object = stan_m,
                    data = stan_data, 
                    iter = n.sample, 
@@ -479,11 +484,37 @@ run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_
                    seed = seed,
                    show_messages = F,
                    verbose = F)
-
-  if(!use_softmax & tau2 > 0.1){
-    print('Are you sure you want tau2 so high?')
+  
+  # get the MAP estimates
+  log_post <- -Inf
+  for(i in 1:5){
+    MAP_tmp <- optimizing(object = stan_m,
+                          data = stan_data,
+                          algorithm = 'LBFGS', 
+                          iter = 20000)
+    ind <- grep('^phi|tau2\\[|rho\\[|sigma2', names(MAP_tmp$par))
+    log_tmp <- log_prob(stan_fit, MAP_tmp$par[ind])
+    print(log_tmp)
+    if(log_tmp > log_post){
+      print('updating results')
+      log_post <- log_tmp
+      MAP_res <- MAP_tmp
+    }
   }
   
+  # getting the parameters used for calculating posterior.
+  stan_array <- as.array(stan_fit)
+  ind <- grep('^phi|tau2\\[|rho\\[|sigma2', names(stan_array[1,1,]))
+  stan_subarray <- stan_array[,,ind]
+  
+  # get min and max log posterior values (since lp is scaled to a constant, this is not comparable to the MAP estimate).
+  lp <- extract(stan_fit, pars = 'lp__')[[1]]
+  min.ind <- which.min(lp)
+  max.ind <- which.max(lp)
+  max_stanfit_lp <- log_prob(stan_fit, stan_subarray[max.ind,])
+  min_stanfit_lp <- log_prob(stan_fit, stan_subarray[min.ind,])
+  browser()
+
   # return the results!
   return(stan_fit)
 }
