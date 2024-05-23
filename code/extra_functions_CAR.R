@@ -534,14 +534,15 @@ run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_
   # browser()
   # }
   # tt <- extract(stan_fit, pars = 'lp__', inc_warmup = T, permuted = F)[,,1]
-  # tt <- extract(stan_fit, pars = c('lp__', 'log_likelihood', 'sigma2_dprior', 'phi_dprior', 'tau2_dprior'), inc_warmup = T, permuted = F)[,1,] %>%
-  #   as.data.frame() %>%
-  #   mutate(prior = sigma2_dprior + phi_dprior + tau2_dprior,
-  #          posterior = prior + log_likelihood)
-  # 
-  # tt$prior = tt$
-  # 
-  # browser()
+  tt <- extract(stan_fit, pars = c('lp__', 'log_likelihood', 'sigma2_dprior', 'phi_dprior', 'tau2_dprior'), inc_warmup = T, permuted = F)[,1,] %>%
+    as.data.frame() %>%
+    mutate(prior = sigma2_dprior + phi_dprior + tau2_dprior,
+           posterior = prior + log_likelihood)
+  
+  params_check <- extract(stan_fit, pars = c('rho'))[[1]] %>%
+    as.data.frame()
+
+  browser()
   # Look at the lp__'s
   # tt <- extract(stan_fit, pars = 'lp__', inc_warmup = T)[[1]]
   
@@ -622,7 +623,7 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
     data_lst <- simulate_y(data, raw_data$adjacency, models = models, seed = seed_val, family = family, use_softmax = use_softmax, ...)
     
     # update the initialization to start at the true values.
-    if(tolower(init_vals) == 't' | tolower(init_vals) == 'truth'){
+    if(tolower(init_vals) == 't' | tolower(init_vals) == 'truth' | tolower(init_vals) == 'true'){
       init_list = list(phi = as.matrix(data_lst$phi_true[,-ncol(data_lst$phi_true)]))
       init_vals <- function(){init_list}
     }
