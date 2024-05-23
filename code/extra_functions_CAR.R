@@ -473,6 +473,31 @@ run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_
     stan_m <- stan_model(stan_path)
   }
 
+  # get the MAP estimates
+  log_post <- -Inf
+  for(i in 1:5){
+    MAP_tmp <- optimizing(object = stan_m,
+                          data = stan_data,
+                          algorithm = 'LBFGS', 
+                          iter = 20000)
+    ind <- grep('^phi|tau2\\[|rho\\[|sigma2', names(MAP_tmp$par))
+    #log_tmp <- log_prob(stan_fit, MAP_tmp$par[ind])
+    print(MAP_tmp$value)
+    if(MAP_tmp$value > log_post){
+      print('updating results')
+      log_post <- MAP_tmp$value
+      MAP_res <- MAP_tmp
+    }
+  }
+  
+  # update the initialization to start at MAP.
+  if(tolower(init_vals) == 'map'){
+    init_list = as.list(MAP_res$par[ind])
+    #init_list['sigma2'] <- 1
+    #print('FOR TESTING PURPOSES')
+    init_vals <- function(){init_list}
+  }
+
   # fit the stan model.
   stan_fit <- rstan::sampling(object = stan_m,
                    data = stan_data, 
@@ -485,36 +510,34 @@ run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_
                    show_messages = F,
                    verbose = F)
   
-  # get the MAP estimates
-  log_post <- -Inf
-  for(i in 1:5){
-    MAP_tmp <- optimizing(object = stan_m,
-                          data = stan_data,
-                          algorithm = 'LBFGS', 
-                          iter = 20000)
-    ind <- grep('^phi|tau2\\[|rho\\[|sigma2', names(MAP_tmp$par))
-    log_tmp <- log_prob(stan_fit, MAP_tmp$par[ind])
-    print(log_tmp)
-    if(log_tmp > log_post){
-      print('updating results')
-      log_post <- log_tmp
-      MAP_res <- MAP_tmp
-    }
-  }
-  
+  if(FALSE){
   # getting the parameters used for calculating posterior.
   stan_array <- as.array(stan_fit)
   ind <- grep('^phi|tau2\\[|rho\\[|sigma2', names(stan_array[1,1,]))
   stan_subarray <- stan_array[,,ind]
-  
+
   # get min and max log posterior values (since lp is scaled to a constant, this is not comparable to the MAP estimate).
   lp <- extract(stan_fit, pars = 'lp__')[[1]]
-  min.ind <- which.min(lp)
-  max.ind <- which.max(lp)
-  max_stanfit_lp <- log_prob(stan_fit, stan_subarray[max.ind,])
-  min_stanfit_lp <- log_prob(stan_fit, stan_subarray[min.ind,])
+  df_test <- data.frame(iter = 1:length(lp),
+                        lp = lp,
+                        log_post = NA)
   browser()
-
+  for(i in 1:nrow(df_test)){
+    tt = as.list(stan_subarray[i,])
+    df_test$log_post[i] <- log_prob(stan_fit, pars = tt)
+    tt = stan_subarray[i,]
+  }
+  # min.ind <- which.min(lp)
+  # max.ind <- which.max(lp)
+  # max_stanfit_lp <- log_prob(stan_fit, stan_subarray[max.ind,])
+  # min_stanfit_lp <- log_prob(stan_fit, stan_subarray[min.ind,])
+  browser()
+  }
+  tt <- extract(stan_fit, pars = 'lp__', inc_warmup = T, permuted = F)[,,1]
+  browser()
+  # Look at the lp__'s
+  # tt <- extract(stan_fit, pars = 'lp__', inc_warmup = T)[[1]]
+  
   # return the results!
   return(stan_fit)
 }
@@ -618,7 +641,7 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
         block_data$y[ind] <- NA
         
         # run the model!
-        tmp_stan_fit <- run_stan_CAR(block_data, data_lst$adjacency, models = models, seed = seed_val, stan_m = m, use_softmax = use_softmax, ...)
+        tmp_stan_fit <- run_stan_CAR(block_data, data_lst$adjacency, models = models, seed = seed_val, stan_m = m, use_softmax = use_softmax, init_vals = init_vals, ...)
         # store the outcome values:
         tmp_y_pred <- t(extract(tmp_stan_fit, pars = 'y_pred')[[1]])
         for(i_block in ind){
@@ -630,7 +653,7 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
     }
    
     # fit the Bayesian model
-    stan_fit <- run_stan_CAR(data_lst$data, data_lst$adjacency, models = models, seed = seed_val, stan_m = m, use_softmax = use_softmax, ...)
+    stan_fit <- run_stan_CAR(data_lst$data, data_lst$adjacency, models = models, seed = seed_val, stan_m = m, use_softmax = use_softmax, init_vals = init_vals, ...)
     
     # store results
     if(return_quantiles){
