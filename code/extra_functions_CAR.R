@@ -539,7 +539,7 @@ run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_
     mutate(prior = sigma2_dprior + phi_dprior + tau2_dprior,
            posterior = prior + log_likelihood)
   
-  params_check <- extract(stan_fit, pars = c('rho'))[[1]] %>%
+  params_check <- extract(stan_fit, pars = c('tau2'), inc_warmup = T, permuted = F) %>%
     as.data.frame()
 
   browser()
@@ -624,7 +624,10 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
     
     # update the initialization to start at the true values.
     if(tolower(init_vals) == 't' | tolower(init_vals) == 'truth' | tolower(init_vals) == 'true'){
-      init_list = list(phi = as.matrix(data_lst$phi_true[,-ncol(data_lst$phi_true)]))
+      init_list = list(phi = as.matrix(data_lst$phi_true[,-ncol(data_lst$phi_true)]),
+                       rho = data_lst$rho,
+                       tau2 = data_lst$tau2,
+                       sigma2 = data_lst$sigma2)
       init_vals <- function(){init_list}
     }
     
