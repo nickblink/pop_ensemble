@@ -177,10 +177,11 @@ generated quantities {
   real phi_dprior = 0;
   vector[N] y_exp = mu;
   real y_pred[N] = normal_rng(mu, sigma);
-  real log_likelihood = normal_lpdf(y_obs | observed_est, sigma);
-  real sigma2_dprior = gamma_lpdf(sigma2 | sigma2_prior_shape, sigma2_prior_rate);
-  for(m in 1:M_phi){
-	phi_dprior += sparse_car_lpdf(phi[1:N, m] | tau2[m], rho[m], W_sparse, D_sparse, log_detQ[m], N, W_n);
-  }
-  real tau2_dprior = gamma_lpdf(tau2_estimated | tau2_prior_shape, tau2_prior_rate);
+  // below are posterior likelihood and prior calculations.
+  //real log_likelihood = normal_lpdf(y_obs | observed_est, sigma);
+  //sigma2_dprior = gamma_lpdf(sigma2 | sigma2_prior_shape, sigma2_prior_rate);
+  //for(m in 1:M_phi){
+	//phi_dprior += sparse_car_lpdf(phi[1:N, m] | tau2[m], rho[m], W_sparse, D_sparse, log_detQ[m], N, W_n);
+  //}
+  //real tau2_dprior = gamma_lpdf(tau2_estimated | tau2_prior_shape, tau2_prior_rate);
 }
