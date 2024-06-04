@@ -395,7 +395,7 @@ get_stan_MAP <- function(stan_fit, inc_warmup = T){
 # models: a vector of the models to use in the ensemble.
 # sigma2_prior_shape: Shape of the gamma distribution prior.
 # sigma2_prior_rate: rate of the gamma distribution prior.
-prep_stan_data_leroux_sparse <- function(data, W, models, use_softmax = F, use_pivot = F, use_normal = T, sigma2_prior_shape = 1, sigma2_prior_rate = 10, tau2_prior_shape = 1, tau2_prior_rate = 1, fix_rho_value = - 1, fix_tau2_value = -1, ...){
+prep_stan_data_leroux_sparse <- function(data, W, models, use_softmax = F, use_pivot = F, use_normal = T, sigma2_prior_shape = 1, sigma2_prior_rate = 10, tau2_prior_shape = 1, tau2_prior_rate = 1, rho_value = - 1, tau2_value = -1, ...){
 
   # checking columns
   if(!('y' %in% colnames(data))){
@@ -452,8 +452,8 @@ prep_stan_data_leroux_sparse <- function(data, W, models, use_softmax = F, use_p
     sigma2_prior_rate = sigma2_prior_rate,
     tau2_prior_shape = tau2_prior_shape,
     tau2_prior_rate = tau2_prior_rate,
-    rho_value = fix_rho_value,
-    tau2_value = fix_tau2_value)
+    rho_value = rho_value,
+    tau2_value = tau2_value)
 
   return(stan_data)
 }
@@ -530,18 +530,18 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
     }
     
     # checking that the rho in the DGP and the model fit are equal (if the rho is fixed in the model fit)
-    if('rho' %in% names(list(...)) & 'fix_rho_value' %in% names(list(...))){
-      if(list(...)$fix_rho_value > 1){
+    if('rho' %in% names(list(...)) & 'rho_value' %in% names(list(...))){
+      if(list(...)$rho_value > 1){
         stop('rho value cannot be greater than 1')
       }
-      if(list(...)$fix_rho_value > 0 & list(...)$fix_rho_value != list(...)$rho){
+      if(list(...)$rho_value > 0 & list(...)$rho_value != list(...)$rho){
         print('WARNING: rho in DGP and rho in model not equal')
       }
     }
     
     # checking that the rho in the DGP and the model fit are equal (if the rho is fixed in the model fit)
-    if('tau2' %in% names(list(...)) & 'fix_tau2_value' %in% names(list(...))){
-      if(list(...)$fix_tau2_value > 0 & list(...)$fix_tau2_value != list(...)$tau2){
+    if('tau2' %in% names(list(...)) & 'tau2_value' %in% names(list(...))){
+      if(list(...)$tau2_value > 0 & list(...)$tau2_value != list(...)$tau2){
         print('WARNING: tau2 in DGP and tau2 in model not equal')
       }
     }
