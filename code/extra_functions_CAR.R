@@ -361,7 +361,7 @@ simulate_y <- function(data, adjacency, models = c('M1','M2','M3'), scale_down =
 
 
 ### Get quantiles from a stan fit
-# stan_fit: An stan fit object.
+# stan_fit: A stan fit object.
 # quantiles: what quantiles to return.
 get_stan_quantiles <- function(stan_fit, quantiles = c(0.025, 0.05, 0.25, 0.5, 0.75, 0.95, 0.975)){
   # convert to a data frame.
@@ -376,6 +376,18 @@ get_stan_quantiles <- function(stan_fit, quantiles = c(0.025, 0.05, 0.25, 0.5, 0
   # return!
   return(quants)
 }
+
+
+### Get the MAP from the stan posterior distribution ###
+# stan_fit: A stan fit object.
+get_stan_MAP <- function(stan_fit, inc_warmup = T){
+  stan_array <- as.matrix(stan_fit)
+  max_ind <- which.max(stan_array[,'lp__'])
+  max_vec <- stan_array[max_ind,]
+  # u_max <- extract(stan_fit, pars = 'u')[[1]][max_ind,,]
+  return(max_vec)
+}
+
 
 ### prep the data for fitting the stan model
 # data: the observed data with the outcome "y" and the covariates as models. 
@@ -594,6 +606,7 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
         
         # run the model!
         tmp_stan_fit <- run_stan_CAR(block_data, data_lst$adjacency, models = models, seed = seed_val, stan_m = m, use_softmax = use_softmax, init_vals = init_vals, ...)
+        
         # store the outcome values:
         tmp_y_pred <- t(extract(tmp_stan_fit, pars = 'y_pred')[[1]])
         for(i_block in ind){
@@ -604,15 +617,18 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
       CV_pred <- do.call('rbind', block_y_pred)
     }
    
-    # fit the Bayesian model
+    # fit the Bayesian model on the full data
     stan_fit <- run_stan_CAR(data_lst$data, data_lst$adjacency, models = models, seed = seed_val, stan_m = m, use_softmax = use_softmax, init_vals = init_vals, ...)
-    
+
+    # get the MAP posterior values.    
+    stan_MAP <- get_stan_MAP(stan_fit)
+
     # store results
     if(return_quantiles){
       stan_quants <- get_stan_quantiles(stan_fit)
-      tmp_lst <- list(data_list = data_lst, stan_fit = stan_quants)
+      tmp_lst <- list(data_list = data_lst, stan_fit = stan_quants, stan_MAP = stan_MAP)
     }else{
-      tmp_lst <- list(data_list = data_lst, stan_fit = stan_fit)
+      tmp_lst <- list(data_list = data_lst, stan_fit = stan_fit, stan_MAP = stan_MAP)
     }
     
     
