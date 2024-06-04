@@ -32,11 +32,9 @@ bash_command <- function(R=40, dataset='NY', N_models=3, n.sample=10000, burnin=
 }
 
 
-bash_command(CV_blocks = 0, use_softmax = F, tau2 = 0.01, means = c(0,0,0), output_path_addition = 'mean0')
+bash_command(CV_blocks = 10, tau2 = 0.01, rho = 0.3, rho_value = 0.99, output_path_addition = 'fixedrho_rho03')
 
-bash_command(CV_blocks = 20, use_softmax = T, tau2 = 1, means = c(0,0,0), output_path_addition = 'mean0')
+WRITE OUT THE REST OF THESE AND SIMULATE DEM YO.
+MAKE SURE TO TRANSFER OVER NEW FILES.
 
-
-bash_command(CV_blocks = 0, tau2 = 0.01, rho = 0.99, output_path_addition = 'rho099')
-
-bash_command(CV_blocks = 0, tau2 = 1, use_softmax = T, rho = 0.99, output_path_addition = 'rho099')
+# bash_command(CV_blocks = 0, tau2 = 1, use_softmax = T, rho = 0.99, output_path_addition = 'rho099')
