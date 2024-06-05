@@ -734,7 +734,9 @@ generate_metrics_list <- function(folder = NULL, root = NULL, debug_mode = F){
       u_true <- tmp$data_list$u_true
       phi_true_flat <- as.vector(as.matrix(phi_true[,-ncol(phi_true)]))
       u_true_flat <- as.vector(as.matrix(u_true[,-ncol(u_true)]))
-      
+      u_MAP_vec <- tmp$stan_MAP[grep('^u\\[', names(tmp$stan_MAP))]
+      u_MAP_mat <- matrix(u_MAP_vec, ncol = 3, byrow = F)
+
       # get estimates u and phi values
       ind_phi <- grep('^phi\\[', colnames(tmp$stan_fit))
       ind_u <- grep('^u\\[', colnames(tmp$stan_fit))
@@ -757,8 +759,11 @@ generate_metrics_list <- function(folder = NULL, root = NULL, debug_mode = F){
                                   rank_equal = sapply(1:nrow(median_u_mat), function(xx){
                                     res <- all(rank(median_u_mat[xx,]) == rank(u_true[xx,-ncol(u_true)]))
                                     res
-                                  })
-      )
+                                  }),
+                                  MAP_rank_equal = sapply(1:nrow(u_MAP_mat),  function(xx){
+                                    res <- all(rank(u_MAP_mat[xx,]) == rank(u_true[xx,-ncol(u_true)]))
+                                    res
+                                  }))
     }
   }
   
@@ -1122,7 +1127,7 @@ plot_multiple_sims_estimates <- function(sim_lst, models, ncol = 2, ESS = F, lik
 
 ### Plots the metrics across a set of simulations.
 # input_list: Results from the function "generate_metrics_list"
-plot_metrics <- function(input_lst, single_sim_res = NULL){
+plot_metrics <- function(input_lst, single_sim_res = NULL, include_MAP_rank = F){
   # get correct list of metrics and singe simulation results
   if('metrics_list' %in% names(input_lst)){
     print('extracting metrics AND single simulation results.')
@@ -1168,7 +1173,18 @@ plot_metrics <- function(input_lst, single_sim_res = NULL){
     ggtitle('u-rank scores')
   
   phi_u_plot <- append(phi_u_plot, list(p_u_rank))
+  
+  if(include_MAP_rank){
+    u_MAP_rank <- data.frame(rank = rowMeans(sapply(metrics_lst, function(xx) xx[['MAP_rank_equal']])))
+    
+    p_MAP_rank <- ggplot(data = u_MAP_rank, aes(y = rank)) + 
+      geom_boxplot() + 
+      ggtitle('MAP u-rank scores')
+    phi_u_plot <- append(phi_u_plot, list(p_MAP_rank))
+  }
+  
   plot_list <- append(plot_list, list(plot_grid(plotlist = phi_u_plot, nrow = 1)))
+  
   
   ## RMSE plot
   {

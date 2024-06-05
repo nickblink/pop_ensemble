@@ -22,6 +22,46 @@ setwd(root_git)
 # load extra functions
 source('code/extra_functions_CAR.R')
 
+#### Results 6/05/2024 - *ICAR* with different true rho values ####
+setwd(root_results)
+recent_files(l = 6)
+
+direct_rho03 <- 'simulation_fixedrho099_rho03_direct_est_normal_3models_CV10_ID986502_2024_06_04/'
+comparison <- 'simulation_softmax_normal_3models_CV0_ID769482_2024_05_16/'
+compare_parameters(direct_rho03, comparison)
+
+direct_rho07 <- 'simulation_fixedrho099_rho07_direct_est_normal_3models_CV10_ID890724_2024_06_04/'
+direct_rho099 <- 'simulation_fixedrho099_rho099_direct_est_normal_3models_CV10_ID436361_2024_06_04/'
+softmax_rho03 <- 'simulation_fixedrho099_rho03_softmax_normal_3models_CV10_ID723759_2024_06_04/'
+softmax_rho07 <- 'simulation_fixedrho099_rho07_softmax_normal_3models_CV10_ID342875_2024_06_04/'
+softmax_rho099 <- 'simulation_fixedrho099_rho099_softmax_normal_3models_CV10_ID987269_2024_06_04/'
+
+generate_metrics_list(direct_rho03) %>%
+  plot_metrics(include_MAP_rank = T) %>%
+  ggsave(., filename = '../Figures/06052024_direct_est_rho03_fixedrho099.png', height = 8, width = 6)
+
+generate_metrics_list(direct_rho07) %>%
+  plot_metrics(include_MAP_rank = T) %>%
+  ggsave(., filename = '../Figures/06052024_direct_est_rho07_fixedrho099.png', height = 8, width = 6)
+
+generate_metrics_list(direct_rho099) %>%
+  plot_metrics(include_MAP_rank = T) %>%
+  ggsave(., filename = '../Figures/06052024_direct_est_rho099_fixedrho099.png', height = 8, width = 6)
+
+generate_metrics_list(softmax_rho03) %>%
+  plot_metrics(include_MAP_rank = T) %>%
+  ggsave(., filename = '../Figures/06052024_softmax_rho03_fixedrho099.png', height = 8, width = 6)
+
+generate_metrics_list(softmax_rho07) %>%
+  plot_metrics(include_MAP_rank = T) %>%
+  ggsave(., filename = '../Figures/06052024_softmax_rho07_fixedrho099.png', height = 8, width = 6)
+
+generate_metrics_list(softmax_rho099) %>%
+  plot_metrics(include_MAP_rank = T) %>%
+  ggsave(., filename = '../Figures/06052024_softmax_rho099_fixedrho099.png', height = 8, width = 6)
+
+
+#
 #### Results 5/20/2024 - means = 0,0,0 ####
 setwd(root_results)
 recent_files()
