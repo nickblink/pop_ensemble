@@ -1244,7 +1244,7 @@ plot_metrics <- function(input_lst, single_sim_res = NULL, include_MAP_rank = F)
   return(full_plot)
 }
 
-### Make the panel plot that extracts different parameters from multiply simulations and plots them all together. This calls plot_multiple_sims
+### Make the panel plot that extracts different parameters from multiple simulations and plots them all together. This calls plot_multiple_sims
 # res_lst: results list from running multiple sims
 make_panel_plot <- function(res_lst){
   # plot a single simulation results

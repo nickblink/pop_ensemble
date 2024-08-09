@@ -32,6 +32,24 @@ bash_command <- function(R=40, dataset='NY', N_models=3, n.sample=10000, burnin=
 }
 
 
+#### Testing a different sigma2 ####
+bash_command(CV_blocks = 10, tau2 = 0.01, rho = 0.3, sigma2 = 25, sigma2_prior_shape = 1, sigma2_prior_rate = .01, output_path_addition = 'sigma2eq25_rho03')
+
+bash_command(CV_blocks = 10, tau2 = 1, use_softmax = T, rho = 0.3, sigma2 = 25, sigma2_prior_shape = 1, sigma2_prior_rate = .01, output_path_addition = 'sigma2eq25_rho03')
+
+bash_command(CV_blocks = 10, tau2 = 0.01, rho = 0.99, sigma2 = 25, sigma2_prior_shape = 1, sigma2_prior_rate = .01, output_path_addition = 'sigma2eq25_rho099')
+
+bash_command(CV_blocks = 10, tau2 = 1, use_softmax = T, rho = 0.99, sigma2 = 25, sigma2_prior_shape = 1, sigma2_prior_rate = .01, output_path_addition = 'sigma2eq25_rho099')
+
+bash_command(CV_blocks = 10, tau2 = 0.01, rho = 0.3, sigma2 = 4, sigma2_prior_shape = 1, sigma2_prior_rate = .01, output_path_addition = 'sigma2eq4_rho03')
+
+bash_command(CV_blocks = 10, tau2 = 1, use_softmax = T, rho = 0.3, sigma2 = 4, sigma2_prior_shape = 1, sigma2_prior_rate = .01, output_path_addition = 'sigma2eq4_rho03')
+
+bash_command(CV_blocks = 10, tau2 = 0.01, rho = 0.99, sigma2 = 4, sigma2_prior_shape = 1, sigma2_prior_rate = .01, output_path_addition = 'sigma2eq4_rho099')
+
+bash_command(CV_blocks = 10, tau2 = 1, use_softmax = T, rho = 0.99, sigma2 = 4, sigma2_prior_shape = 1, sigma2_prior_rate = .01, output_path_addition = 'sigma2eq4_rho099')
+
+#### Testing fixed rho ####
 bash_command(CV_blocks = 10, tau2 = 0.01, rho = 0.3, rho_value = 0.99, output_path_addition = 'fixedrho099_rho03')
 
 bash_command(CV_blocks = 10, tau2 = 0.01, rho = 0.7, rho_value = 0.99, output_path_addition = 'fixedrho099_rho07')
@@ -43,3 +61,5 @@ bash_command(CV_blocks = 10, use_softmax = T, tau2 = 1, rho = 0.3, rho_value = 0
 bash_command(CV_blocks = 10, use_softmax = T, tau2 = 1,  rho = 0.7, rho_value = 0.99, output_path_addition = 'fixedrho099_rho07')
 
 bash_command(CV_blocks = 10, use_softmax = T, tau2 = 1, rho = 0.99, rho_value = 0.99, output_path_addition = 'fixedrho099_rho099')
+
+#####

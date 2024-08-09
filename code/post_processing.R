@@ -22,6 +22,36 @@ setwd(root_git)
 # load extra functions
 source('code/extra_functions_CAR.R')
 
+#### Results 8/07/2024 - Lower sigma2 values ####
+setwd(root_results)
+files <- grep('08_06', dir(root_results), value = T)
+comparison <- 'simulation_softmax_normal_3models_CV0_ID769482_2024_05_16/'
+compare_parameters(comparison, files[1])
+compare_parameters(files[1], files[2])
+
+# making all the plots!
+for(i in 1:length(files)){
+  out_name <- sprintf('../Figures/08062024_%s.png', stringr::str_match(files[i], 'simulation_(.*?)_normal')[2])
+  generate_metrics_list(files[i]) %>%
+    plot_metrics(include_MAP_rank = T) %>%
+    ggsave(., filename = out_name, height = 8, width = 6)
+  
+}
+
+load("simulation_sigma2eq25_rho03_direct_est_normal_3models_CV10_ID203001_2024_08_06/sim_results_1.RData")
+tmp <- res_lst[[1]]$sim_list[[1]]
+process_results(tmp$data_list, tmp$stan_fit, ESS = F, likelihoods = F, stan_fit_quantiles = T)
+# ugh this is a pain in the butt.
+
+for(i in 1:length(files)){
+  load(dir(files[i], full.names = T)[1])
+  tmp <- res_lst[[1]]$sim_list[[1]]
+  out_name <- sprintf('../Figures/08062024_%s.png', stringr::str_match(files[i], 'simulation_(.*?)_normal')[2])
+  print(out_name)
+  print(tmp$stan_fit[,1])
+}
+
+#
 #### Results 6/05/2024 - *ICAR* with different true rho values ####
 setwd(root_results)
 recent_files(l = 6)

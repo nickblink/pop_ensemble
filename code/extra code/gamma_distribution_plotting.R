@@ -33,3 +33,20 @@ dgamma(0.01, 1, 5)/dgamma(1, 1, 5)
 
 
 dgamma(0.01, .002, .001)/dgamma(1, .002, .001)
+
+
+
+x <- seq(0, 100, by = 0.1)
+y1 <- dgamma(x = x, 100, 1)
+y2 <- dgamma(x = x, 50, 0.5)
+y3 <- dgamma(x = x, 1, .01)
+
+#pdf(file = 'my-gamma-plot.pdf')
+plot(x, y1, type = 'l', ylim = c(0,1), main = 'pdf')
+lines(x, y2, type = 'l', col = 2)
+lines(x, y3, type = 'l', col = 3)
+# legend("topright",
+#        legend = c('Gamma(1,5)', 'Gamma(1,1)', 'Gamma(2,1)', 'Gamma(.001,.001)'), 
+#        col = c(1:4),
+#        lty = 1, cex = 0.8)
+
