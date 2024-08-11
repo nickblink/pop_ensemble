@@ -18,9 +18,7 @@ setwd(dirname(current_path))
 
 
 
-####################
-## 2. CENSUS DATA ##
-####################
+#### 1. CENSUS DATA ####
 
 ## census 2010 data ##
 ## variable names ##
@@ -35,13 +33,38 @@ ma_ce<-get_decennial(geography = "county",
 ma_ce<-as.data.frame(ma_ce)
 ma_ce<-ma_ce[order(ma_ce$GEOID),]
 
-###########################
-## 3. PEP estimated DATA ##
-###########################
+#### Update 8/9/2024 - testing vintage ####
+pep_2023 <- get_estimates(geography = "county",
+                        product = "population",
+                        time_series = TRUE,
+                        vintage = 2023)
+
+pep_2020 <- get_estimates(geography = "county",
+                          product = "population",
+                          time_series = TRUE,
+                          vintage = 2020)
+
+pep_2019 <- get_estimates(geography = "county",
+                          product = "population",
+                          time_series = TRUE,
+                          vintage = 2019)
+
+pep <- list()
+for(i in 2015:2023){
+  pep[[as.character(i)]] <- get_estimates(geography = "county",
+                       product = "population",
+                       time_series = TRUE,
+                       vintage = i)
+}
+# ok so this has values going back to 2008? I think that's what DATE = 1 means?
+
+#
+#### 3. PEP estimated DATA ####
 
 pep <- get_estimates(geography = "county",
   product = "population",
-  time_series = TRUE) %>% 
+  time_series = TRUE, 
+  vintage = 2019) %>% 
   dplyr::filter(variable == "POP") %>%
   rename(pep = value)
 
@@ -55,14 +78,13 @@ for(i in 1:12){
 }
 
 res
-
-# ok so it's almost certainly based on the census
+# so I expect DATE = 2 (2009) or 12 (2019) to be the worst, 3 (2010) to be the best. 
+# WHAT?? What is year 12 if year 1 is the census? Ah got it, according to https://www.census.gov/data/developers/data-sets/popest-popproj/popest/popest-vars/2019.html, date 1 is the census and 12 is July 1, 2019. The dates 2 and 3 are also in 2010, just different months.
 
 ##### Trying the PEP API #####
 library(httr)
 library(jsonlite)
 library(censusapi)
-
 
 url <- 'https://api.census.gov/data/2000/pep/int_population'
 
