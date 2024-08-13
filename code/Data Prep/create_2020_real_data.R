@@ -14,7 +14,7 @@ setwd(dirname(current_path))
 
 #### Census 2020 ####
 load_variables(2020, "pl")
-county_data <- get_decennial(
+census <- get_decennial(
   geography = "county",
   variables = "P1_001N", # Total population
   year = 2020
@@ -49,7 +49,7 @@ PEP <- PEP %>%
 # fix naming of counties to match each other
 
 # merge!
-df <-merge(ACS, census, by=c('GEOID','NAME'), all = TRUE) %>%
+df <- merge(ACS, census, by=c('GEOID','NAME'), all = TRUE) %>%
   merge(PEP, by=c('GEOID','NAME'), all = TRUE) 
 
 # look into places still missing.
@@ -76,3 +76,4 @@ df <- tg %>%
   merge(df, by = 'GEOID')
 
 # gucci goo. Pausing here.
+save(df, file = '../../data/tmp_merged_census_products_08132024.RData')
