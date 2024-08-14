@@ -58,5 +58,8 @@ get_dispersion(pep.fit)
 both.fit <- glm(census ~ log(acs) + log(pep), family = poisson(), data = df)
 get_dispersion(both.fit)
 
-
-
+# test dispersion of scaled ACS and PEP together
+df$acs_scaled <- df$acs*sum(df$census)/sum(df$acs)
+df$pep_scaled <- df$pep*sum(df$census)/sum(df$pep)
+scaled.fit <- glm(census ~ log(acs_scaled) + log(pep_scaled), family = poisson(), data = df)
+# ok basically the same. I guess this will only really be an issue with the softmax. Of course the sum of the coefficients can be different than 1 here.

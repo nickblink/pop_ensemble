@@ -249,8 +249,9 @@ sample_MVN_from_precision <- function(n = 1, mu=rep(0, nrow(Q)), Q){
 # cholesky: whether to simulate phi's from cholesky decomposition.
 # family: Poisson or Normal/Gaussian, for the type of outcome family.
 # sigma2: variance of the normal distribution.
+# theta: Overdispersion parameter for the negative binomial distribution.
 # use_softmax: If true, softmax is used. If false, the phi values are directly used as weights (centered at 1/M).
-simulate_y <- function(data, adjacency, models = c('M1','M2','M3'), scale_down = 1, pivot = -1, precision_type = 'Leroux', tau2 = 1, rho = 0.3, seed = 10, cholesky = T, family = 'poisson', sigma2 = NULL, use_softmax = NULL, num_y_samples = 1, use_pivot = F, ...){
+simulate_y <- function(data, adjacency, models = c('M1','M2','M3'), scale_down = 1, pivot = -1, precision_type = 'Leroux', tau2 = 1, rho = 0.3, seed = 10, cholesky = T, family = 'poisson', sigma2 = NULL, theta = NULL, use_softmax = NULL, num_y_samples = 1, use_pivot = F, ...){
   # set seed for reproducability 
   # set.seed(seed)
   
@@ -338,6 +339,13 @@ simulate_y <- function(data, adjacency, models = c('M1','M2','M3'), scale_down =
       if(i >= 2){
         data[,paste0('y',i)] <- rnorm(n = nrow(data), mean = data$y_expected, sd = sqrt(sigma2))
       }
+    }else if(tolower(family) %in% c('nb','negbin','negative_binomial')){
+      data$y <- MASS::rnegbin(n = nrow(data), mu = data$y_expected, theta = theta)
+      
+      # sample repeated y instances
+      if(i >= 2){
+        data[,paste0('y',i)] <- MASS::rnegbin(n = nrow(data), mu = data$y_expected, theta = theta)
+      }
     }else{
       stop('please input a proper family')
     }
@@ -354,6 +362,8 @@ simulate_y <- function(data, adjacency, models = c('M1','M2','M3'), scale_down =
   res_list = list(data = data, adjacency = adjacency, phi_true = phi_true, u_true = u_true, tau2 = tau2, rho = rho)
   if(!is.null(sigma2)){
     res_list[['sigma2']] <- sigma2
+  }else if(!is.null(theta)){
+    res_list[['theta']] <- theta
   }
   
   return(res_list)
@@ -395,8 +405,8 @@ get_stan_MAP <- function(stan_fit, inc_warmup = T){
 # models: a vector of the models to use in the ensemble.
 # sigma2_prior_shape: Shape of the gamma distribution prior.
 # sigma2_prior_rate: rate of the gamma distribution prior.
-prep_stan_data_leroux_sparse <- function(data, W, models, use_softmax = F, use_pivot = F, use_normal = T, sigma2_prior_shape = 1, sigma2_prior_rate = 10, tau2_prior_shape = 1, tau2_prior_rate = 1, rho_value = - 1, tau2_value = -1, ...){
-
+prep_stan_data_leroux_sparse <- function(data, W, models, use_softmax = F, use_pivot = F, use_normal = T, sigma2_prior_shape = 1, sigma2_prior_rate = 10, theta_prior_shape = .001, theta_prior_rate = .001, tau2_prior_shape = 1, tau2_prior_rate = 1, fixed_rho = - 1, fixed_tau2 = -1, family = NULL, rho = NULL, tau2 = NULL, ...){
+  browser()
   # checking columns
   if(!('y' %in% colnames(data))){
     stop('need y as a column in data')
@@ -447,13 +457,23 @@ prep_stan_data_leroux_sparse <- function(data, W, models, use_softmax = F, use_p
     lambda = lambda,
     use_softmax = as.integer(use_softmax),
     use_pivot = as.integer(use_pivot),
-    use_normal = as.integer(use_normal),
-    sigma2_prior_shape = sigma2_prior_shape,
-    sigma2_prior_rate = sigma2_prior_rate,
+    # use_normal = as.integer(use_normal),
     tau2_prior_shape = tau2_prior_shape,
     tau2_prior_rate = tau2_prior_rate,
-    rho_value = rho_value,
-    tau2_value = tau2_value)
+    fixed_rho = fixed_rho,
+    fixed_tau2 = fixed_tau2)
+  
+  if(tolower(family) == 'normal'){
+    stan_data <- c(stan_data,
+                   list(sigma2_prior_shape = sigma2_prior_shape,
+                        sigma2_prior_rate = sigma2_prior_rate))
+  }else if(tolower(family) == 'negbin'){
+    stan_data <- c(stan_data,
+                   list(theta_prior_shape = theta_prior_shape,
+                        theta_prior_rate = theta_prior_rate))
+  }else{
+    stop('please input a proper family')
+  }
 
   return(stan_data)
 }
@@ -467,7 +487,7 @@ prep_stan_data_leroux_sparse <- function(data, W, models, use_softmax = F, use_p
 # n.sample: the number of iterations to run the rstan code.
 # burnin: the number of burnin iterations to run the rstan code.
 # seed: a seed for reproducability
-run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_type = 'Leroux', n.sample = 10000, burnin = 5000, seed = 10, stan_m = NULL, stan_path = "code/CAR_leroux_sparse.stan", tau2 = NULL, use_softmax = NULL, use_normal = T, use_pivot = F, init_vals = '0', ...){
+run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_type = 'Leroux', n.sample = 10000, burnin = 5000, seed = 10, stan_m = NULL, stan_path = "code/CAR_leroux_sparse.stan", tau2 = NULL, use_softmax = NULL, use_normal = T, use_pivot = F, init_vals = '0',family = family, ...){
   
   # error checking for precision matrix type.
   if(precision_type != 'Leroux'){stop('only have Leroux precision coded')}
@@ -478,7 +498,8 @@ run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_
   }
   
   # prep the data.
-  stan_data <- prep_stan_data_leroux_sparse(data, adjacency, models, use_softmax = use_softmax, use_normal = use_normal, use_pivot = use_pivot, ...)
+  browser()
+  stan_data <- prep_stan_data_leroux_sparse(data, adjacency, models, use_softmax = use_softmax, use_normal = use_normal, use_pivot = use_pivot, family = family, ...)
   
   # create the stan model if not done already.
   if(is.null(stan_m)){
@@ -530,18 +551,18 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
     }
     
     # checking that the rho in the DGP and the model fit are equal (if the rho is fixed in the model fit)
-    if('rho' %in% names(list(...)) & 'rho_value' %in% names(list(...))){
-      if(list(...)$rho_value > 1){
+    if('rho' %in% names(list(...)) & 'fixed_rho' %in% names(list(...))){
+      if(list(...)$fixed_rho > 1){
         stop('rho value cannot be greater than 1')
       }
-      if(list(...)$rho_value > 0 & list(...)$rho_value != list(...)$rho){
+      if(list(...)$fixed_rho > 0 & list(...)$fixed_rho != list(...)$rho){
         print('WARNING: rho in DGP and rho in model not equal')
       }
     }
     
     # checking that the rho in the DGP and the model fit are equal (if the rho is fixed in the model fit)
-    if('tau2' %in% names(list(...)) & 'tau2_value' %in% names(list(...))){
-      if(list(...)$tau2_value > 0 & list(...)$tau2_value != list(...)$tau2){
+    if('tau2' %in% names(list(...)) & 'fixed_tau2' %in% names(list(...))){
+      if(list(...)$fixed_tau2 > 0 & list(...)$fixed_tau2 != list(...)$tau2){
         print('WARNING: tau2 in DGP and tau2 in model not equal')
       }
     }
@@ -579,7 +600,8 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
       init_list = list(phi = as.matrix(data_lst$phi_true[,-ncol(data_lst$phi_true)]),
                        rho = data_lst$rho,
                        tau2 = data_lst$tau2,
-                       sigma2 = data_lst$sigma2)
+                       sigma2 = data_lst$sigma2,
+                       theta = data_lst$theta)
       init_vals <- function(){init_list}
     }
     
@@ -605,7 +627,7 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
         block_data$y[ind] <- NA
         
         # run the model!
-        tmp_stan_fit <- run_stan_CAR(block_data, data_lst$adjacency, models = models, seed = seed_val, stan_m = m, use_softmax = use_softmax, init_vals = init_vals, ...)
+        tmp_stan_fit <- run_stan_CAR(block_data, data_lst$adjacency, models = models, seed = seed_val, stan_m = m, use_softmax = use_softmax, init_vals = init_vals, family = family, ...)
         
         # store the outcome values:
         tmp_y_pred <- t(extract(tmp_stan_fit, pars = 'y_pred')[[1]])
@@ -618,7 +640,7 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
     }
    
     # fit the Bayesian model on the full data
-    stan_fit <- run_stan_CAR(data_lst$data, data_lst$adjacency, models = models, seed = seed_val, stan_m = m, use_softmax = use_softmax, init_vals = init_vals, ...)
+    stan_fit <- run_stan_CAR(data_lst$data, data_lst$adjacency, models = models, seed = seed_val, stan_m = m, use_softmax = use_softmax, init_vals = init_vals, family = family, ...)
 
     # get the MAP posterior values.    
     stan_MAP <- get_stan_MAP(stan_fit)

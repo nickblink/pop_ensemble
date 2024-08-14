@@ -47,8 +47,8 @@ functions {
   real<lower=0> sigma2_prior_rate; // prior rate for sigma2
   real<lower=0> tau2_prior_shape; // prior shape for tau2
   real<lower=0> tau2_prior_rate; // prior rate for tau2
-  real<upper=1> rho_value; // the fixed rho value. If < 0, then rho is estimated.
-  real tau2_value; // the fixed tau2 value. If < 0, then tau2 is estimated
+  real<upper=1> fixed_rho; // the fixed rho value. If < 0, then rho is estimated.
+  real fixed_tau2; // the fixed tau2 value. If < 0, then tau2 is estimated
 }
 transformed data {
   int W_sparse[W_n, 2];   // adjacency pairs
@@ -74,13 +74,13 @@ transformed data {
   }
   for (i in 1:N) D_sparse[i] = sum(W[i]); // Compute the sparse representation of D
   
-  if(rho_value >= 0){
+  if(fixed_rho >= 0){
     estimate_rho = 0;
   }else{
     estimate_rho = 1;
   }
   
-  if(tau2_value >= 0){
+  if(fixed_tau2 >= 0){
     estimate_tau2 = 0;
   }else{
     estimate_tau2 = 1;
@@ -133,7 +133,7 @@ transformed parameters {
   // store the rho used
   if(estimate_rho == 0){
     for(m in 1:M){
-	  rho[m] = rho_value;
+	  rho[m] = fixed_rho;
     }
   }else{
     rho = rho_estimated;
@@ -142,7 +142,7 @@ transformed parameters {
   // store the tau2 used
   if(estimate_tau2 == 0){
     for(m in 1:M){
-	  tau2[m] = tau2_value;
+	  tau2[m] = fixed_tau2;
     }
   }else{
     tau2 = tau2_estimated;

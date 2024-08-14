@@ -19,7 +19,9 @@ if(file.exists('C:/Users/Admin-Dell')){
 source('code/extra_functions_CAR.R')
 
 # Local inputs
-inputs = c('R=2:dataset=NY:N_models=3:n.sample=5000:burnin=2500:family=normal:use_softmax=F:variances=100,100,100:means=100,100,100:rho_value=0.99:rho=0.3:tau2=0.01:sigma2=100:sigma2_prior_shape=50:sigma2_prior_rate=0.5:tau2_prior_shape=1:tau2_prior_rate=1:num_y_samples=3:stan_path=code/CAR_leroux_sparse_normal.stan:return_quantiles=T:parallel=F:output_path=simTEST_today-not\r','3')
+inputs = c('R=2:dataset=NY:N_models=3:n.sample=5000:burnin=2500:family=negbin:family_name_check=F:use_softmax=F:variances=100,100,100:means=100,100,100:fixed_rho=0.99:rho=0.3:tau2=0.01:theta=10:theta_prior_shape=0.001,theta_prior_rate=0.001,tau2_prior_shape=1:tau2_prior_rate=1:num_y_samples=3:stan_path=code/CAR_leroux_sparse_normal.stan:return_quantiles=T:parallel=F:output_path=simTEST_today-not\r','3')
+
+#inputs = c('R=2:dataset=NY:N_models=3:n.sample=5000:burnin=2500:family=normal:family_name_check=F:use_softmax=F:variances=100,100,100:means=100,100,100:fixed_rho=0.99:rho=0.3:tau2=0.01:sigma2=100:sigma2_prior_shape=50:sigma2_prior_rate=0.5:tau2_prior_shape=1:tau2_prior_rate=1:num_y_samples=3:stan_path=code/CAR_leroux_sparse_normal.stan:return_quantiles=T:parallel=F:output_path=simTEST_today-not\r','3')
 
 # cluster inputs
 inputs <- commandArgs(trailingOnly = TRUE)
@@ -38,7 +40,7 @@ for(str in strsplit(inputs[[1]],':')[[1]]){
     val = tolower(tmp[2])
   }
   
-  if(nn %in% c('R', 'n.sample', 'burnin', 'rho', 'rho_value', 'tau2', 'tau2_value', 'sigma2', 'sigma2_prior_shape', 'sigma2_prior_rate', 'tau2_prior_shape', 'tau2_prior_rate', 'num_y_samples', 'CV_blocks')){
+  if(nn %in% c('R', 'n.sample', 'burnin', 'rho', 'fixed_rho', 'tau2', 'fixed_tau2', 'sigma2', 'sigma2_prior_shape', 'sigma2_prior_rate', 'theta', 'tau2_prior_shape', 'tau2_prior_rate', 'num_y_samples', 'CV_blocks','theta_prior_shape','theta_prior_rate')){
     val = as.numeric(val)
   }else if(nn == 'N_models'){
     models <- paste0('X', 1:as.numeric(val))
