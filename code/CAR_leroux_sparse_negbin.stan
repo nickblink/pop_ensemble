@@ -36,7 +36,7 @@ functions {
   int<lower=0, upper=N> ind_miss[N_miss]; // indices of missing y points
   int<lower=0, upper=N> ind_obs[N_obs]; // indices of observed y points
   matrix[N,M] X; // design matrix of ensemble models
-  vector[N_obs] y_obs;  // output
+  int<lower=0> y_obs[N_obs];  // output
   matrix<lower=0, upper = 1>[N, N] W; //adjacency matrix
   int W_n; // Number of adjacency pairs
   matrix[N,N] I; // Identity matrix
@@ -105,6 +105,7 @@ transformed parameters {
   matrix[use_softmax ? N : 0, use_softmax ? M : 0] exp_phi_sum;
   matrix[N, M] u;
   vector[N] mu;
+  vector[N] mu_bounded;
   vector[N_obs] observed_est;
   real log_detQ[M];
   matrix[N + 1, M] ldet_vec;
@@ -155,6 +156,15 @@ transformed parameters {
 	}
 	log_detQ[m] = sum(ldet_vec[1:N+1,m]);
   }
+  
+  // calculate mu_bounded for predictions
+  for (n in 1:N){
+    if(mu[n] <= 0){
+	  mu_bounded[n] = 0.01;
+	}else{
+	  mu_bounded[n] = mu[n];
+	}
+  }
 }
 model {
   theta ~ gamma(theta_prior_shape, theta_prior_rate); // prior on theta
@@ -172,5 +182,5 @@ model {
 generated quantities {
   real phi_dprior = 0;
   vector[N] y_exp = mu;
-  real y_pred[N] = neg_binomial_2_rng(mu, theta);
+  real y_pred[N] = neg_binomial_2_rng(mu_bounded, theta);
 }

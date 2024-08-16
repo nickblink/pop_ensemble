@@ -406,7 +406,6 @@ get_stan_MAP <- function(stan_fit, inc_warmup = T){
 # sigma2_prior_shape: Shape of the gamma distribution prior.
 # sigma2_prior_rate: rate of the gamma distribution prior.
 prep_stan_data_leroux_sparse <- function(data, W, models, use_softmax = F, use_pivot = F, use_normal = T, sigma2_prior_shape = 1, sigma2_prior_rate = 10, theta_prior_shape = .001, theta_prior_rate = .001, tau2_prior_shape = 1, tau2_prior_rate = 1, fixed_rho = - 1, fixed_tau2 = -1, family = NULL, rho = NULL, tau2 = NULL, ...){
-  browser()
   # checking columns
   if(!('y' %in% colnames(data))){
     stop('need y as a column in data')
@@ -474,7 +473,6 @@ prep_stan_data_leroux_sparse <- function(data, W, models, use_softmax = F, use_p
   }else{
     stop('please input a proper family')
   }
-
   return(stan_data)
 }
 
@@ -498,7 +496,6 @@ run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_
   }
   
   # prep the data.
-  browser()
   stan_data <- prep_stan_data_leroux_sparse(data, adjacency, models, use_softmax = use_softmax, use_normal = use_normal, use_pivot = use_pivot, family = family, ...)
   
   # create the stan model if not done already.
@@ -577,9 +574,12 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
   }else{
     use_normal = F
   }
-  
+  print('check 1')
+  print(stan_path)
+  print(file.exists(stan_path))
   # compile the stan program
   m <- stan_model(stan_path)
+  print('check 1.5')
 
   # initialize results
   sim_lst <- list()
@@ -589,9 +589,11 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
     # set the seed value
     seed_val = i + seed_start
     
+    print('check 2')
     # simulate input model values
     data <- simulate_models(data = raw_data$data, adjacency = raw_data$adjacency, models = models, seed = seed_val, means = means, variances = variances, ...)
     
+    print('check 3')
     # simulate y values from input models
     data_lst <- simulate_y(data, raw_data$adjacency, models = models, seed = seed_val, family = family, use_softmax = use_softmax, ...)
     
@@ -605,6 +607,7 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
       init_vals <- function(){init_list}
     }
     
+    print('check 4')
     # run cross-validation.
     if(!is.null(CV_blocks)){
       # make the folds
@@ -626,8 +629,10 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
         # set y values to 0 of current block
         block_data$y[ind] <- NA
         
+        print('check 5')
         # run the model!
         tmp_stan_fit <- run_stan_CAR(block_data, data_lst$adjacency, models = models, seed = seed_val, stan_m = m, use_softmax = use_softmax, init_vals = init_vals, family = family, ...)
+        print('check 6')
         
         # store the outcome values:
         tmp_y_pred <- t(extract(tmp_stan_fit, pars = 'y_pred')[[1]])
@@ -1123,10 +1128,10 @@ process_results <- function(data_list, stan_fit, stan_fit_quantiles = F, models 
 
 
 ### Plot the results for multiple simulations. Currently just plots the spatial parameters, but that will likely be adjusted.
-# sim_lst: simulation list from multiple_sims, containing a list with "data_list" and "stan_fit" for each simulation run.
+# sim_lst: simulation list from s, containing a list with "data_list" and "stan_fit" for each simulation run.
 # models: models used in the fitting.
 # ncol: number of columns in output plot.
-plot_multiple_sims_estimates <- function(sim_lst, models, ncol = 2, ESS = F, likelihoods = F, rho_estimates = T, tau2_estimates = T, sigma2_estimates = F, phi_estimates = F, u_estimates = F, y_estimates = F){
+plot_s_estimates <- function(sim_lst, models, ncol = 2, ESS = F, likelihoods = F, rho_estimates = T, tau2_estimates = T, sigma2_estimates = F, phi_estimates = F, u_estimates = F, y_estimates = F){
   
   # initialize the plot list
   plot_list <- list()
@@ -1266,16 +1271,16 @@ plot_metrics <- function(input_lst, single_sim_res = NULL, include_MAP_rank = F)
   return(full_plot)
 }
 
-### Make the panel plot that extracts different parameters from multiple simulations and plots them all together. This calls plot_multiple_sims
+### Make the panel plot that extracts different parameters from multiple simulations and plots them all together. This calls plot_s
 # res_lst: results list from running multiple sims
 make_panel_plot <- function(res_lst){
   # plot a single simulation results
   pp <- process_results(res_lst$sim_list[[1]]$data_list, res_lst$models, res_lst$sim_list[[1]]$stan_fit, tau2_estimates = T, likelihoods = T, sigma2_estimates = T)
   
   # plot multiple simulation parameter estimates, u estimates, and y estimates
-  tt1 <- plot_multiple_sims(res_lst$sim_list, res_lst$models, sigma2_estimates = T, ncol = 1)
-  tt2 <- plot_multiple_sims(res_lst$sim_list, res_lst$models, u_estimates = T, rho_estimates = F, tau2_estimates = F, ncol = 1)
-  tt3 <- plot_multiple_sims(res_lst$sim_list, res_lst$models, y_estimates = T, u_estimates = F, rho_estimates = F, tau2_estimates = F, ncol = 1)
+  tt1 <- plot_s(res_lst$sim_list, res_lst$models, sigma2_estimates = T, ncol = 1)
+  tt2 <- plot_s(res_lst$sim_list, res_lst$models, u_estimates = T, rho_estimates = F, tau2_estimates = F, ncol = 1)
+  tt3 <- plot_s(res_lst$sim_list, res_lst$models, y_estimates = T, u_estimates = F, rho_estimates = F, tau2_estimates = F, ncol = 1)
   
   # combine them all
   full_plot <- plot_grid(pp, tt1, tt2, tt3, nrow = 1, rel_widths = c(3,3,3,2))#, labels = c('One Sim','Params','Weights','Y'))

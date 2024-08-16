@@ -18,8 +18,10 @@ if(file.exists('C:/Users/Admin-Dell')){
 # load extra functions
 source('code/extra_functions_CAR.R')
 
+inputs = c('R=2:dataset=NY:N_models=3:n.sample=1000:burnin=500:family=negbin:use_softmax=F:variances=100,100,100:means=100,100,100:rho=1:fixed_rho=-1:tau2=0.01:tau2_value=-1:sigma2=100:sigma2_prior_shape=50:sigma2_prior_rate=0.5:tau2_prior_shape=1:tau2_prior_rate=1:theta=100:theta_prior_shape=0.001:theta_prior_rate=0.001:num_y_samples=3:stan_path=code/CAR_leroux_sparse_negbin.stan:CV_blocks=5:return_quantiles=T:parallel=T:output_path=simulation_200GBmem_TEST_rho_1_theta_100_direct_est_negbin_3models_CV5_ID32183_2024_08_16','3')
+
 # Local inputs
-inputs = c('R=2:dataset=NY:N_models=3:n.sample=5000:burnin=2500:family=negbin:family_name_check=F:use_softmax=F:variances=100,100,100:means=100,100,100:fixed_rho=0.99:rho=0.3:tau2=0.01:theta=10:theta_prior_shape=0.001,theta_prior_rate=0.001,tau2_prior_shape=1:tau2_prior_rate=1:num_y_samples=3:stan_path=code/CAR_leroux_sparse_normal.stan:return_quantiles=T:parallel=F:output_path=simTEST_today-not\r','3')
+# inputs = c('R=2:dataset=NY:N_models=3:n.sample=5000:burnin=2500:family=negbin:use_softmax=F:variances=100,100,100:means=100,100,100:rho=0.3:tau2=0.01:theta=10:theta_prior_shape=0.001:theta_prior_rate=0.001:tau2_prior_shape=1:tau2_prior_rate=1:num_y_samples=3:stan_path=code/CAR_leroux_sparse_negbin.stan:return_quantiles=T:parallel=F:output_path=simTEST_today-not\r','3')
 
 #inputs = c('R=2:dataset=NY:N_models=3:n.sample=5000:burnin=2500:family=normal:family_name_check=F:use_softmax=F:variances=100,100,100:means=100,100,100:fixed_rho=0.99:rho=0.3:tau2=0.01:sigma2=100:sigma2_prior_shape=50:sigma2_prior_rate=0.5:tau2_prior_shape=1:tau2_prior_rate=1:num_y_samples=3:stan_path=code/CAR_leroux_sparse_normal.stan:return_quantiles=T:parallel=F:output_path=simTEST_today-not\r','3')
 
@@ -99,6 +101,8 @@ if(params[['dataset']] == 'ny'){
   }
 }
 
+print('set up the output folder')
+
 # run the code!
 if(params[['parallel']]){
   # register the cores
@@ -117,6 +121,7 @@ if(params[['parallel']]){
     return(tmp)
   }
 
+  print('calling one_run')
   system.time({
     res_lst <- foreach(i=1:params[['R']]) %dorng% one_run(params, i)
   })
@@ -130,3 +135,9 @@ if(params[['parallel']]){
 
 # save the results
 save(res_lst, params, file = results_file)
+
+if(F){
+  tt <- res_lst$sim_list[[1]]
+  sf <- tt$stan_fit
+  head(sf[,1:5])
+}
