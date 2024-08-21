@@ -1,3 +1,6 @@
+library(dplyr)
+library(rstan)
+
 ### Print the most recent files in a directory (makes post processing easier).
 # l: Number of files to show.
 recent_files <- function(l = 5){
@@ -500,7 +503,7 @@ run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_
   
   # create the stan model if not done already.
   if(is.null(stan_m)){
-    stan_m <- stan_model(stan_path)
+    stan_m <- rstan::stan_model(stan_path)
   }
 
   # fit the stan model.
@@ -578,7 +581,7 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
   print(stan_path)
   print(file.exists(stan_path))
   # compile the stan program
-  m <- stan_model(stan_path)
+  m <- rstan::stan_model(stan_path)
   print('check 1.5')
 
   # initialize results
