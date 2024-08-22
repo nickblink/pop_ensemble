@@ -543,8 +543,15 @@ run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_
 # sigma2: sigma2 value of y distribution.
 multiple_sims <- function(raw_data, models, means, variances, family = 'poisson', N_sims = 10, stan_path = "code/CAR_leroux_sparse_poisson.stan", init_vals = '0', family_name_check = T, use_softmax = F, CV_blocks = NULL, seed_start = 0, return_quantiles = T, ...){
   
+  rstan_options(auto_write = F)
+  
   ### Parameter error checks
   {
+    # checking stan path exists 
+    if(!file.exists(stan_path)){
+      stop('stan path does not exist.')
+    }
+    
     # Checking the name and family match
     if(!grepl(family, stan_path) & family_name_check){
       stop('The code does not have the family name in it')

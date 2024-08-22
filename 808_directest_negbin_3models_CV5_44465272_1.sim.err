@@ -27,5 +27,8 @@ Loading required package: iterators
 Loading required package: parallel
 Error in { : task 1 failed - "error reading from connection"
 Calls: system.time -> %dorng% -> do.call -> <Anonymous> -> <Anonymous>
-Timing stopped at: 39.43 6.181 5.277
+Timing stopped at: 1.207 0.104 1.572
 Execution halted
+Warning message:
+In foreach(i = 1:params[["R"]]) %dorng% one_run(params, i) :
+  Foreach loop (doParallelMC) had changed the current RNG type: RNG was restored to same type, next state

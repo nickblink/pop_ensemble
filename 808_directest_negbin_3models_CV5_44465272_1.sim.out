@@ -1,0 +1,92 @@
+$job_id
+[1] 1
+
+$R
+[1] 1
+
+$dataset
+[1] "ny"
+
+$models
+[1] "X1" "X2" "X3"
+
+$n.sample
+[1] 1000
+
+$burnin
+[1] 500
+
+$family
+[1] "negbin"
+
+$use_softmax
+[1] FALSE
+
+$variances
+[1] 100 100 100
+
+$means
+[1] 100 100 100
+
+$rho
+[1] 0.99
+
+$fixed_rho
+[1] -1
+
+$tau2
+[1] 0.01
+
+$tau2_value
+[1] "-1"
+
+$sigma2
+[1] 100
+
+$sigma2_prior_shape
+[1] 50
+
+$sigma2_prior_rate
+[1] 0.5
+
+$tau2_prior_shape
+[1] 1
+
+$tau2_prior_rate
+[1] 1
+
+$theta
+[1] 100
+
+$theta_prior_shape
+[1] 0.001
+
+$theta_prior_rate
+[1] 0.001
+
+$num_y_samples
+[1] 3
+
+$stan_path
+[1] "code/CAR_leroux_sparse_negbin.stan"
+
+$CV_blocks
+[1] 5
+
+$return_quantiles
+[1] TRUE
+
+$parallel
+[1] TRUE
+
+$output_path
+[1] "simulation_200GBmem_TEST_rho_1_theta_100_direct_est_negbin_3models_CV5_ID32183_2024_08_20"
+
+$seed_start
+[1] 0
+
+[1] "set up the output folder"
+[1] "calling one_run"
+[1] "check 1"
+[1] "code/CAR_leroux_sparse_negbin.stan"
+[1] TRUE
