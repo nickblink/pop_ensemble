@@ -1,5 +1,4 @@
 Linking to GEOS 3.7.2, GDAL 3.0.4, PROJ 6.3.2; sf_use_s2() is TRUE
 To enable caching of data, set `options(tigris_use_cache = TRUE)`
 in your R script or .Rprofile.
-Error: RStudio not running
-Execution halted
+slurmstepd: error: *** JOB 44398190 ON holy7c04404 CANCELLED AT 2024-08-21T06:20:26 DUE TO TIME LIMIT ***

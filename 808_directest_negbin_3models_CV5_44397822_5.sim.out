@@ -11,10 +11,10 @@ $models
 [1] "X1" "X2" "X3"
 
 $n.sample
-[1] 10000
+[1] 1000
 
 $burnin
-[1] 5000
+[1] 500
 
 $family
 [1] "negbin"
@@ -117,12 +117,12 @@ $seed_start
 [1] "check 1"
 [1] "code/CAR_leroux_sparse_negbin.stan"
 [1] TRUE
-[1][1] "check 1" "check 1"
-
-[1][1] "code/CAR_leroux_sparse_negbin.stan" "code/CAR_leroux_sparse_negbin.stan"
-
-[1][1] TRUE TRUE
-
+[1] "check 1"
+[1] "code/CAR_leroux_sparse_negbin.stan"
+[1] TRUE
+[1] "check 1"
+[1] "code/CAR_leroux_sparse_negbin.stan"
+[1] TRUE
 [1] "check 1"
 [1] "code/CAR_leroux_sparse_negbin.stan"
 [1] TRUE
