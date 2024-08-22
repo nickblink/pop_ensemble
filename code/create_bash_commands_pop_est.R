@@ -87,9 +87,12 @@ bash_wrapper <- function(bash_file = NULL, theta_vec = NULL, rho_vec = NULL, out
 
 
 #### Testing NB ####
+## NORMAL
 bash_command(CV_blocks = 10, tau2 = 0.01, rho = 0.3, theta = 10, output_path_addition = 'theta10_rho03')
 
-bash_wrapper(theta_vec = c(10,100), rho_vec = c(0.3, 1), output_path_addition = '200GBmem_TEST', family = 'negbin', stan_path = 'code/CAR_leroux_sparse_negbin.stan')
+bash_command(CV_blocks = 10, tau2 = 0.01, rho = 0.3, theta = 10, output_path_addition = 'theta10_rho03')
+
+bash_wrapper(theta_vec = c(10,100), rho_vec = c(0.3, 0.99), output_path_addition = '200GBmem_TEST', family = 'negbin', stan_path = 'code/CAR_leroux_sparse_negbin.stan')
 
 #### Testing a different sigma2 ####
 bash_command(CV_blocks = 10, tau2 = 0.01, rho = 0.3, sigma2 = 25, sigma2_prior_shape = 1, sigma2_prior_rate = .01, output_path_addition = 'sigma2eq25_rho03')
