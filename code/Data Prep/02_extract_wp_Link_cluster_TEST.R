@@ -24,9 +24,9 @@ library(tigris)
 options(tigris_use_cache = FALSE)
 
 
-#current_path <- rstudioapi::getActiveDocumentContext()$path
-#setwd(dirname(current_path))
-#setwd('..')
+# current_path <- rstudioapi::getActiveDocumentContext()$path
+# setwd(dirname(current_path))
+# setwd('..')
 setwd('/n/holyscratch01/nethery_lab/Lab/nlink')
 
 data_file <- 'data/usa_ppp_2019.tif'
@@ -81,14 +81,15 @@ if (file_exists('us_wp.tif')){
 wp <- raster(data_file)
 
 xmin<-(-70)
-ymin<-41.9
-xmax<-(-69.9)
+ymin<-41.5
+xmax<-(-69.5)
 ymax<-42
 cropbox<-extent(xmin,xmax,ymin,ymax)
 wp_crop<-crop(wp,cropbox)
 
 # for some reason, spatial = T screws it up
-wp_pts <- rasterToPoints(wp_crop, spatial = F)
+# wp_pts <- rasterToPoints(wp_crop, spatial = F)
+wp_pts <- rasterToPoints(wp_crop, spatial = T)
 
 # get states list and filter to only contiguous/continental US
 states <- tigris::states() 
@@ -98,13 +99,14 @@ states <- states[!(states$NAME %in% c("Alaska", "American Samoa", "Commonwealth 
 counties <- tigris::counties() 
 counties <- counties[counties$STATEFP %in% states$STATEFP,]
 counties <- as(counties, 'Spatial')
-counties <- spTransform(counties, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+# counties1 <- spTransform(counties, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+counties <- spTransform(counties, CRS("+proj=longlat +datum=WGS84 +no_defs"))
 
 sum_overct <- sp::over(counties, wp_pts, fn=sum)
 
 counties$WP_1km_estimate <- sum_overct[,1]
 
-save(wp_pts, sum_overct, counties, file = 'data/wp_1km_county_aggregate_2019.RData')
+save(wp_pts, sum_overct, counties, file = 'data/wp_county_aggregate_2019.RData')
 
 
 ### Now with the unadjusted
