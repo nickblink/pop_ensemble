@@ -22,6 +22,22 @@ setwd(root_git)
 # load extra functions
 source('code/extra_functions_CAR.R')
 
+#### Results 8/26/2024 - Negative binomial ####
+setwd(root_results)
+files <- grep('08_23', dir(root_results), value = T)
+comparison <- 'simulation_softmax_normal_3models_CV0_ID769482_2024_05_16/'
+compare_parameters(comparison, files[1])
+
+# making all the plots!
+for(i in 1:length(files)){
+  out_name <- sprintf('../Figures/08232024_%s.png', stringr::str_match(files[i], 'simulation_(.*?)_negbin')[2])
+  generate_metrics_list(files[i]) %>%
+    plot_metrics(include_MAP_rank = T) %>%
+    ggsave(., filename = out_name, height = 8, width = 6)
+}
+
+
+#
 #### Results 8/07/2024 - Lower sigma2 values ####
 setwd(root_results)
 files <- grep('08_06', dir(root_results), value = T)

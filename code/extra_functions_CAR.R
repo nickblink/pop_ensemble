@@ -785,7 +785,9 @@ generate_metrics_list <- function(folder = NULL, root = NULL, debug_mode = F){
       median_u_mat <- medians[ind_u] %>% 
         vec_to_mat(., n_models = 3)
 
-      metrics_lst[[iter]] <- list(RMSE_train = sqrt(mean((median_y_pred - y)^2)),
+      metrics_lst[[iter]] <- list(mean_y = mean(y),
+                                  mdeian_y = median(y),
+                                  RMSE_train = sqrt(mean((median_y_pred - y)^2)),
                                   RMSE_general = sqrt(mean((median_y_pred - y2)^2)),
                                   RMSE_CV = sqrt(mean((tmp$CV_pred['0.5',] - y)^2)),
                                   CP_90_train = (y >= y_pred_05 & y <= y_pred_95),

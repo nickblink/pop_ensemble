@@ -88,9 +88,9 @@ bash_wrapper <- function(bash_file = NULL, theta_vec = NULL, rho_vec = NULL, out
 #### Testing NB ####
 bash_command(CV_blocks = 10, tau2 = 0.01, rho = 0.3, theta = 10, output_path_addition = 'theta10_rho03')
 
-bash_wrapper(theta_vec = c(10,100), rho_vec = c(0.3, 0.99), family = 'negbin', stan_path = 'code/CAR_leroux_sparse_negbin.stan', bash_file = 'code/bash_commands/negbin_bash_08222024.txt')
+bash_wrapper(theta_vec = c(10,100), rho_vec = c(0.3, 0.99), family = 'negbin', stan_path = 'code/CAR_leroux_sparse_negbin.stan', bash_file = 'code/bash_commands/negbin_bash_08232024.txt')
 
-bash_wrapper(theta_vec = c(10,100), rho_vec = c(0.3, 0.99), tau2 = 1, use_softmax = T, family = 'negbin', stan_path = 'code/CAR_leroux_sparse_negbin.stan', bash_file = 'code/bash_commands/negbin_bash_08222024_p2.txt')
+bash_wrapper(theta_vec = c(10,100), rho_vec = c(0.3, 0.99), tau2 = 1, use_softmax = T, family = 'negbin', stan_path = 'code/CAR_leroux_sparse_negbin.stan', bash_file = 'code/bash_commands/negbin_bash_08232024.txt')
 
 #### Testing a different sigma2 ####
 bash_command(CV_blocks = 10, tau2 = 0.01, rho = 0.3, sigma2 = 25, sigma2_prior_shape = 1, sigma2_prior_rate = .01, output_path_addition = 'sigma2eq25_rho03')
