@@ -3,16 +3,6 @@
 ## NEEDS TO BE RUN ON CANNON IN PARALLEL          ##
 ####################################################
 
-## at command line run the following for interactive R job
-## module load gcc/7.1.0-fasrc01 R/3.3.3-fasrc01 udunits/2.2.26-fasrc01 gdal/2.3.0-fasrc01 proj/5.0.1-fasrc01 geos/3.6.2-fasrc01
-## export R_LIBS_USER=$HOME/apps/R:$R_LIBS_USER
-## srun -p test --pty --mem 10000 -t 0-02:00 /bin/bash
-## R --quiet
-
-## read command line arguments ##
-#args<-commandArgs(TRUE)
-#for (i in 1:length(args)) { eval (parse (text = args[[i]] )) }
-
 #library(raster)
 #library(rgdal)
 library(sf)
@@ -23,11 +13,8 @@ library(ggplot2)
 library(tigris)
 options(tigris_use_cache = FALSE)
 
-
-# current_path <- rstudioapi::getActiveDocumentContext()$path
-# setwd(dirname(current_path))
-# setwd('..')
 setwd('/n/holyscratch01/nethery_lab/Lab/nlink')
+# setwd('C:/Users/Admin-Dell/Dropbox/Academic/HSPH/Research/Population Estimation/')
 
 data_file <- 'data/usa_ppp_2019.tif'
 
@@ -76,6 +63,37 @@ if (file_exists('us_wp.tif')){
   
 }
 }
+
+##### Do subsets #####
+wp <- raster(data_file)
+
+num_x <- 10
+num_y <- 10
+
+xmin<-(-135)
+ymin<-20
+xmax<-(-60)
+ymax<-50
+x_along <- seq(from = xmin, to = xmax, length.out = num_x+1)
+y_along <- seq(from = ymin, to = ymax, length.out = num_y+1)
+
+i <- 31
+
+for(i in c(1:3, 10, 11, 100)){
+  x_ind <- (i-1) %% num_x + 1
+  y_ind <- floor(i/num_y-.0001) + 1
+  
+  xmin_i <- x_along[x_ind]
+  xmax_i <- x_along[x_ind + 1]
+  ymin_i <- y_along[y_ind]
+  ymax_i <- y_along[y_ind + 1]
+  cropbox<-extent(xmin_i, xmax_i, ymin_i, ymax_i)
+  print(cropbox)
+}
+
+wp_crop<-crop(wp,cropbox)
+
+
 
 ##### Aggregate the WP data into counties #####
 wp <- raster(data_file)
