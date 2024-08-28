@@ -1,11 +1,12 @@
 #!/bin/bash
 #SBATCH -p shared
-#SBATCH -t 0-22:00
-#SBATCH --mem=100G
+#SBATCH -t 0-01:00
+#SBATCH -c 10
+#SBATCH --mem=10G
 #SBATCH --mail-type=END
-#SBATCH -e errors_outputs/%A.sim.err
-#SBATCH -o errors_outputs/%A.sim.out
+#SBATCH -e errors_outputs/%x_%A_%a.sim.err
+#SBATCH -o errors_outputs/%x_%A_%a.sim.out
 
 module load R/4.3.3-fasrc01
 export R_LIBS_USER=$HOME/apps/R-4.3.3:$R_LIBS_USER
-Rscript code/02_extract_wp_Link_cluster.R
+Rscript code/02_extract_wp_Link_cluster_batch.R ${SLURM_ARRAY_TASK_ID}
