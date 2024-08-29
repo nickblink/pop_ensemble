@@ -17,8 +17,6 @@ print(inputs)
 print(class(inputs))
 i <- as.integer(inputs[[1]])
 
-
-
 data_file <- 'data/usa_ppp_2019.tif'
 data_file_UN <- 'data/usa_ppp_2019_UNadj.tif'
 
@@ -36,7 +34,7 @@ counties <- as(counties, 'Spatial')
 counties <- sp::spTransform(counties, CRS("+proj=longlat +datum=WGS84 +no_defs"))
 
 if(i == 1){
-  save(counties, file = 'data/counties_2019.RData')
+  save(counties, file = 'data/wp_county_aggregate_2019/counties_2019.RData')
 }
 
 #### Sum spatial points in batches ####
@@ -90,7 +88,8 @@ save(wp_pts, wp_pts_UN,
   file = sprintf('data/wp_county_aggregate_2019/WP_2019_%s.RData', i))
 # }
 
-# I will need to update counties or do something like that.
+
+#### Aggregate the results ####
 
 if(FALSE){
   # initialize the lists
@@ -103,7 +102,7 @@ if(FALSE){
     return(stringr::str_match(nn, '2019_\\s*(.*?)\\s*.R')[2])
   })
   setdiff(1:100, as.integer(ff))
-  # 53, 83
+  # good
   
   # load all the results into the lists
   for(i in 1:100){
@@ -121,8 +120,9 @@ if(FALSE){
     rowSums(na.rm = T)
 }
 
+load('data/wp_county_aggregate_2019/counties_2019.RData')
 
 
-
-
-
+counties$WP <- sum_all
+counties$WP_UN <- sum_all_UN
+# save(counties, file = 'data/wp_2019.RData')
