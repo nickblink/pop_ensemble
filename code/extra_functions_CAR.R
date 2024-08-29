@@ -148,7 +148,7 @@ subset_data_by_state <- function(data, adjacency, state, abbrev = NULL){
 # M_BYM_variance: if running CAR, to add in normal variance as well (== T) or just CAR variance (== F).
 # precision_type: precision type for the CAR model. Only relevant if running CAR simulation.
 # M_MVN_alpha: value of multivariate normal covariance level (same covariance for all off-diagonals).
-simulate_models <- function(data, models, means, variances, seed = 10, adjacency = NULL, M_CAR_rho = NULL, M_CAR_tau2 = NULL, M_BYM_variance = F, precision_type = 'Leroux', M_MVN_alpha = NULL, ...){
+simulate_X <- function(data, models, means, variances, seed = 10, adjacency = NULL, M_CAR_rho = NULL, M_CAR_tau2 = NULL, M_BYM_variance = F, precision_type = 'Leroux', M_MVN_alpha = NULL, ...){
   # set random seed.
   set.seed(seed)
   
@@ -254,12 +254,17 @@ sample_MVN_from_precision <- function(n = 1, mu=rep(0, nrow(Q)), Q){
 # sigma2: variance of the normal distribution.
 # theta: Overdispersion parameter for the negative binomial distribution.
 # use_softmax: If true, softmax is used. If false, the phi values are directly used as weights (centered at 1/M).
-simulate_y <- function(data, adjacency, models = c('M1','M2','M3'), scale_down = 1, pivot = -1, precision_type = 'Leroux', tau2 = 1, rho = 0.3, seed = 10, cholesky = T, family = 'poisson', sigma2 = NULL, theta = NULL, use_softmax = NULL, num_y_samples = 1, use_pivot = F, ...){
+simulate_phi_u_y <- function(data, adjacency, models = c('M1','M2','M3'), scale_down = 1, pivot = -1, precision_type = 'Leroux', tau2 = 1, rho = 0.3, seed = 10, cholesky = T, family = 'poisson', sigma2 = NULL, theta = NULL, use_softmax = NULL, num_y_samples = 1, use_pivot = F, resample_phi = T, ...){
   # set seed for reproducability 
   # set.seed(seed)
   
-  # setting the seed so that u and phi are the same each time.
-  set.seed(1)
+  if(resample_phi){
+    # setting a seed based on input
+    set.seed(seed)
+  }else{
+    # setting the seed so that u and phi are the same each time.
+    set.seed(1)
+  }
   
   # transform to be for each model
   if(length(tau2) == 1 & length(models) > 1){
@@ -279,7 +284,7 @@ simulate_y <- function(data, adjacency, models = c('M1','M2','M3'), scale_down =
   for(i in 1:length(models)){
     # create the precision matrix
     Q <- generate_precision_mat(W = adjacency, type = precision_type, tau2 = tau2[i], rho = rho[i])
-    
+
     if(pivot == -1){
       # sample from MVN based on the precision matrix
       if(cholesky){
@@ -585,8 +590,6 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
     use_normal = F
   }
   print('check 1')
-  print(stan_path)
-  print(file.exists(stan_path))
   # compile the stan program
   m <- rstan::stan_model(stan_path)
   print('check 1.5')
@@ -601,11 +604,11 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
     
     print('check 2')
     # simulate input model values
-    data <- simulate_models(data = raw_data$data, adjacency = raw_data$adjacency, models = models, seed = seed_val, means = means, variances = variances, ...)
+    data <- simulate_X(data = raw_data$data, adjacency = raw_data$adjacency, models = models, seed = seed_val, means = means, variances = variances, ...)
     
     print('check 3')
     # simulate y values from input models
-    data_lst <- simulate_y(data, raw_data$adjacency, models = models, seed = seed_val, family = family, use_softmax = use_softmax, ...)
+    data_lst <- simulate_phi_u_y(data, raw_data$adjacency, models = models, seed = seed_val, family = family, use_softmax = use_softmax, ...)
     
     # update the initialization to start at the true values.
     if(tolower(init_vals) == 't' | tolower(init_vals) == 'truth' | tolower(init_vals) == 'true'){

@@ -135,6 +135,8 @@ if(params[['parallel']]){
   })
 }
 
+# HERE - check if res_lst has different phi values.
+
 # save the results
 save(res_lst, params, file = results_file)
 
