@@ -33,6 +33,7 @@ PEP <- get_estimates(geography = "county",
   filter(DATE == 12, variable == 'POP')
 
 #### WP 2019 ####
+load("C:/Users/Admin-Dell/Dropbox/Academic/HSPH/Research/Population Estimation/Data/wp_2019.RData")
 
 #### FB 2019 ####
 
@@ -40,22 +41,27 @@ PEP <- get_estimates(geography = "county",
 
 # Change value names to be each method output.
 census <- census %>%
-  select(GEOID, NAME, census = value)
+  dplyr::select(GEOID, NAME, census = value)
 ACS <- ACS %>% 
-  select(GEOID, NAME, acs = estimate)
+  dplyr::select(GEOID, NAME, acs = estimate)
 PEP <- PEP %>%
-  select(GEOID, NAME, pep = value)
+  dplyr::select(GEOID, NAME, pep = value)
+WP <- counties %>%
+  as.data.frame() %>%
+  dplyr::select(GEOID, NAME, wp = WP, wp_un = WP_UN)
 
 # fix naming of counties to match each other
 
 # merge!
 df <- merge(ACS, census, by=c('GEOID','NAME'), all = TRUE) %>%
-  merge(PEP, by=c('GEOID','NAME'), all = TRUE) 
+  merge(PEP, by=c('GEOID','NAME'), all = TRUE) %>%
+  merge(WP, by=c('GEOID'), all = TRUE)
 
-# look into places still missing.
-NA_rows <- apply(df, 1, function(xx) any(is.na(xx)))
-df[NA_rows,]
-# only Alaska, which doesn't matter if I'm doing mainland.
+# tt <- sapply(1:3222, function(i){
+#   grepl(df$NAME.y[i], df$NAME.x[i])
+# }) # good
+df$NAME <- df$NAME.x
+df$NAME.y <- df$NAME.x <- NULL
 
 #### Filter to mainland US ####
 tg <- tigris::fips_codes
@@ -72,8 +78,17 @@ df <- df %>%
   filter(GEOID %in% tg$fips)
 
 df <- tg %>% 
-  select(state = state_name, GEOID = fips) %>%
+  dplyr::select(state = state_name, GEOID = fips) %>%
   merge(df, by = 'GEOID')
 
+# look into places still missing.
+NA_rows <- apply(df, 1, function(xx) any(is.na(xx)))
+df[NA_rows,]
+# good
+
 # gucci goo. Pausing here.
-save(df, file = '../../data/tmp_merged_census_products_08132024.RData')
+# save(df, file = '../../data/census_ACS_PEP_WP_08292024.RData')
+
+cor(df[,3:7])
+colSums(df[,3:7])
+# ok looking good.
