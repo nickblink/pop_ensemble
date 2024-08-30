@@ -1,5 +1,0 @@
-Linking to GEOS 3.7.2, GDAL 3.0.4, PROJ 6.3.2; sf_use_s2() is TRUE
-To enable caching of data, set `options(tigris_use_cache = TRUE)`
-in your R script or .Rprofile.
-Retrieving data for the year 2021
-slurmstepd: error: *** JOB 45251952 ON holy7c04412 CANCELLED AT 2024-08-28T11:38:36 DUE TO TIME LIMIT ***

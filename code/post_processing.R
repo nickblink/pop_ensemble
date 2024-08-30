@@ -22,6 +22,18 @@ setwd(root_git)
 # load extra functions
 source('code/extra_functions_CAR.R')
 
+#### Results 8/30/2024 - Negative binomial with resampled phi ####
+setwd(root_results)
+files <- grep('08_29', dir(root_results), value = T)
+
+out_name <- sprintf('../Figures/08292024_%s_resampled_phi.png', stringr::str_match(files, 'simulation_(.*?)_negbin')[2])
+generate_metrics_list(files) %>%
+  plot_metrics(include_MAP_rank = F) %>%
+  ggsave(., filename = out_name, height = 8, width = 6)
+
+# ^ NEED TO CHECK ABOUT THE METRICS OF COVERAGE 
+
+#
 #### Results 8/26/2024 - Negative binomial ####
 setwd(root_results)
 files <- grep('08_23', dir(root_results), value = T)
