@@ -1,0 +1,74 @@
+library(dplyr)
+library(rstan)
+library(ggplot2)
+library(doRNG)
+library(doParallel)
+
+rstan_options(auto_write = F)
+
+# set working directory for home or laptop
+if(file.exists('C:/Users/Admin-Dell')){
+  root_dir = 'C:/Users/Admin-Dell'
+  setwd(sprintf('%s/Documents/github_projects/pop_ensemble/', root_dir))
+}else if(file.exists('C:/Users/nickl')){
+  root_dir = 'C:/Users/nickl'
+  setwd(sprintf('%s/Documents/github_projects/pop_ensemble/', root_dir))
+}
+
+# load extra functions
+source('code/extra_functions_CAR.R')
+
+inputs = c('dataset=NY:n.sample=100:burnin=50:family=negbin:use_softmax=F:fixed_rho=-1:fixed_tau2=-1:sigma2_prior_shape=50:sigma2_prior_rate=0.5:tau2_prior_shape=1:tau2_prior_rate=1:theta=100:theta_prior_shape=0.001:theta_prior_rate=0.001:stan_path=code/CAR_leroux_sparse_negbin.stan:CV_blocks=5:return_quantiles=T:parallel=F:output_path=real_data_results/real_data_test.RData')
+
+# cluster inputs
+inputs <- commandArgs(trailingOnly = TRUE)
+
+# create params list from inputs
+{
+params <- list()
+inputs[[1]] <- gsub('\r', '', inputs[[1]])
+for(str in strsplit(inputs[[1]],':')[[1]]){
+  tmp = strsplit(str, '=')[[1]]
+  nn = tmp[1]
+  if(nn %in% c('stan_path', 'output_path')){
+    val = tmp[2]
+  }else{
+    val = tolower(tmp[2])
+  }
+  
+  if(nn %in% c('n.sample', 'burnin', 'fixed_rho',  'fixed_tau2', 'sigma2_prior_shape', 'sigma2_prior_rate', 'tau2_prior_shape', 'tau2_prior_rate', 'CV_blocks','theta_prior_shape','theta_prior_rate')){
+    val = as.numeric(val)
+  }else if(nn == 'N_models'){
+    models <- paste0('X', 1:as.numeric(val))
+    params[['models']] <- models
+    next
+  }else if(val %in% c('t','f')){
+    val = as.logical(ifelse(val == 't', T, F))
+  }
+  params[[nn]] = val
+}
+
+print(params)
+
+# pull in the data
+load('data/census_ACS_PEP_WP_cleaned_08292024.RData')
+
+# subset data by state
+if(params[['dataset']] == 'all'){
+  params[['raw_data']]
+  #NY_lst <- subset_data_by_state(df, adjacency, 'New York', 'NY')
+  
+  # store the data in params
+  params[['raw_data']] <- list(data = df, adjacency = adjacency)
+}else{
+  params[['raw_data']] <- subset_data_by_state(df, adjacency, abbrev = params[['dataset']])
+}
+}
+
+do.call(fit_model_real, params)
+# fit the real data!
+res <- fit_model_real(params)
+
+# save the results
+save(res, params, file = output_path)
+

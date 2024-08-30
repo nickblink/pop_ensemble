@@ -110,6 +110,12 @@ make_data_folds <- function(adj_mat, K){
 
 ### Subset full dataset and adjacency by a specific state
 subset_data_by_state <- function(data, adjacency, state, abbrev = NULL){
+  df_states <- read.csv('data/state_abbreviations.csv')
+  if(!is.null(abbrev)){
+    ind <- which(df_states$Code == toupper(abbrev))
+    state <- df_states$State[ind]
+  }
+  
   # get the indices corresponding to the state
   ind1 <- grep(state, data$NAME)
   ind2 <- grep(state, rownames(adjacency))
@@ -120,12 +126,13 @@ subset_data_by_state <- function(data, adjacency, state, abbrev = NULL){
   }
   
   # check abbreviated adjacency column names
-  if(!is.null(abbrev)){
-    ind3 <- grep(abbrev, colnames(adjacency))
-    if(!identical(ind1, ind3)){
-      stop('indices of data names and adjacency columnss do not match')
-    }
-  }
+  # if(!is.null(abbrev)){
+  #   ind3 <- grep(abbrev, colnames(adjacency))
+  #   browser()
+  #   if(!identical(ind1, ind3)){
+  #     stop('indices of data names and adjacency columnss do not match')
+  #   }
+  # }
   
   # subset the data
   data_subset <- data[ind1, ]
@@ -687,6 +694,118 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
     
     # store the list!
     sim_lst[[i]] <- tmp_lst
+  }
+  
+  # store the final set of the results 
+  res_lst <- list(sim_list = sim_lst, arguments = arguments, models = models)
+  
+  # return the results
+  return(res_lst)
+}
+
+
+### Fit the real data
+# raw_data: data list containing "data" and "adjacency".
+# models: list of input models to put in function.
+# stan_path: path to stan code.
+# family: family of y distribution for simulation.
+# CV_blocks: Number of blocks for running cross-validation. If null, only running the full model on the data.
+# seed_start: Value to shift the seed starting by.
+# return_quantiles: If true, only return quantiles of simulation results. If false, return the full simulation results.
+## Optional arguments
+# n.sample: number of stan chain samples.
+# burnin: length of burnin period for stan.
+fit_model_real <- function(raw_data, models=c('ACS','PEP','WP'), family = 'poisson', stan_path = "code/CAR_leroux_sparse_poisson.stan", init_vals = '0', family_name_check = T, use_softmax = F, CV_blocks = NULL, seed_start = 0, return_quantiles = T, ...){
+  
+  rstan_options(auto_write = F)
+  
+  # capture the arguments
+  arguments <- match.call()
+  
+  ### Parameter error checks
+  {
+    # checking stan path exists 
+    if(!file.exists(stan_path)){
+      stop('stan path does not exist.')
+    }
+    
+    # Checking the name and family match
+    if(!grepl(family, stan_path) & family_name_check){
+      stop('The code does not have the family name in it')
+    }
+    
+  }
+  
+  # set use_normal variable
+  if(tolower(family) %in% c('normal','gaussian')){
+    use_normal = T
+  }else{
+    use_normal = F
+  }
+  print('check 1')
+  # compile the stan program
+  m <- rstan::stan_model(stan_path)
+  print('check 1.5')
+  
+  # run cross-validation.
+  if(!is.null(CV_blocks)){
+    # make the folds
+    folds = make_data_folds(raw_data$adjacency, K = CV_blocks)
+    
+    # make the data frame to store block predictions.
+    block_y_pred <- list()
+    
+    # cycle through the blocks.
+    for(k in 1:ifelse(CV_blocks == 0, nrow(raw_data$data), CV_blocks)){
+      print(sprintf('------------%s------------', k))
+      # pull out the data
+      block_data <- raw_data$data
+      
+      # get indices of current block
+      ind <- which(folds == k)
+      
+      # set y values to 0 of current block
+      block_data$census[ind] <- NA
+      
+      print('check 5')
+      # run the model!
+      browser()
+      tmp_stan_fit <- run_stan_CAR(block_data, data_lst$adjacency, models = models, stan_m = m, use_softmax = use_softmax, init_vals = init_vals, family = family, ...)
+      print('check 6')
+      
+      # store the outcome values:
+      tmp_y_pred <- t(extract(tmp_stan_fit, pars = 'y_pred')[[1]])
+      for(i_block in ind){
+        block_y_pred[[i_block]] <- tmp_y_pred[i_block,]
+      }
+    }
+    
+    CV_pred <- do.call('rbind', block_y_pred)
+  }
+  
+  # fit the Bayesian model on the full data
+  stan_fit <- run_stan_CAR(data_lst$data, data_lst$adjacency, models = models, seed = seed_val, stan_m = m, use_softmax = use_softmax, init_vals = init_vals, family = family, ...)
+  
+  # get the MAP posterior values.    
+  stan_MAP <- get_stan_MAP(stan_fit)
+  
+  # store results
+  if(return_quantiles){
+    stan_quants <- get_stan_quantiles(stan_fit)
+    tmp_lst <- list(data_list = data_lst, stan_fit = stan_quants, stan_MAP = stan_MAP)
+  }else{
+    tmp_lst <- list(data_list = data_lst, stan_fit = stan_fit, stan_MAP = stan_MAP)
+  }
+  
+  
+  if(!is.null(CV_blocks)){
+    if(return_quantiles){
+      CV_quants <- apply(CV_pred, 1, function(x) {quantile(x, probs = c(0.025, 0.05, 0.25, 0.5, 0.75, 0.95, 0.975))})
+      rownames(CV_quants) <- as.numeric(gsub('\\%','',rownames(CV_quants)))/100
+      tmp_lst[['CV_pred']] <- CV_quants
+    }else{
+      tmp_lst[['CV_pred']] <- CV_pred
+    }
   }
   
   # store the final set of the results 
