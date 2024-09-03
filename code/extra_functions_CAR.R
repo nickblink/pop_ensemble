@@ -420,10 +420,10 @@ get_stan_MAP <- function(stan_fit, inc_warmup = T){
 # models: a vector of the models to use in the ensemble.
 # sigma2_prior_shape: Shape of the gamma distribution prior.
 # sigma2_prior_rate: rate of the gamma distribution prior.
-prep_stan_data_leroux_sparse <- function(data, W, models, use_softmax = F, use_pivot = F, use_normal = T, sigma2_prior_shape = 1, sigma2_prior_rate = 10, theta_prior_shape = .001, theta_prior_rate = .001, tau2_prior_shape = 1, tau2_prior_rate = 1, fixed_rho = - 1, fixed_tau2 = -1, family = NULL, rho = NULL, tau2 = NULL, ...){
+prep_stan_data_leroux_sparse <- function(data, W, models, outcome = 'y', use_softmax = F, use_pivot = F, use_normal = T, sigma2_prior_shape = 1, sigma2_prior_rate = 10, theta_prior_shape = .001, theta_prior_rate = .001, tau2_prior_shape = 1, tau2_prior_rate = 1, fixed_rho = - 1, fixed_tau2 = -1, family = NULL, rho = NULL, tau2 = NULL, ...){
   # checking columns
-  if(!('y' %in% colnames(data))){
-    stop('need y as a column in data')
+  if(!(outcome %in% colnames(data))){
+    stop(sprintf('need outcome %s as a column in data', outcome))
   }
   if(any(!(models %in% colnames(data)))){
     stop('models input do not exist in data')
@@ -441,7 +441,7 @@ prep_stan_data_leroux_sparse <- function(data, W, models, use_softmax = F, use_p
   X = as.matrix(data[,models])
   
   # get the outcome
-  y = data$y
+  y = data[,outcome]
   
   # # comparing missingness.
   # if(!identical(as.integer(rownames(X_obs)), which(!is.na(df$y)))){
@@ -506,8 +506,10 @@ run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_
   if(precision_type != 'Leroux'){stop('only have Leroux precision coded')}
   
   # checking about softmax and tau2 values.
-  if(!use_softmax & tau2 > 0.1){
-    print('Are you sure you want tau2 so high?')
+  if(!is.null(tau2)){
+    if(!use_softmax & tau2 > 0.1){
+      print('Are you sure you want tau2 so high?')
+    }
   }
   
   # prep the data.
@@ -769,8 +771,7 @@ fit_model_real <- function(raw_data, models=c('ACS','PEP','WP'), family = 'poiss
       
       print('check 5')
       # run the model!
-      browser()
-      tmp_stan_fit <- run_stan_CAR(block_data, data_lst$adjacency, models = models, stan_m = m, use_softmax = use_softmax, init_vals = init_vals, family = family, ...)
+      tmp_stan_fit <- run_stan_CAR(block_data, raw_data$adjacency, models = models, stan_m = m, use_softmax = use_softmax, init_vals = init_vals, family = family, ...)
       print('check 6')
       
       # store the outcome values:
@@ -784,7 +785,7 @@ fit_model_real <- function(raw_data, models=c('ACS','PEP','WP'), family = 'poiss
   }
   
   # fit the Bayesian model on the full data
-  stan_fit <- run_stan_CAR(data_lst$data, data_lst$adjacency, models = models, seed = seed_val, stan_m = m, use_softmax = use_softmax, init_vals = init_vals, family = family, ...)
+  stan_fit <- run_stan_CAR(raw_data$data, raw_data$adjacency, models = models, stan_m = m, use_softmax = use_softmax, init_vals = init_vals, family = family, ...)
   
   # get the MAP posterior values.    
   stan_MAP <- get_stan_MAP(stan_fit)
@@ -792,9 +793,9 @@ fit_model_real <- function(raw_data, models=c('ACS','PEP','WP'), family = 'poiss
   # store results
   if(return_quantiles){
     stan_quants <- get_stan_quantiles(stan_fit)
-    tmp_lst <- list(data_list = data_lst, stan_fit = stan_quants, stan_MAP = stan_MAP)
+    tmp_lst <- list(data_list = raw_data, stan_fit = stan_quants, stan_MAP = stan_MAP)
   }else{
-    tmp_lst <- list(data_list = data_lst, stan_fit = stan_fit, stan_MAP = stan_MAP)
+    tmp_lst <- list(data_list = raw_data, stan_fit = stan_fit, stan_MAP = stan_MAP)
   }
   
   
@@ -809,11 +810,11 @@ fit_model_real <- function(raw_data, models=c('ACS','PEP','WP'), family = 'poiss
   }
   
   # store the final set of the results 
-  res_lst <- list(sim_list = sim_lst, arguments = arguments, models = models)
+  res_lst <- list(sim_list = tmp_lst, arguments = arguments, models = models)
   
   # return the results
   return(res_lst)
-}
+} # fit model real
 
 
 ### Function to generate a list of results across simulations 
