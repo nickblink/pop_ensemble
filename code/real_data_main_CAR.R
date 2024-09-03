@@ -18,7 +18,7 @@ if(file.exists('C:/Users/Admin-Dell')){
 # load extra functions
 source('code/extra_functions_CAR.R')
 
-inputs = c('dataset=NY:n.sample=10000:burnin=5000:family=negbin:use_softmax=F:models=acs,pep,wp:outcome=census:fixed_rho=-1:fixed_tau2=-1:sigma2_prior_shape=50:sigma2_prior_rate=0.5:tau2_prior_shape=1:tau2_prior_rate=1:theta=100:theta_prior_shape=0.001:theta_prior_rate=0.001:stan_path=code/CAR_leroux_sparse_negbin.stan:CV_blocks=5:return_quantiles=T:parallel=F')
+inputs = c('dataset=NY:n.sample=1000:burnin=500:family=negbin:use_softmax=F:models=acs,pep,wp:outcome=census:fixed_rho=-1:fixed_tau2=-1:sigma2_prior_shape=50:sigma2_prior_rate=0.5:tau2_prior_shape=1:tau2_prior_rate=1:theta=100:theta_prior_shape=0.001:theta_prior_rate=0.001:stan_path=code/CAR_leroux_sparse_negbin.stan:CV_blocks=5:return_quantiles=F:parallel=F')
 
 # cluster inputs
 inputs <- commandArgs(trailingOnly = TRUE)

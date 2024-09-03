@@ -1261,6 +1261,279 @@ process_results <- function(data_list, stan_fit, stan_fit_quantiles = F, models 
   return(full_plot)
 }
 
+### plot_real_results. Prints ESS for spatial params and returns a plot of various results for parameter estimates.
+# data_list: List containing data used for the fit, the true phi values, and the true u values.
+# stan_fit: The result of the stan fit on this data.
+# stan_fit_quantiles: True if the stan fit input is just in the quantiles of the estimates.
+# models: Vector of models used for fitting.
+# ESS: Whether to include the ESS of the parameters.
+# likelihoods: whether to include the prior, likelihood, and posterior.
+# <XX>_estimates: whether to include the <XX> estimates.
+# RMSE_CP_values: whether to include the RMSE values and coverage probabilities.
+plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, models = c('acs','pep','wp'), CV_pred = T, ESS = T, rho_estimates = T, tau2_estimates = T, sigma2_estimates = F, theta_estimates = F, phi_estimates = T, u_estimates = T, y_estimates = T, RMSE_CP_values = T){
+  
+  # checking stan fit type.
+  if(any(class(stan_fit) == 'matrix') & stan_fit_quantiles == F){
+    print('setting stan_fit_quantiles to true.')
+    stan_fit_quantiles = T
+  }
+  
+  # extracting N and models
+  N = nrow(data_list$data)
+  if(is.null(models)){
+    models = grep('^X', colnames(data_list$data), value = T)
+  }
+  
+  plot_list = NULL
+  
+  ## grab the results
+  #stan_summary = summary(stan_fit, pars = c('tau2','rho', 'phi', 'u','y_exp','lp__'))$summary
+  if(!stan_fit_quantiles){
+    stan_summary = summary(stan_fit)$summary
+    stan_out <- extract(stan_fit)
+  }else{
+    if(ESS | likelihoods){
+      stop('cant return ESS or likelihoods when only quantiles of MCMC results are input.')
+    }
+  }
+  
+  ## get the convergence parameters
+  if(ESS){
+    # ESS of tau2 and rho
+    ESS_spatial <- data.frame(stan_summary[1:(2*length(models)), c('n_eff', 'Rhat')])
+    colnames(ESS_spatial)[1] <- 'ESS'
+    p_ESS_spatial <- gridExtra::tableGrob(round(ESS_spatial, 3))
+    
+    # ESS of phi
+    ind = grep('^phi', rownames(stan_summary))
+    print(sprintf('median ESS for phi is %s and median rhat is %s', round(median(stan_summary[ind, 'n_eff']), 1), round(median(stan_summary[ind, 'Rhat']), 3)))
+    x = data.frame(n_eff = stan_summary[ind, 'n_eff'])
+    p_ESS_phi <- ggplot(data = x, aes(x = n_eff)) + 
+      geom_density() +
+      scale_x_continuous(trans='log2') + 
+      ggtitle('ESS of phis')
+    
+    plot_list = append(plot_list, list(plot_grid(p_ESS_spatial, p_ESS_phi)))
+  }
+  
+  ## get the spatial parameter estimates
+  if(rho_estimates){
+    rho <- NULL
+    for(i in 1:length(models)){
+      rho <- rbind(rho, 
+                   data.frame(value = stan_out$rho[,i], 
+                              model = models[i]))
+    }
+    
+    # plot the rho param 
+    p_rho <- ggplot(data = rho, aes(x = model, y = value)) + 
+      geom_boxplot() + 
+      ggtitle('rho estimates') + 
+      theme(legend.position = 'none')
+  }
+  
+  if(tau2_estimates){
+    tau2 <- NULL
+    for(i in 1:length(models)){
+      tau2 <- rbind(tau2, 
+                    data.frame(value = stan_out$tau2[,i], 
+                               model = models[i]))
+    }
+    
+    # plot the tau2 param
+    p_tau2 <- ggplot(data = tau2, aes(x = model, y = value)) + 
+      geom_boxplot() + 
+      ggtitle('tau2 estimates') + 
+      theme(legend.position = 'none')
+  }
+  
+  if(sigma2_estimates){
+    df <- data.frame(estimates = stan_out$sigma2)
+    
+    p_sigma2 <- ggplot(data = df, aes(y = estimates)) + 
+      geom_boxplot() + 
+      ggtitle('sigma2 estimates') + 
+      theme(legend.position = 'none')
+  }
+  
+  if(theta_estimates){
+    df <- data.frame(estimates = stan_out$theta)
+    
+    p_theta <- ggplot(data = df, aes(y = estimates)) + 
+      geom_boxplot() + 
+      ggtitle('theta estimates') + 
+      theme(legend.position = 'none')
+  }
+  
+  # combine rho and tau2
+  if(rho_estimates + tau2_estimates + sigma2_estimates + theta_estimates > 0){
+    # create the hyperparam plot list
+    hyperparam_plot = NULL
+    if(rho_estimates){
+      hyperparam_plot <- append(hyperparam_plot, list(p_rho))
+    }
+    if(tau2_estimates){
+      hyperparam_plot <- append(hyperparam_plot, list(p_tau2))
+    }
+    if(sigma2_estimates){
+      hyperparam_plot <- append(hyperparam_plot, list(p_sigma2))
+    }
+    if(theta_estimates){
+      hyperparam_plot <- append(hyperparam_plot, list(p_theta))
+    }
+    
+    # add the plot back to the overall one.
+    plot_list <- append(plot_list, list(plot_grid(plotlist = hyperparam_plot, nrow = 1)))
+  }
+  
+  ## compare the true phi values with the estimated phi values
+  if(phi_estimates){
+    phi_est <- as.data.frame(matrix(0, nrow = N, ncol = length(models)))
+    colnames(phi_est) <- models
+    for(i in 1:length(models)){
+      ind = grep(sprintf('^phi\\[[0-9]{1,2},%s\\]', i), rownames(stan_summary))
+      phi_est[,i] <- stan_summary[ind,'50%']
+    }
+    phi_est$index = 1:N
+    
+    # convert estimates to long
+    phi_est_long <- tidyr::gather(phi_est, key = model, value = phi_median_est, -index)
+    
+    # plot 'em
+    p_phi <- ggplot(phi_est_long, aes(x = phi_median_est)) + 
+      geom_density() + 
+      facet_wrap(~model) + 
+      xlab('estimate') + 
+      ylab('density') + 
+      theme(axis.text.y = element_blank()) +
+      ggtitle('phi estimates')
+    
+    plot_list <- append(plot_list, list(p_phi))
+  }
+  
+  ## compare the true u values with the estimated u values
+  if(u_estimates){
+    u_est <- as.data.frame(matrix(0, nrow = N, ncol = length(models)))
+    colnames(u_est) <- models
+    for(i in 1:length(models)){
+      ind = grep(sprintf('^u\\[[0-9]{1,2},%s\\]', i), rownames(stan_summary))
+      u_est[,i] <- stan_summary[ind,'50%']
+    }
+    u_est$index = 1:N
+    
+    # convert estimates to long
+    u_est_long <- tidyr::gather(u_est, key = model, value = u_median_est, -index)
+    
+    # plot 'em
+    p_u <- ggplot(u_est_long, aes(x = u_median_est)) + 
+      geom_density() + 
+      facet_wrap(~model) + 
+      xlab('estimate') + 
+      ylab('density') + 
+      theme(axis.text.y = element_blank()) +
+      ggtitle('u estimates')
+    
+    plot_list <- append(plot_list, list(p_u))
+  }
+  
+  ## compare the observed outcomes with the estimated outcomes 
+  if(y_estimates){
+    # first plot
+    
+    if(stan_fit_quantiles){
+      ind = grep('y_pred', colnames(stan_fit))
+      data_list$data$y_predicted <- stan_fit['0.5', ind]
+    }else{
+      ind = grep('y_pred', rownames(stan_summary))
+      data_list$data$y_predicted <- stan_summary[ind, '50%']
+    }
+    
+    p_y <- ggplot(data_list$data, aes(x = census, y_predicted)) + 
+      geom_point() +
+      geom_smooth(method='lm', formula = y ~ x) + 
+      geom_abline(slope = 1, intercept = 0, col = 'red') +
+      scale_x_continuous(trans='log2') +
+      scale_y_continuous(trans='log2') +
+      xlab('observed y') + 
+      ylab('median est') + 
+      ggtitle('y estimation')
+    
+    # get the CV RMSE, if CV was run.
+    if(!is.null(CV_pred)){
+      if(!stan_fit_quantiles){
+        data_list$data$y_predicted_CV = apply(CV_pred, 1, median)
+      }else{
+        data_list$data$y_predicted_CV <- CV_pred['0.5',]
+      }
+      
+      p_y2 <- ggplot(data_list$data, aes(x = census, y_predicted_CV)) +
+        geom_point() +
+        geom_smooth(method='lm', formula = y ~ x) + 
+        geom_abline(slope = 1, intercept = 0, col = 'red') +
+        scale_x_continuous(trans='log2') +
+        scale_y_continuous(trans='log2') +
+        xlab('observed y') + 
+        ylab('CV est') + 
+        ggtitle('y CV est')
+      
+      plot_list <- append(plot_list, list(plot_grid(p_y, p_y2))
+    }else{
+      plot_list <- append(plot_list, list(p_y))
+    }
+  }
+  
+  browser()
+  # get the RMSE CP values brah!
+  if(RMSE_CP_values){
+    # initialize data frame:
+    RMSE_CP_df <- data.frame(dataset = as.character(NA), RMSE = as.numeric(NA), CP.95 = as.numeric(NA))
+    
+    # get the median, lower, and upper predictions from this set.
+    ind = grep('y_pred', rownames(stan_summary))
+    median_y_pred <- stan_summary[ind,'50%']
+    lower_y_pred <- stan_summary[ind,'2.5%']
+    upper_y_pred <- stan_summary[ind,'97.5%']
+    
+    # get the training set RMSE and CP
+    y = data_list$data$y
+    RMSE_train = sqrt(mean((median_y_pred - y)^2))
+    CP_train = mean(y >= lower_y_pred & y <= upper_y_pred)
+    RMSE_CP_df[1,1] <- 'train'
+    RMSE_CP_df[1,2:3] <- c(RMSE_train, CP_train)
+    
+    # get the generalization RMSE in a new set.
+    y2 = data_list$data$y2
+    RMSE_general = sqrt(mean((median_y_pred - y2)^2))
+    CP_general = mean(y2 >= lower_y_pred & y2 <= upper_y_pred)
+    RMSE_CP_df[2,1] <- 'generalize'
+    RMSE_CP_df[2,2:3] <- c(RMSE_general, CP_general)
+    
+    # get the CV RMSE, if CV was run.
+    if(!is.null(CV_pred)){
+      CV_quants = t(apply(CV_pred, 1, function(xx){
+        quantile(xx, probs = c(0.025, 0.5, 0.975))
+      }))
+      
+      RMSE_CV = sqrt(mean((CV_quants[,2] - y)^2))
+      CP_CV = mean(y >= CV_quants[,1] & y <= CV_quants[,3])
+      RMSE_CP_df[3,1] <- 'train-CV'
+      RMSE_CP_df[3,2:3] <- c(RMSE_CV, CP_CV)
+    }
+    
+    # rounding for display
+    RMSE_CP_df[,2:3] <- round(RMSE_CP_df[,2:3], 3)
+    p_RMSE_CP <- gridExtra::tableGrob(RMSE_CP_df)
+    
+    plot_list <- append(plot_list, list(p_RMSE_CP))
+  }
+  
+  ## Combine all the plots!
+  full_plot <- plot_grid(plotlist = plot_list,
+                         ncol = 1)
+  
+  return(full_plot)
+}
+
 
 ### Plot the results for multiple simulations. Currently just plots the spatial parameters, but that will likely be adjusted.
 # sim_lst: simulation list from s, containing a list with "data_list" and "stan_fit" for each simulation run.
