@@ -1476,14 +1476,13 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, model
         ylab('CV est') + 
         ggtitle('y CV est')
       
-      plot_list <- append(plot_list, list(plot_grid(p_y, p_y2))
+      plot_list <- append(plot_list, list(plot_grid(p_y, p_y2)))
     }else{
       plot_list <- append(plot_list, list(p_y))
     }
   }
-  
-  browser()
-  # get the RMSE CP values brah!
+
+  # get the RMSE CP values!
   if(RMSE_CP_values){
     # initialize data frame:
     RMSE_CP_df <- data.frame(dataset = as.character(NA), RMSE = as.numeric(NA), CP.95 = as.numeric(NA))
@@ -1495,18 +1494,11 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, model
     upper_y_pred <- stan_summary[ind,'97.5%']
     
     # get the training set RMSE and CP
-    y = data_list$data$y
+    y = data_list$data$census
     RMSE_train = sqrt(mean((median_y_pred - y)^2))
     CP_train = mean(y >= lower_y_pred & y <= upper_y_pred)
     RMSE_CP_df[1,1] <- 'train'
     RMSE_CP_df[1,2:3] <- c(RMSE_train, CP_train)
-    
-    # get the generalization RMSE in a new set.
-    y2 = data_list$data$y2
-    RMSE_general = sqrt(mean((median_y_pred - y2)^2))
-    CP_general = mean(y2 >= lower_y_pred & y2 <= upper_y_pred)
-    RMSE_CP_df[2,1] <- 'generalize'
-    RMSE_CP_df[2,2:3] <- c(RMSE_general, CP_general)
     
     # get the CV RMSE, if CV was run.
     if(!is.null(CV_pred)){
@@ -1516,8 +1508,8 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, model
       
       RMSE_CV = sqrt(mean((CV_quants[,2] - y)^2))
       CP_CV = mean(y >= CV_quants[,1] & y <= CV_quants[,3])
-      RMSE_CP_df[3,1] <- 'train-CV'
-      RMSE_CP_df[3,2:3] <- c(RMSE_CV, CP_CV)
+      RMSE_CP_df[2,1] <- 'train-CV'
+      RMSE_CP_df[2,2:3] <- c(RMSE_CV, CP_CV)
     }
     
     # rounding for display

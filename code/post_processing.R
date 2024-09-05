@@ -25,7 +25,7 @@ source('code/extra_functions_CAR.R')
 #### Results 9/3/2024 - Negative binomial real data ####
 load('results/real_data_results/real_data_fit_2024_09_03(1).RData')
 
-plot_real_results(res$sim_list$data_list, res$sim_list$stan_fit, CV_pred = res$sim_list$CV_pred, stan_fit_quantiles = F, theta_estimates = T, phi_estimates = F, u_estimates = F, y_estimates = F, RMSE_CP_values = F)
+plot_real_results(res$sim_list$data_list, res$sim_list$stan_fit, CV_pred = res$sim_list$CV_pred)
 
 #
 #### Results 8/30/2024 - Negative binomial with resampled phi ####
