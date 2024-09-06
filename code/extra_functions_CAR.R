@@ -1022,6 +1022,7 @@ process_results <- function(data_list, stan_fit, stan_fit_quantiles = F, models 
   
   ## get the spatial parameter estimates
   if(rho_estimates){
+    print('rho est')
     rho <- NULL
     for(i in 1:length(models)){
       rho <- rbind(rho, 
@@ -1042,6 +1043,7 @@ process_results <- function(data_list, stan_fit, stan_fit_quantiles = F, models 
   }
   
   if(tau2_estimates){
+    print('tau2 est')
     tau2 <- NULL
     for(i in 1:length(models)){
       tau2 <- rbind(tau2, 
@@ -1062,6 +1064,7 @@ process_results <- function(data_list, stan_fit, stan_fit_quantiles = F, models 
   }
   
   if(sigma2_estimates){
+    print('sigma2 est')
     true_val = data.frame(val = data_list$sigma2)
     df <- data.frame(estimates = stan_out$sigma2)
     
@@ -1092,6 +1095,7 @@ process_results <- function(data_list, stan_fit, stan_fit_quantiles = F, models 
   
   ## compare the true phi values with the estimated phi values
   if(phi_estimates){
+    print('phi est')
     phi_est <- as.data.frame(matrix(0, nrow = N, ncol = length(models)))
     colnames(phi_est) <- models
     for(i in 1:length(models)){
@@ -1124,6 +1128,7 @@ process_results <- function(data_list, stan_fit, stan_fit_quantiles = F, models 
   
   ## compare the true u values with the estimated u values
   if(u_estimates){
+    print('u est')
     u_est <- as.data.frame(matrix(0, nrow = N, ncol = length(models)))
     colnames(u_est) <- models
     for(i in 1:length(models)){
@@ -1156,8 +1161,9 @@ process_results <- function(data_list, stan_fit, stan_fit_quantiles = F, models 
   
   ## compare the true outcomes with the estimated outcomes (compared to just using one model in the outcomes)
   if(y_estimates){
-    # first plot
+    print('y est')
     
+    # first plot
     if(stan_fit_quantiles){
       ind = grep('y_pred', colnames(stan_fit))
       data_list$data$y_predicted <- stan_fit['0.5', ind]
@@ -1222,6 +1228,7 @@ process_results <- function(data_list, stan_fit, stan_fit_quantiles = F, models 
   }
   
   if(RMSE_CP_values){
+    print('RMSE est')
     # initialize data frame:
     RMSE_CP_df <- data.frame(dataset = as.character(NA), RMSE = as.numeric(NA), CP.95 = as.numeric(NA))
     
@@ -1309,6 +1316,7 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, model
   
   ## get the convergence parameters
   if(ESS){
+    print('ESS est')
     # ESS of tau2 and rho
     ESS_spatial <- data.frame(stan_summary[1:(2*length(models)), c('n_eff', 'Rhat')])
     colnames(ESS_spatial)[1] <- 'ESS'
@@ -1328,6 +1336,7 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, model
   
   ## get the spatial parameter estimates
   if(rho_estimates){
+    print('rho est')
     rho <- NULL
     for(i in 1:length(models)){
       rho <- rbind(rho, 
@@ -1343,6 +1352,7 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, model
   }
   
   if(tau2_estimates){
+    print('tau2 est')
     tau2 <- NULL
     for(i in 1:length(models)){
       tau2 <- rbind(tau2, 
@@ -1358,6 +1368,7 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, model
   }
   
   if(sigma2_estimates){
+    print('sigma2 est')
     df <- data.frame(estimates = stan_out$sigma2)
     
     p_sigma2 <- ggplot(data = df, aes(y = estimates)) + 
@@ -1367,6 +1378,7 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, model
   }
   
   if(theta_estimates){
+    print('theta est')
     df <- data.frame(estimates = stan_out$theta)
     
     p_theta <- ggplot(data = df, aes(y = estimates)) + 
@@ -1398,10 +1410,12 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, model
   
   ## compare the true phi values with the estimated phi values
   if(phi_estimates){
+    print('phi est')
+
     phi_est <- as.data.frame(matrix(0, nrow = N, ncol = length(models)))
     colnames(phi_est) <- models
     for(i in 1:length(models)){
-      ind = grep(sprintf('^phi\\[[0-9]{1,2},%s\\]', i), rownames(stan_summary))
+      ind = grep(sprintf('^phi\\[[0-9]*,%s\\]', i), rownames(stan_summary))
       phi_est[,i] <- stan_summary[ind,'50%']
     }
     phi_est$index = 1:N
@@ -1423,10 +1437,11 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, model
   
   ## compare the true u values with the estimated u values
   if(u_estimates){
+    print('u est')
     u_est <- as.data.frame(matrix(0, nrow = N, ncol = length(models)))
     colnames(u_est) <- models
     for(i in 1:length(models)){
-      ind = grep(sprintf('^u\\[[0-9]{1,2},%s\\]', i), rownames(stan_summary))
+      ind = grep(sprintf('^u\\[[0-9]*,%s\\]', i), rownames(stan_summary))
       u_est[,i] <- stan_summary[ind,'50%']
     }
     u_est$index = 1:N
@@ -1448,6 +1463,7 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, model
   
   ## compare the observed outcomes with the estimated outcomes 
   if(y_estimates){
+    print('y est')
     # first plot
     
     if(stan_fit_quantiles){
@@ -1494,6 +1510,7 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, model
 
   # get the RMSE CP values!
   if(RMSE_CP_values){
+    print('RMSE est')
     # initialize data frame:
     RMSE_CP_df <- data.frame(dataset = as.character(NA), RMSE = as.numeric(NA), CP.95 = as.numeric(NA))
     

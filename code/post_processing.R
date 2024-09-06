@@ -22,6 +22,13 @@ setwd(root_git)
 # load extra functions
 source('code/extra_functions_CAR.R')
 
+#### Results 9/6/2024 - NB real data - softmax? ####
+setwd(root_results)
+load('real_data_fit_softmax_ID17016_2024_09_05.RData')
+
+plot_real_results(res$sim_list$data_list, res$sim_list$stan_fit, CV_pred = res$sim_list$CV_pred)
+
+#
 #### Results 9/3/2024 - Negative binomial real data ####
 load('results/real_data_results/real_data_fit_2024_09_03(1).RData')
 
