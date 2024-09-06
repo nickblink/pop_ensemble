@@ -506,7 +506,7 @@ prep_stan_data_leroux_sparse <- function(data, W, models, outcome = 'y', use_sof
 # burnin: the number of burnin iterations to run the rstan code.
 # seed: a seed for reproducability
 run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_type = 'Leroux', n.sample = 10000, burnin = 5000, seed = 10, stan_m = NULL, stan_path = "code/CAR_leroux_sparse.stan", tau2 = NULL, use_softmax = NULL, use_normal = T, use_pivot = F, init_vals = '0',family = family, ...){
-  browser()
+
   # error checking for precision matrix type.
   if(precision_type != 'Leroux'){stop('only have Leroux precision coded')}
   
@@ -781,7 +781,7 @@ fit_model_real <- function(raw_data, models=c('ACS','PEP','WP'), family = 'poiss
       
       print('check 5')
       # run the model!
-      tmp_stan_fit <- run_stan_CAR(block_data, raw_data$adjacency, models = models, stan_m = m, use_softmax = use_softmax, init_vals = init_vals, family = family, alpha_variance_prior, ...)
+      tmp_stan_fit <- run_stan_CAR(block_data, raw_data$adjacency, models = models, stan_m = m, use_softmax = use_softmax, init_vals = init_vals, family = family, alpha_variance_prior = alpha_variance_prior, ...)
       print('check 6')
       
       # store the outcome values:

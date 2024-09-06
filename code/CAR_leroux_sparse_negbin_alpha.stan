@@ -145,8 +145,20 @@ transformed parameters {
 	}
   }
   
+  // calculate mu.
   mu = (X .* u)*v_ones;
-  observed_est = mu[ind_obs];
+  
+  // bound mu by 0.
+  for (n in 1:N){
+    if(mu[n] <= 0){
+	  mu_bounded[n] = 0.01;
+	}else{
+	  mu_bounded[n] = mu[n];
+	}
+  }
+  
+  // get the observed predictions.
+  observed_est = mu_bounded[ind_obs];
   
   // store the rho used
   if(estimate_rho == 0){
@@ -173,15 +185,6 @@ transformed parameters {
 		ldet_vec[i,m] = log1p(rho[m]*lambda[i]);
 	}
 	log_detQ[m] = sum(ldet_vec[1:N+1,m]);
-  }
-  
-  // calculate mu_bounded for predictions
-  for (n in 1:N){
-    if(mu[n] <= 0){
-	  mu_bounded[n] = 0.01;
-	}else{
-	  mu_bounded[n] = mu[n];
-	}
   }
 }
 model {
