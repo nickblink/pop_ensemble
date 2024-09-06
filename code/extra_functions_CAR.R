@@ -420,7 +420,7 @@ get_stan_MAP <- function(stan_fit, inc_warmup = T){
 # models: a vector of the models to use in the ensemble.
 # sigma2_prior_shape: Shape of the gamma distribution prior.
 # sigma2_prior_rate: rate of the gamma distribution prior.
-prep_stan_data_leroux_sparse <- function(data, W, models, outcome = 'y', use_softmax = F, use_pivot = F, use_normal = T, sigma2_prior_shape = 1, sigma2_prior_rate = 10, theta_prior_shape = .001, theta_prior_rate = .001, tau2_prior_shape = 1, tau2_prior_rate = 1, fixed_rho = - 1, fixed_tau2 = -1, family = NULL, rho = NULL, tau2 = NULL, ...){
+prep_stan_data_leroux_sparse <- function(data, W, models, outcome = 'y', use_softmax = F, use_pivot = F, use_normal = T, sigma2_prior_shape = 1, sigma2_prior_rate = 10, theta_prior_shape = .001, theta_prior_rate = .001, tau2_prior_shape = 1, tau2_prior_rate = 1, fixed_rho = - 1, fixed_tau2 = -1, alpha_variance_prior = NULL, family = NULL, rho = NULL, tau2 = NULL, ...){
   # checking columns
   if(!(outcome %in% colnames(data))){
     stop(sprintf('need outcome %s as a column in data', outcome))
@@ -488,6 +488,11 @@ prep_stan_data_leroux_sparse <- function(data, W, models, outcome = 'y', use_sof
   }else{
     stop('please input a proper family')
   }
+  
+  if(!is.null(alpha_variance_prior)){
+    stan_data <- c(stan_data, list(alpha_variance_prior = alpha_variance_prior))
+  }
+  
   return(stan_data)
 }
 
@@ -501,7 +506,7 @@ prep_stan_data_leroux_sparse <- function(data, W, models, outcome = 'y', use_sof
 # burnin: the number of burnin iterations to run the rstan code.
 # seed: a seed for reproducability
 run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_type = 'Leroux', n.sample = 10000, burnin = 5000, seed = 10, stan_m = NULL, stan_path = "code/CAR_leroux_sparse.stan", tau2 = NULL, use_softmax = NULL, use_normal = T, use_pivot = F, init_vals = '0',family = family, ...){
-  
+  browser()
   # error checking for precision matrix type.
   if(precision_type != 'Leroux'){stop('only have Leroux precision coded')}
   
@@ -717,7 +722,7 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
 ## Optional arguments
 # n.sample: number of stan chain samples.
 # burnin: length of burnin period for stan.
-fit_model_real <- function(raw_data, models=c('ACS','PEP','WP'), family = 'poisson', stan_path = "code/CAR_leroux_sparse_poisson.stan", init_vals = '0', family_name_check = T, use_softmax = F, CV_blocks = NULL, seed_start = 0, return_quantiles = T, ...){
+fit_model_real <- function(raw_data, models=c('ACS','PEP','WP'), family = 'poisson', stan_path = "code/CAR_leroux_sparse_poisson.stan", init_vals = '0', family_name_check = T, use_softmax = F, CV_blocks = NULL, seed_start = 0, return_quantiles = T, alpha_variance_prior=NULL,...){
   
   rstan_options(auto_write = F)
   
@@ -736,6 +741,11 @@ fit_model_real <- function(raw_data, models=c('ACS','PEP','WP'), family = 'poiss
       stop('The code does not have the family name in it')
     }
     
+    if(!is.null(alpha_variance_prior)){
+      if(alpha_variance_prior > 0 & use_softmax == F){
+        stop('cant use alpha for direct estimate. Only for softmax.')
+      }
+    }
   }
   
   # set use_normal variable
@@ -771,7 +781,7 @@ fit_model_real <- function(raw_data, models=c('ACS','PEP','WP'), family = 'poiss
       
       print('check 5')
       # run the model!
-      tmp_stan_fit <- run_stan_CAR(block_data, raw_data$adjacency, models = models, stan_m = m, use_softmax = use_softmax, init_vals = init_vals, family = family, ...)
+      tmp_stan_fit <- run_stan_CAR(block_data, raw_data$adjacency, models = models, stan_m = m, use_softmax = use_softmax, init_vals = init_vals, family = family, alpha_variance_prior, ...)
       print('check 6')
       
       # store the outcome values:

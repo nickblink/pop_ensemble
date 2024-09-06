@@ -18,16 +18,18 @@ if(file.exists('C:/Users/Admin-Dell')){
 # load extra functions
 source('code/extra_functions_CAR.R')
 
-inputs = c('dataset=NY:n.sample=1000:burnin=500:family=negbin:use_softmax=F:models=acs,pep,wp:outcome=census:fixed_rho=-1:fixed_tau2=-1:sigma2_prior_shape=50:sigma2_prior_rate=0.5:tau2_prior_shape=1:tau2_prior_rate=1:theta=100:theta_prior_shape=0.001:theta_prior_rate=0.001:stan_path=code/CAR_leroux_sparse_negbin.stan:CV_blocks=5:return_quantiles=F:parallel=F')
+inputs = c('dataset=NY:n.sample=1000:burnin=500:family=negbin:use_softmax=T:models=acs,pep,wp:outcome=census:fixed_rho=-1:fixed_tau2=-1:sigma2_prior_shape=0.001:sigma2_prior_rate=0.001:tau2_prior_shape=1:tau2_prior_rate=1:theta=100:theta_prior_shape=0.001:theta_prior_rate=0.001:stan_path=code/CAR_leroux_sparse_negbin_alpha.stan:CV_blocks=5:return_quantiles=F:parallel=F:alpha_variance_prior=.01:output_path_addition=test')
 
 # cluster inputs
 inputs <- commandArgs(trailingOnly = TRUE)
 
+print(inputs)
+
 # create params list from inputs
 {
 params <- list()
-inputs[[1]] <- gsub('\r', '', inputs[[1]])
-for(str in strsplit(inputs[[1]],':')[[1]]){
+inputs <- gsub('\r', '', inputs)
+for(str in strsplit(inputs,':')[[1]]){
   tmp = strsplit(str, '=')[[1]]
   nn = tmp[1]
   if(nn %in% c('stan_path', 'output_path')){
@@ -36,7 +38,7 @@ for(str in strsplit(inputs[[1]],':')[[1]]){
     val = tolower(tmp[2])
   }
   
-  if(nn %in% c('n.sample', 'burnin', 'fixed_rho',  'fixed_tau2', 'sigma2_prior_shape', 'sigma2_prior_rate', 'tau2_prior_shape', 'tau2_prior_rate', 'CV_blocks','theta_prior_shape','theta_prior_rate')){
+  if(nn %in% c('n.sample', 'burnin', 'fixed_rho',  'fixed_tau2', 'sigma2_prior_shape', 'sigma2_prior_rate', 'tau2_prior_shape', 'tau2_prior_rate', 'CV_blocks','theta_prior_shape','theta_prior_rate', 'alpha_variance_prior')){
     val = as.numeric(val)
   }else if(nn == 'N_models'){
     models <- paste0('X', 1:as.numeric(val))
@@ -53,7 +55,13 @@ for(str in strsplit(inputs[[1]],':')[[1]]){
 # make results file
 {
   date <- gsub('-','_', Sys.Date())
-  results_file <- sprintf('results/real_data_results/real_data_fit_%s.RData', date)
+  
+  
+  if(!is.null(params$output_path_addition)){
+    results_file <- sprintf('results/real_data_results/real_data_fit_%s_ID%s_%s.RData', params$output_path_addition, sample(100000, 1), date)
+  }else{
+    results_file <- sprintf('results/real_data_results/real_data_fit_%s_%s.RData', sample(100000, 1), date)
+  }
   
   # if there is already a results file, change name to not over-write it.
   if(file.exists(results_file)){
@@ -73,8 +81,8 @@ load('data/census_ACS_PEP_WP_cleaned_08292024.RData')
 
 # subset data by state
 if(params[['dataset']] == 'all'){
-  params[['raw_data']]
-  #NY_lst <- subset_data_by_state(df, adjacency, 'New York', 'NY')
+  # params[['raw_data']]
+  # NY_lst <- subset_data_by_state(df, adjacency, 'New York', 'NY')
   
   # store the data in params
   params[['raw_data']] <- list(data = df, adjacency = adjacency)
@@ -84,7 +92,6 @@ if(params[['dataset']] == 'all'){
 }
 
 # fit the real data!
-
 res <- do.call(fit_model_real, params)
 # res <- fit_model_real(params)
 
