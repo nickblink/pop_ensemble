@@ -22,6 +22,16 @@ setwd(root_git)
 # load extra functions
 source('code/extra_functions_CAR.R')
 
+#### Results 9/9/2024 - NB real data - direct est ####
+# burnin = 2k. n.sample = 4k
+setwd(root_results)
+load('real_data_fit_direct_ID63941_2024_09_06.RData')
+
+p1 <- plot_real_results(res$sim_list$data_list, res$sim_list$stan_fit, CV_pred = res$sim_list$CV_pred, theta_estimates = T)
+
+ggsave(plot = p1, filename = '../Figures/09092024_direct_est_real_data.pdf', height = 11, width = 6)
+
+#
 #### Results 9/6/2024 - NB real data - softmax? ####
 setwd(root_results)
 load('real_data_fit_softmax_ID17016_2024_09_05.RData')

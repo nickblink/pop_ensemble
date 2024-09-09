@@ -1287,7 +1287,7 @@ process_results <- function(data_list, stan_fit, stan_fit_quantiles = F, models 
 # likelihoods: whether to include the prior, likelihood, and posterior.
 # <XX>_estimates: whether to include the <XX> estimates.
 # RMSE_CP_values: whether to include the RMSE values and coverage probabilities.
-plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, models = c('acs','pep','wp'), CV_pred = T, ESS = T, rho_estimates = T, tau2_estimates = T, sigma2_estimates = F, theta_estimates = F, phi_estimates = T, u_estimates = T, y_estimates = T, RMSE_CP_values = T){
+plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, models = c('acs','pep','wp'), CV_pred = T, ESS = T, rho_estimates = T, tau2_estimates = T, sigma2_estimates = F, theta_estimates = T, phi_estimates = T, u_estimates = T, y_estimates = T, RMSE_CP_values = T){
   
   # checking stan fit type.
   if(any(class(stan_fit) == 'matrix') & stan_fit_quantiles == F){
