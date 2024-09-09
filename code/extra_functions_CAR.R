@@ -781,6 +781,7 @@ fit_model_real <- function(raw_data, models=c('ACS','PEP','WP'), family = 'poiss
       
       print('check 5')
       # run the model!
+      print(sprintf('use softmax = %s', use_softmax))
       tmp_stan_fit <- run_stan_CAR(block_data, raw_data$adjacency, models = models, stan_m = m, use_softmax = use_softmax, init_vals = init_vals, family = family, alpha_variance_prior = alpha_variance_prior, ...)
       print('check 6')
       
