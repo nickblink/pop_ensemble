@@ -1288,7 +1288,7 @@ process_results <- function(data_list, stan_fit, stan_fit_quantiles = F, models 
 # likelihoods: whether to include the prior, likelihood, and posterior.
 # <XX>_estimates: whether to include the <XX> estimates.
 # RMSE_CP_values: whether to include the RMSE values and coverage probabilities.
-plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, models = c('acs','pep','wp'), CV_pred = T, ESS = T, rho_estimates = T, tau2_estimates = T, sigma2_estimates = F, theta_estimates = T, phi_estimates = T, u_estimates = T, y_estimates = T, RMSE_CP_values = T){
+plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, models = c('acs','pep','wp'), CV_pred = T, ESS = T, rho_estimates = T, tau2_estimates = T, sigma2_estimates = F, theta_estimates = T, phi_estimates = F, pairwise_phi_estimates = T, u_estimates = T, y_estimates = T, RMSE_CP_values = T){
   
   # checking stan fit type.
   if(any(class(stan_fit) == 'matrix') & stan_fit_quantiles == F){
@@ -1319,18 +1319,32 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, model
   if(ESS){
     print('ESS est')
     # ESS of tau2 and rho
-    ESS_spatial <- data.frame(stan_summary[1:(2*length(models)), c('n_eff', 'Rhat')])
+    ESS_spatial <- data.frame(stan_summary[1:(2*length(models) + 1), c('n_eff', 'Rhat')])
     colnames(ESS_spatial)[1] <- 'ESS'
     p_ESS_spatial <- gridExtra::tableGrob(round(ESS_spatial, 3))
     
     # ESS of phi
-    ind = grep('^phi', rownames(stan_summary))
-    print(sprintf('median ESS for phi is %s and median rhat is %s', round(median(stan_summary[ind, 'n_eff']), 1), round(median(stan_summary[ind, 'Rhat']), 3)))
-    x = data.frame(n_eff = stan_summary[ind, 'n_eff'])
-    p_ESS_phi <- ggplot(data = x, aes(x = n_eff)) + 
-      geom_density() +
+    ind <- grep('^u',rownames(stan_summary))
+    print(sprintf('median ESS for u is %s and median rhat is %s', round(median(stan_summary[ind, 'n_eff']), 1), round(median(stan_summary[ind, 'Rhat']), 3)))
+    
+    n_eff_df <- NULL
+    for(i in 1:length(models)){
+      ind = grep(sprintf('^u\\[[0-9]*,%s\\]', i), rownames(stan_summary))
+      n_eff_df <- rbind(n_eff_df, 
+                        data.frame(ESS = stan_summary[ind, 'n_eff'],
+                                   model = models[i]))
+      
+    }
+    
+    # x = data.frame(n_eff = stan_summary[ind, 'n_eff'])
+    # p_ESS_phi <- ggplot(data = x, aes(x = n_eff)) + 
+    #   geom_density() +
+    #   scale_x_continuous(trans='log2') + 
+    #   ggtitle('ESS of phis')
+    
+    p_ESS_phi <- ggplot(data = n_eff_df, aes(x = ESS)) + geom_density(aes(colour = model)) + 
       scale_x_continuous(trans='log2') + 
-      ggtitle('ESS of phis')
+      ggtitle('ESS of u values')
     
     plot_list = append(plot_list, list(plot_grid(p_ESS_spatial, p_ESS_phi)))
   }
@@ -1434,6 +1448,22 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, model
       ggtitle('phi estimates')
     
     plot_list <- append(plot_list, list(p_phi))
+  }
+  
+  ## pairwise phi estimates
+  if(pairwise_phi_estimates){
+    phi_est <- as.data.frame(matrix(0, nrow = N, ncol = length(models)))
+    colnames(phi_est) <- models
+    for(i in 1:length(models)){
+      ind = grep(sprintf('^phi\\[[0-9]*,%s\\]', i), rownames(stan_summary))
+      phi_est[,i] <- stan_summary[ind,'50%']
+    }
+    p_pairs_phi <- GGally::ggpairs(phi_est,
+                    upper = list(continuous = 'density'),
+                    diag = list(continuous = "barDiag"),
+                    lower = list(continuous = 'cor'))
+    
+    plot_list <- append(plot_list, list(GGally::ggmatrix_gtable(p_pairs_phi)))
   }
   
   ## compare the true u values with the estimated u values
@@ -1549,6 +1579,7 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, model
   
   ## Combine all the plots!
   full_plot <- plot_grid(plotlist = plot_list,
+                         rel_heights = c(1,1,2,1,1,1),
                          ncol = 1)
   
   return(full_plot)
