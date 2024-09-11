@@ -22,14 +22,31 @@ setwd(root_git)
 # load extra functions
 source('code/extra_functions_CAR.R')
 
+#### Results 9/9/2024 - NB real data - softmax ####
+setwd(root_results)
+load('real_data_fit_softmax_ID15462_2024_09_09.RData')
+
+p1 <- plot_real_results(res$sim_list$data_list, res$sim_list$stan_fit, CV_pred = res$sim_list$CV_pred)
+
+# ggsave(plot = p1, filename = '../Figures/09092024_softmax_real_data.png', height = 12, width = 7)
+
+# with alpha
+load('real_data_fit_softmax_alpha_ID42629_2024_09_09.RData')
+
+p1 <- plot_real_results(res$sim_list$data_list, res$sim_list$stan_fit, CV_pred = res$sim_list$CV_pred, alpha_estimates = T)
+
+# ggsave(plot = p1, filename = '../Figures/09092024_softmax_alpha_real_data.png', height = 12, width = 7)
+
+
+#
 #### Results 9/9/2024 - NB real data - direct est ####
 # burnin = 2k. n.sample = 4k
 setwd(root_results)
 load('real_data_fit_direct_ID63941_2024_09_06.RData')
 
-p1 <- plot_real_results(res$sim_list$data_list, res$sim_list$stan_fit, CV_pred = res$sim_list$CV_pred, theta_estimates = T)
+p1 <- plot_real_results(res$sim_list$data_list, res$sim_list$stan_fit, CV_pred = res$sim_list$CV_pred)
 
-# ggsave(plot = p1, filename = '../Figures/09092024_direct_est_real_data.pdf', height = 11, width = 6)
+# ggsave(plot = p1, filename = '../Figures/09092024_direct_est_real_data.png', height = 11, width = 6)
 
 # why are the phi's and u's not equal? Dingus it's because I add 1/3
 stan_fit <- res$sim_list$stan_fit
