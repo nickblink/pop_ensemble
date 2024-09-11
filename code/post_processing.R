@@ -46,7 +46,7 @@ load('real_data_fit_direct_ID63941_2024_09_06.RData')
 
 p1 <- plot_real_results(res$sim_list$data_list, res$sim_list$stan_fit, CV_pred = res$sim_list$CV_pred)
 
-# ggsave(plot = p1, filename = '../Figures/09092024_direct_est_real_data.png', height = 11, width = 6)
+# ggsave(plot = p1, filename = '../Figures/09092024_direct_est_real_data.png', height = 12, width = 7)
 
 # why are the phi's and u's not equal? Dingus it's because I add 1/3
 stan_fit <- res$sim_list$stan_fit
