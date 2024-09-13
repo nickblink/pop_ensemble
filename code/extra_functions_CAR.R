@@ -1288,7 +1288,7 @@ process_results <- function(data_list, stan_fit, stan_fit_quantiles = F, models 
 # likelihoods: whether to include the prior, likelihood, and posterior.
 # <XX>_estimates: whether to include the <XX> estimates.
 # RMSE_CP_values: whether to include the RMSE values and coverage probabilities.
-plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, models = c('acs','pep','wp'), CV_pred = T, ESS = T, rho_estimates = T, tau2_estimates = T, sigma2_estimates = F, theta_estimates = T, phi_estimates = F, pairwise_phi_estimates = T, u_estimates = T, y_estimates = T, RMSE_CP_values = T){
+plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, models = c('acs','pep','wp'), CV_pred = T, ESS = T, rho_estimates = T, tau2_estimates = T, sigma2_estimates = F, theta_estimates = T, alpha_estimates = F, phi_estimates = F, pairwise_phi_estimates = T, u_estimates = T, y_estimates = T, RMSE_CP_values = T){
   
   # checking stan fit type.
   if(any(class(stan_fit) == 'matrix') & stan_fit_quantiles == F){
@@ -1303,6 +1303,7 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, model
   }
   
   plot_list = NULL
+  rel_heights <- c()
   
   ## grab the results
   #stan_summary = summary(stan_fit, pars = c('tau2','rho', 'phi', 'u','y_exp','lp__'))$summary
@@ -1342,11 +1343,12 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, model
     #   scale_x_continuous(trans='log2') + 
     #   ggtitle('ESS of phis')
     
-    p_ESS_phi <- ggplot(data = n_eff_df, aes(x = ESS)) + geom_density(aes(colour = model)) + 
+    p_ESS_u <- ggplot(data = n_eff_df, aes(x = ESS)) + geom_density(aes(colour = model)) + 
       scale_x_continuous(trans='log2') + 
       ggtitle('ESS of u values')
     
-    plot_list = append(plot_list, list(plot_grid(p_ESS_spatial, p_ESS_phi)))
+    plot_list = append(plot_list, list(plot_grid(p_ESS_spatial, p_ESS_u)))
+    rel_heights <- c(rel_heights, 1)
   }
   
   ## get the spatial parameter estimates
@@ -1402,8 +1404,28 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, model
       theme(legend.position = 'none')
   }
   
+  if(alpha_estimates){
+    print('alpha est')
+    alpha <- NULL
+    for(i in 1:length(models)){
+      alpha <- rbind(tau2, 
+                     data.frame(value = stan_out$alpha[,i], 
+                                model = models[i]))
+    }
+    
+    # plot the alpha param
+    p_alpha <- ggplot(data = alpha, aes(x = model, y = value)) + 
+      geom_boxplot() + 
+      ggtitle('alpha estimates') + 
+      theme(legend.position = 'none') +
+      scale_y_continuous(trans='log2')
+    
+    # plot_list <- append(plot_list, list(p_alpha))
+    # rel_heights <- c(rel_heights, 1)
+  }
+  
   # combine rho and tau2
-  if(rho_estimates + tau2_estimates + sigma2_estimates + theta_estimates > 0){
+  if(rho_estimates + tau2_estimates + sigma2_estimates + theta_estimates + alpha_estimates > 0){
     # create the hyperparam plot list
     hyperparam_plot = NULL
     if(rho_estimates){
@@ -1418,11 +1440,15 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, model
     if(theta_estimates){
       hyperparam_plot <- append(hyperparam_plot, list(p_theta))
     }
+    if(alpha_estimates){
+      hyperparam_plot <- append(hyperparam_plot, list(p_alpha))
+    }
     
     # add the plot back to the overall one.
     plot_list <- append(plot_list, list(plot_grid(plotlist = hyperparam_plot, nrow = 1)))
+    rel_heights <- c(rel_heights, 1)
   }
-  
+
   ## compare the true phi values with the estimated phi values
   if(phi_estimates){
     print('phi est')
@@ -1448,6 +1474,7 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, model
       ggtitle('phi estimates')
     
     plot_list <- append(plot_list, list(p_phi))
+    rel_heights <- c(rel_heights, 1)
   }
   
   ## pairwise phi estimates
@@ -1464,6 +1491,7 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, model
                     lower = list(continuous = 'cor'))
     
     plot_list <- append(plot_list, list(GGally::ggmatrix_gtable(p_pairs_phi)))
+    rel_heights <- c(rel_heights, 2)
   }
   
   ## compare the true u values with the estimated u values
@@ -1483,13 +1511,14 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, model
     # plot 'em
     p_u <- ggplot(u_est_long, aes(x = u_median_est)) + 
       geom_density() + 
-      facet_wrap(~model) + 
+      facet_wrap(~model, scales = 'free') + 
       xlab('estimate') + 
       ylab('density') + 
       theme(axis.text.y = element_blank()) +
       ggtitle('u estimates')
     
     plot_list <- append(plot_list, list(p_u))
+    rel_heights <- c(rel_heights, 1)
   }
   
   ## compare the observed outcomes with the estimated outcomes 
@@ -1505,7 +1534,9 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, model
       data_list$data$y_predicted <- stan_summary[ind, '50%']
     }
     
-    p_y <- ggplot(data_list$data, aes(x = census, y_predicted)) + 
+    ind <- sample(nrow(df), 100)
+    
+    p_y <- ggplot(data_list$data[ind,], aes(x = census, y_predicted)) + 
       geom_point() +
       geom_smooth(method='lm', formula = y ~ x) + 
       geom_abline(slope = 1, intercept = 0, col = 'red') +
@@ -1523,7 +1554,7 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, model
         data_list$data$y_predicted_CV <- CV_pred['0.5',]
       }
       
-      p_y2 <- ggplot(data_list$data, aes(x = census, y_predicted_CV)) +
+      p_y2 <- ggplot(data_list$data[ind,], aes(x = census, y_predicted_CV)) +
         geom_point() +
         geom_smooth(method='lm', formula = y ~ x) + 
         geom_abline(slope = 1, intercept = 0, col = 'red') +
@@ -1534,8 +1565,10 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, model
         ggtitle('y CV est')
       
       plot_list <- append(plot_list, list(plot_grid(p_y, p_y2)))
+      rel_heights <- c(rel_heights, 1)
     }else{
       plot_list <- append(plot_list, list(p_y))
+      rel_heights <- c(rel_heights, 1)
     }
   }
 
@@ -1575,11 +1608,12 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, model
     p_RMSE_CP <- gridExtra::tableGrob(RMSE_CP_df)
     
     plot_list <- append(plot_list, list(p_RMSE_CP))
+    rel_heights <- c(rel_heights, 1)
   }
   
   ## Combine all the plots!
   full_plot <- plot_grid(plotlist = plot_list,
-                         rel_heights = c(1,1,2,1,1,1),
+                         rel_heights = rel_heights,
                          ncol = 1)
   
   return(full_plot)
