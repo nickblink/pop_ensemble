@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -p shared
-#SBATCH -t 0-1:00
-#SBATCH -c 1
+#SBATCH -t 0-10:00
+#SBATCH -c 10
 #SBATCH --mem=10G
 #SBATCH --mail-type=END
 #SBATCH -e errors_outputs/%x_%A_%a.sim.err

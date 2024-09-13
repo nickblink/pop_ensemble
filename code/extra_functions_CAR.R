@@ -505,7 +505,7 @@ prep_stan_data_leroux_sparse <- function(data, W, models, outcome = 'y', use_sof
 # n.sample: the number of iterations to run the rstan code.
 # burnin: the number of burnin iterations to run the rstan code.
 # seed: a seed for reproducability
-run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_type = 'Leroux', n.sample = 10000, burnin = 5000, seed = 10, stan_m = NULL, stan_path = "code/CAR_leroux_sparse.stan", tau2 = NULL, use_softmax = NULL, use_normal = T, use_pivot = F, init_vals = '0',family = family, ...){
+run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_type = 'Leroux', n.sample = 10000, burnin = 5000, seed = 10, stan_m = NULL, stan_path = "code/CAR_leroux_sparse.stan", tau2 = NULL, use_softmax = NULL, use_normal = T, use_pivot = F, init_vals = '0',family = family, chains_cores = 1, ...){
 
   # error checking for precision matrix type.
   if(precision_type != 'Leroux'){stop('only have Leroux precision coded')}
@@ -525,18 +525,18 @@ run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_
     stan_m <- rstan::stan_model(stan_path)
   }
 
+  
   # fit the stan model.
   stan_fit <- rstan::sampling(object = stan_m,
                    data = stan_data, 
                    iter = n.sample, 
                    warmup = burnin,
-                   chains = 1, 
+                   chains = chains_cores, 
                    init = init_vals,
-                   cores = 1,
+                   cores = chains_cores,
                    seed = seed,
                    show_messages = F,
                    verbose = F)
-  
 
   # return the results!
   return(stan_fit)

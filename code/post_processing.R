@@ -22,6 +22,16 @@ setwd(root_git)
 # load extra functions
 source('code/extra_functions_CAR.R')
 
+#### Loading test parallelized models ####
+setwd(root_results)
+load('real_data_fit_test_ID77075_2024_09_12.RData')
+tt <- res$sim_list
+ss <- tt$CV_pred
+# ok so it's really that easy! Jeez.
+
+p1 <- plot_real_results(res$sim_list$data_list, res$sim_list$stan_fit, CV_pred = res$sim_list$CV_pred)
+
+#
 #### Results 9/9/2024 - NB real data - softmax ####
 setwd(root_results)
 load('real_data_fit_softmax_ID15462_2024_09_09.RData')
