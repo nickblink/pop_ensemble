@@ -5,7 +5,7 @@ functions {
   *
   * @param phi CAR prior phi for a given model
   * @param tau2 variance parameter for the CAR prior (real)
-  * @param ro Dependence (usually spatial) parameter for the CAR prior (real)
+  * @param rho Dependence (usually spatial) parameter for the CAR prior (real)
   * @param W_sparse Sparse representation of adjacency matrix (int array)
   * @param n Length of phi (int)
   * @param W_n Number of adjacent pairs (int)
