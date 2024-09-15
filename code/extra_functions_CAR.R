@@ -722,7 +722,7 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
 ## Optional arguments
 # n.sample: number of stan chain samples.
 # burnin: length of burnin period for stan.
-fit_model_real <- function(raw_data, models=c('ACS','PEP','WP'), family = 'poisson', stan_path = "code/CAR_leroux_sparse_poisson.stan", init_vals = '0', family_name_check = T, use_softmax = F, CV_blocks = NULL, seed_start = 0, return_quantiles = T, alpha_variance_prior=NULL,...){
+fit_model_real <- function(raw_data, models=c('acs','pep','wp'), family = 'poisson', stan_path = "code/CAR_leroux_sparse_poisson.stan", init_vals = '0', family_name_check = T, use_softmax = F, CV_blocks = NULL, seed_start = 0, return_quantiles = T, alpha_variance_prior=NULL, preprocess_scale = F, ...){
   
   rstan_options(auto_write = F)
   
@@ -754,6 +754,14 @@ fit_model_real <- function(raw_data, models=c('ACS','PEP','WP'), family = 'poiss
   }else{
     use_normal = F
   }
+  
+  if(preprocess_scale){
+    census_sum <- sum(raw_data$data$census)
+    for(m in models){
+      raw_data$data[,m] <- raw_data$data[,m]*census_sum/sum(raw_data$data[,m]) 
+    }
+  }
+  
   print('check 1')
   # compile the stan program
   m <- rstan::stan_model(stan_path)
