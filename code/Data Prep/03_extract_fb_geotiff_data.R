@@ -88,3 +88,32 @@ sum_overct <- sp::over(counties, xx1, fn=sum)
 counties$WP_1km_estimate <- sum_overct[,1]
 
 
+# Yanran's new code:
+{
+# {current_path <- rstudioapi::getActiveDocumentContext()$path
+#   setwd(dirname(current_path))
+#   setwd('..')
+#   
+#   link <- "/Users/liyanran/Desktop/Research/Rachel/pop_ensemble/code/population_usa_2019-07-01.vrt"
+#   test <- raster(link)
+#   
+#   
+#   # pop_csv1 <- read.csv("population_usa_2019-07-01_part_1_of_6.csv")
+#   # pop_csv2 <- read.csv("population_usa_2019-07-01_part_2_of_6.csv")
+#   # pop_csv3 <- read.csv("population_usa_2019-07-01_part_3_of_6.csv")
+#   # pop_csv4 <- read.csv("population_usa_2019-07-01_part_4_of_6.csv")
+#   # pop_csv5 <- read.csv("population_usa_2019-07-01_part_5_of_6.csv")
+#   # pop_csv6 <- read.csv("population_usa_2019-07-01_part_6_of_6.csv")
+#   
+#   summary(pop_csv)
+#   summary(pop_csv2)
+#   summary(pop_csv3)
+#   summary(pop_csv4)
+#   summary(pop_csv5)
+#   summary(pop_csv6)
+#   
+#   link <- "/Users/liyanran/Desktop/Research/Rachel/pop_ensemble/code/meta_tif/population_usa18_-90_2019-07-01.tif"
+#   test <- raster(link)
+#   fb_pts1 <- rasterToPoints(test, spatial = T)
+# }
+}

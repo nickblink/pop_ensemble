@@ -9,9 +9,6 @@
 ## srun -p test --pty --mem 10000 -t 0-02:00 /bin/bash
 ## R --quiet
 
-
-
-
 library(raster)
 library(rgdal)
 library(sf)
@@ -50,3 +47,6 @@ sum_overct <- sp::over(counties, xx1, fn=sum)
 
 counties$fb_estimate <- sum_overct[,1]
 save(xx1, sum_overct, counties, file = 'xx1.RData')
+
+
+
