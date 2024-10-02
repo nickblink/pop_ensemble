@@ -22,6 +22,24 @@ setwd(root_git)
 # load extra functions
 source('code/extra_functions_CAR.R')
 
+#### Results with pre-processing and whatnot. ####
+setwd(root_results)
+
+# softmax, centering the X values, estimating alpha.
+load('real_data/real_data_fit_softmax_preprocess_alpha_ID57152_2024_09_16.RData')
+p1 <- plot_real_results(res$sim_list$data_list, res$sim_list$stan_fit, CV_pred = res$sim_list$CV_pred)
+# ggsave(plot = p1, filename = '../Figures/09092024_softmax_real_data.png', height = 12, width = 7)
+
+# softmax, centering the X values, no alpha.
+load('real_data/real_data_fit_softmax_preprocess_ID26230_2024_09_16.RData')
+
+# softmax, no centering, alpha
+load('real_data/real_data_fit_softmax_alpha_ID31198_2024_09_16.RData')
+
+# softmax, no centering, no alpha
+load('real_data/real_data_fit_softmax_parallel_ID99987_2024_09_16.RData')
+
+#
 #### Loading test parallelized models ####
 setwd(root_results)
 load('real_data_fit_test_ID77075_2024_09_12.RData')
