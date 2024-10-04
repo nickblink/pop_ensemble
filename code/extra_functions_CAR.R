@@ -42,6 +42,24 @@ compare_parameters <- function(folder1, folder2){
 }
 
 
+### Print out the median and confidence intervals for a given vector.
+# vec: A vector or 1-column data frame.
+# prob_vec: The probability values to take the quantiles at.
+make_medianCI_string <- function(vec, prob_vec = c(0.025, 0.975)){
+  # if dataframe, take first column
+  if(is.data.frame(vec)){
+    if(ncol(vec) > 1){
+      stop('please only put in a vector or single column df to make_medianCI_string')
+    }
+    vec <- vec[,1]
+  }
+  median_val <- median(vec)
+  quantiles <- quantile(vec, probs = prob_vec)
+  result_string <- sprintf("%.2f (%.2f, %.2f)", 
+                           median_val, quantiles[1], quantiles[2])
+  return(result_string)
+}
+
 ### Convert vector of outputs to a matrix
 # vec: Vector where values are arranged by column.
 # n_models: number of models to split the vector by (e.g. number of rows of output matrix.)
@@ -849,7 +867,7 @@ generate_metrics_list <- function(folder = NULL, root = NULL, debug_mode = F){
     }else{
       root_dir = 'C:/Users/nickl'
     }
-    root <- sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Results',
+    root <- sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Results/simulated_results',
                     root_dir)
   }
   
@@ -1655,7 +1673,7 @@ plot_s_estimates <- function(sim_lst, models, ncol = 2, ESS = F, likelihoods = F
 
 ### Plots the metrics across a set of simulations.
 # input_list: Results from the function "generate_metrics_list"
-plot_metrics <- function(input_lst, single_sim_res = NULL, include_MAP_rank = F){
+plot_metrics <- function(input_lst, single_sim_res = NULL, include_MAP_rank = F, make_table = T){
   # get correct list of metrics and singe simulation results
   if('metrics_list' %in% names(input_lst)){
     print('extracting metrics AND single simulation results.')
@@ -1677,6 +1695,7 @@ plot_metrics <- function(input_lst, single_sim_res = NULL, include_MAP_rank = F)
     # phi coverage plot
     phi_CP <- data.frame(CP = rowMeans(sapply(metrics_lst, function(xx) xx[['CP_90_phi']])))
     
+    # is this averaged over location or simulation?
     p_phi_CP <- ggplot(data = phi_CP, aes(y = CP)) + 
       geom_boxplot() + 
       ggtitle('phi 90% coverage')
@@ -1763,6 +1782,15 @@ plot_metrics <- function(input_lst, single_sim_res = NULL, include_MAP_rank = F)
                           y_estimates = T)
     
     plot_list <- append(plot_list, list(p_yfit))
+  }
+  
+  if(make_table){
+    browser()
+    res_tbl <- data.frame(metric = c('u-rank','u-coverage-90','RMSE','y-coverage'), 
+                          train = c(make_medianCI_string(u_rank),
+                                    make_medianCI_string(u_CP),
+                                    make_medianCI_string(RMSE_df %>% filter(source == 'RMSE_train') %>% select(val)),
+                                    make_medianCI_string(HERE FIX THISy)))
   }
   
   ## full plot

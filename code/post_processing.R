@@ -11,7 +11,7 @@ if(file.exists('C:/Users/Admin-Dell')){
 }else{
   root_dir = 'C:/Users/nickl'
 }
-root_results <- sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Results',
+root_results <- sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Results/simulated_results',
                         root_dir)
 
 root_git <- sprintf('%s/Documents/github_projects/pop_ensemble/', 
@@ -22,6 +22,23 @@ setwd(root_git)
 # load extra functions
 source('code/extra_functions_CAR.R')
 
+#
+#### Revisiting simulations - making plots for paper ####
+# Firstly, I need to redo these sims anyway because the results I am showing are for fixed u across simulations. Oh well. I am not going to redo them just yet, though.
+setwd(root_results)
+files <- grep('08_23', dir(root_results), value = T)
+comparison <- 'simulation_softmax_normal_3models_CV0_ID769482_2024_05_16/'
+compare_parameters(comparison, files[1])
+files <- files[c(4,8)]
+
+for(i in 1:length(files)){
+  out_name <- sprintf('../Figures/08232024_forPaper_%s.png', stringr::str_match(files[i], 'simulation_(.*?)_negbin')[2])
+  generate_metrics_list(files[i]) %>%
+    plot_metrics(include_MAP_rank = T) #%>%
+    #ggsave(., filename = out_name, height = 8, width = 6)
+}
+
+# 
 #### Results with pre-processing and whatnot. ####
 setwd(root_results)
 
@@ -97,12 +114,13 @@ plot_real_results(res$sim_list$data_list, res$sim_list$stan_fit, CV_pred = res$s
 #
 #### Results 8/30/2024 - Negative binomial with resampled phi ####
 setwd(root_results)
-files <- grep('08_29', dir(root_results), value = T)
+setwd('simulated_results/')
+files <- grep('08_29', dir(), value = T)
 
 out_name <- sprintf('../Figures/08292024_%s_resampled_phi.png', stringr::str_match(files, 'simulation_(.*?)_negbin')[2])
 generate_metrics_list(files) %>%
-  plot_metrics(include_MAP_rank = F) %>%
-  ggsave(., filename = out_name, height = 8, width = 6)
+  plot_metrics(include_MAP_rank = F) #%>%
+  #ggsave(., filename = out_name, height = 8, width = 6)
 
 # ^ NEED TO CHECK ABOUT THE METRICS OF COVERAGE 
 
