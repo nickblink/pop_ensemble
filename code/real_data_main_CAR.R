@@ -49,6 +49,11 @@ for(str in strsplit(inputs,':')[[1]]){
   }else if(nn == 'models'){
     val = as.character(strsplit(val, ',')[[1]])
   }
+  
+  if(val %in% c('NULL', 'null')){
+    val <- NULL
+  }
+  
   params[[nn]] = val
 }
 

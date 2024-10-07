@@ -45,7 +45,7 @@ compare_parameters <- function(folder1, folder2){
 ### Print out the median and confidence intervals for a given vector.
 # vec: A vector or 1-column data frame.
 # prob_vec: The probability values to take the quantiles at.
-make_medianCI_string <- function(vec, prob_vec = c(0.025, 0.975)){
+make_medianCI_string <- function(vec, prob_vec = c(0.05, 0.95)){
   # if dataframe, take first column
   if(is.data.frame(vec)){
     if(ncol(vec) > 1){
@@ -1205,8 +1205,9 @@ process_results <- function(data_list, stan_fit, stan_fit_quantiles = F, models 
       geom_abline(slope = 1, intercept = 0, col = 'red') + 
       xlab('observed y') + 
       ylab('median est') + 
-      ggtitle('y estimation')
+      ggtitle('Training Set')
     
+    p_y_plots <- list(p_y)
     if('y2' %in% colnames(data_list$data)){
       
       p_y2 <- ggplot(data_list$data, aes(x = y2, y_predicted)) + 
@@ -1217,41 +1218,28 @@ process_results <- function(data_list, stan_fit, stan_fit_quantiles = F, models 
         ylab('median est') + 
         ggtitle('y OOS est')
       
-      # get the CV RMSE, if CV was run.
-      if(!is.null(CV_pred)){
-        if(!stan_fit_quantiles){
-          data_list$data$y_predicted_CV = apply(CV_pred, 1, median)
-        }else{
-          data_list$data$y_predicted_CV <- CV_pred['0.5',]
-        }
-        
-        p_y3 <- ggplot(data_list$data, aes(x = y, y_predicted_CV)) + 
-          geom_point() +
-          geom_smooth(method='lm', formula = y ~ x) + 
-          geom_abline(slope = 1, intercept = 0, col = 'red') + 
-          xlab('observed y') + 
-          ylab('CV est') + 
-          ggtitle('y CV est')
-        
-        plot_list <- append(plot_list, list(plot_grid(p_y, p_y2, p_y3, nrow = 1)))
-      }else if('y3' %in% colnames(data_list$data)){
-        p_y3 <- ggplot(data_list$data, aes(x = y3, y_predicted)) + 
-          geom_point() +
-          geom_smooth(method='lm', formula = y ~ x) + 
-          geom_abline(slope = 1, intercept = 0, col = 'red') + 
-          xlab('observed y') + 
-          ylab('median est') + 
-          ggtitle('y OOS est')
-        
-        plot_list <- append(plot_list, list(plot_grid(p_y, p_y2, p_y3, nrow = 1)))
+      p_y_plots <- append(p_y_plots, list(p_y2))
+    }
+    # get the CV RMSE, if CV was run.
+    if(!is.null(CV_pred)){
+      if(!stan_fit_quantiles){
+        data_list$data$y_predicted_CV = apply(CV_pred, 1, median)
       }else{
-        plot_list <- append(plot_list, list(plot_grid(p_y, p_y2, nrow = 1)))
+        data_list$data$y_predicted_CV <- CV_pred['0.5',]
       }
       
-    }else{
-      plot_list <- append(plot_list, list(p_y))
+      p_y3 <- ggplot(data_list$data, aes(x = y, y_predicted_CV)) + 
+        geom_point() +
+        geom_smooth(method='lm', formula = y ~ x) + 
+        geom_abline(slope = 1, intercept = 0, col = 'red') + 
+        xlab('observed y') + 
+        ylab('median est') + 
+        ggtitle('Cross-Validation')
+      
+      p_y_plots <- append(p_y_plots, list(p_y3))
     }
-    
+    # add the plot back to the overall one.
+    plot_list <- append(plot_list, list(plot_grid(plotlist = p_y_plots, nrow = 1)))
   }
   
   if(RMSE_CP_values){
@@ -1785,13 +1773,18 @@ plot_metrics <- function(input_lst, single_sim_res = NULL, include_MAP_rank = F,
   }
   
   if(make_table){
-    browser()
-    res_tbl <- data.frame(metric = c('u-rank','u-coverage-90','RMSE','y-coverage'), 
+    res_tbl <- data.frame(metric = c('u-rank','u-coverage-90','RMSE','y-coverage-90'), 
                           train = c(make_medianCI_string(u_rank),
                                     make_medianCI_string(u_CP),
                                     make_medianCI_string(RMSE_df %>% filter(source == 'RMSE_train') %>% select(val)),
-                                    make_medianCI_string(HERE FIX THISy)))
+                                    make_medianCI_string(y_CP_df %>% filter(source == 'CP_90_train') %>% select(val))),
+                          CV = c(NA,
+                                 NA,
+                                 make_medianCI_string(RMSE_df %>% filter(source == 'RMSE_CV') %>% select(val)),
+                                 make_medianCI_string(y_CP_df %>% filter(source == 'CP_90_CV') %>% select(val))))
   }
+  print(res_tbl)
+  print(xtable::xtable(res_tbl))
   
   ## full plot
   full_plot <- cowplot::plot_grid(plotlist = plot_list,
