@@ -23,6 +23,15 @@ setwd(root_git)
 source('code/extra_functions_CAR.R')
 
 #
+#### Results on TX with high sample number ####
+setwd(root_results)
+setwd('../')
+
+# TX, centering X, estimating alpha.
+load('real_data/real_data_fit_softmax_preprocess_alpha_ID37706_2024_10_08.RData')
+p1 <- plot_real_results(res$sim_list$data_list, res$sim_list$stan_fit, CV_pred = res$sim_list$CV_pred, alpha_estimates = T)
+ggsave(plot = p1, filename = '../Figures/10082024_TXn20k_softmax_centeringX_alpha_real_data.png', height = 12, width = 7)
+#
 #### Revisiting simulations - making plots for paper ####
 # Firstly, I need to redo these sims anyway because the results I am showing are for fixed u across simulations. Oh well. I am not going to redo them just yet, though.
 setwd(root_results)
@@ -62,7 +71,7 @@ setwd('../')
 
 # softmax, centering the X values, estimating alpha.
 load('real_data/real_data_fit_softmax_preprocess_alpha_ID57152_2024_09_16.RData')
-p1 <- plot_real_results(res$sim_list$data_list, res$sim_list$stan_fit, CV_pred = res$sim_list$CV_pred)
+p1 <- plot_real_results(res$sim_list$data_list, res$sim_list$stan_fit, CV_pred = res$sim_list$CV_pred, alpha_estimates = T)
 ggsave(plot = p1, filename = '../Figures/09162024_softmax_centeringX_alpha_real_data.png', height = 12, width = 7)
 
 # softmax, centering the X values, no alpha.

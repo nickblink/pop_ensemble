@@ -1502,7 +1502,7 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, model
     p_pairs_phi <- GGally::ggpairs(phi_est,
                     upper = list(continuous = 'density'),
                     diag = list(continuous = "barDiag"),
-                    lower = list(continuous = 'cor'))
+                    lower = list(continuous = 'cor'),title = 'phi pairwise')
     
     plot_list <- append(plot_list, list(GGally::ggmatrix_gtable(p_pairs_phi)))
     rel_heights <- c(rel_heights, 2)
