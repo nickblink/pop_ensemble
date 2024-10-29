@@ -7,21 +7,26 @@ library(doParallel)
 rstan_options(auto_write = F)
 
 # set working directory for home or laptop
+home_dir = T
 if(file.exists('C:/Users/Admin-Dell')){
   root_dir = 'C:/Users/Admin-Dell'
   setwd(sprintf('%s/Documents/github_projects/pop_ensemble/', root_dir))
 }else if(file.exists('C:/Users/nickl')){
   root_dir = 'C:/Users/nickl'
   setwd(sprintf('%s/Documents/github_projects/pop_ensemble/', root_dir))
+}else{
+  home_dir = F
 }
 
 # load extra functions
 source('code/extra_functions_CAR.R')
 
-inputs = c('dataset=MA:n.sample=100:burnin=50:family=negbin:use_softmax=T:models=acs,pep,wp:outcome=census:fixed_rho=-1:fixed_tau2=-1:sigma2_prior_shape=0.001:sigma2_prior_rate=0.001:tau2_prior_shape=1:tau2_prior_rate=1:theta_prior_shape=0.001:theta_prior_rate=0.001:stan_path=code/CAR_leroux_sparse_negbin_alpha.stan:CV_blocks=5:return_quantiles=F:parallel=F:alpha_variance_prior=-1:chains_cores=1:output_path_addition=test:chains_cores=1:preprocess_scale=T')
-
-# cluster inputs
-inputs <- commandArgs(trailingOnly = TRUE)
+if(home_dir){
+  inputs = c('dataset=AIAN:n.sample=100:burnin=50:family=negbin:use_softmax=T:models=acs,pep,wp:outcome=census:fixed_rho=-1:fixed_tau2=-1:sigma2_prior_shape=0.001:sigma2_prior_rate=0.001:tau2_prior_shape=1:tau2_prior_rate=1:theta_prior_shape=0.001:theta_prior_rate=0.001:stan_path=code/CAR_leroux_sparse_negbin_alpha.stan:CV_blocks=5:return_quantiles=F:parallel=F:alpha_variance_prior=-1:chains_cores=1:output_path_addition=test:chains_cores=1:preprocess_scale=T')
+}else{
+  # cluster inputs
+  inputs <- commandArgs(trailingOnly = TRUE)
+}
 
 print(inputs)
 
@@ -37,7 +42,7 @@ for(str in strsplit(inputs,':')[[1]]){
   }else{
     val = tolower(tmp[2])
   }
-  
+
   if(nn %in% c('n.sample', 'burnin', 'fixed_rho',  'fixed_tau2', 'sigma2_prior_shape', 'sigma2_prior_rate', 'tau2_prior_shape', 'tau2_prior_rate', 'CV_blocks','theta_prior_shape','theta_prior_rate', 'alpha_variance_prior', 'chains_cores')){
     val = as.numeric(val)
   }else if(nn == 'N_models'){
@@ -48,9 +53,7 @@ for(str in strsplit(inputs,':')[[1]]){
     val = as.logical(ifelse(val == 't', T, F))
   }else if(nn == 'models'){
     val = as.character(strsplit(val, ',')[[1]])
-  }
-  
-  if(val %in% c('NULL', 'null')){
+  }else if(val %in% c('NULL', 'null')){
     val <- NULL
   }
   
@@ -81,19 +84,26 @@ for(str in strsplit(inputs,':')[[1]]){
 
 print(params)
 
-# pull in the data
-load('data/census_ACS_PEP_WP_cleaned_08292024.RData')
-
-# subset data by state
-if(params[['dataset']] == 'all'){
-  # params[['raw_data']]
-  # NY_lst <- subset_data_by_state(df, adjacency, 'New York', 'NY')
-  
-  # store the data in params
+## pull in the data
+# American Indian Alaska Native data
+if(params[['dataset']] == 'aian'){
+  load('data/census_ACS_PEP_WP_AIAN_cleaned_10282024.RData')
   params[['raw_data']] <- list(data = df, adjacency = adjacency)
+# full data
 }else{
-  params[['raw_data']] <- subset_data_by_state(df, adjacency, abbrev = params[['dataset']])
+  load('data/census_ACS_PEP_WP_cleaned_08292024.RData')
+  # subset data by state
+  if(params[['dataset']] == 'all'){
+    # params[['raw_data']]
+    # NY_lst <- subset_data_by_state(df, adjacency, 'New York', 'NY')
+    
+    # store the data in params
+    params[['raw_data']] <- list(data = df, adjacency = adjacency)
+  }else{
+    params[['raw_data']] <- subset_data_by_state(df, adjacency, abbrev = params[['dataset']])
+  }
 }
+
 }
 
 # fit the real data!

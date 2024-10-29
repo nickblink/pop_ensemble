@@ -150,15 +150,17 @@ census_AIAN <- get_decennial(
 # ARGH small counts are bad.
 
 # load in WP. Scale based off full population values.
-load('../../data/census_ACS_PEP_WP_08292024.RData')
+load('../../data/census_ACS_PEP_WP_cleaned_08292024.RData')
 WP_AIAN <- merge(df, ACS_AIAN, by = 'GEOID')
 WP_AIAN$WP <- WP_AIAN$wp/WP_AIAN$acs*WP_AIAN$ACS 
 WP_AIAN <- WP_AIAN %>%
-  select(GEOID,NAME, WP)
+  select(GEOID, state, NAME, WP)
 
 # merge!
 df_AIAN <- merge(WP_AIAN, census_AIAN, by=c('GEOID')) %>%
   merge(PEP_AIAN, by=c('GEOID')) %>%
-  merge(ACS_AIAN, by=c('GEOID'))
+  merge(ACS_AIAN, by=c('GEOID')) %>%
+  # select names to exactly match names in other dataset.
+  select(GEOID, state, acs = ACS, census, pep = PEP, wp = WP, NAME)
 
-#save(df_AIAN, file = '../../data/census_ACS_PEP_WP_AIAN_10282024.RData')
+# save(df_AIAN, adjacency, file = '../../data/census_ACS_PEP_WP_AIAN_10282024.RData')
