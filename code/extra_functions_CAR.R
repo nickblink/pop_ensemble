@@ -1304,7 +1304,7 @@ process_results <- function(data_list, stan_fit, stan_fit_quantiles = F, models 
 # likelihoods: whether to include the prior, likelihood, and posterior.
 # <XX>_estimates: whether to include the <XX> estimates.
 # RMSE_CP_values: whether to include the RMSE values and coverage probabilities.
-plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, models = c('acs','pep','wp'), CV_pred = T, ESS = T, rho_estimates = T, tau2_estimates = T, sigma2_estimates = F, theta_estimates = T, alpha_estimates = F, phi_estimates = F, pairwise_phi_estimates = T, u_estimates = T, y_estimates = T, RMSE_CP_values = T){
+plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, models = c('acs','pep','wp'), CV_pred = T, ESS = T, rhats = T, rho_estimates = T, tau2_estimates = T, sigma2_estimates = F, theta_estimates = T, alpha_estimates = F, phi_estimates = F, pairwise_phi_estimates = T, u_estimates = T, y_estimates = T, RMSE_CP_values = T){
   
   # checking stan fit type.
   if(any(class(stan_fit) == 'matrix') & stan_fit_quantiles == F){
@@ -1332,7 +1332,7 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, model
     }
   }
   
-  ## get the convergence parameters
+  ## get the effective sample size convergence parameters
   if(ESS){
     print('ESS est')
     # ESS of tau2 and rho
@@ -1340,7 +1340,7 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, model
     colnames(ESS_spatial)[1] <- 'ESS'
     p_ESS_spatial <- gridExtra::tableGrob(round(ESS_spatial, 3))
     
-    # ESS of phi
+    # ESS of u
     ind <- grep('^u',rownames(stan_summary))
     print(sprintf('median ESS for u is %s and median rhat is %s', round(median(stan_summary[ind, 'n_eff']), 1), round(median(stan_summary[ind, 'Rhat']), 3)))
     
@@ -1365,6 +1365,31 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, model
     
     plot_list = append(plot_list, list(plot_grid(p_ESS_spatial, p_ESS_u)))
     rel_heights <- c(rel_heights, 1)
+  }
+  
+  ## get the rhat convergence parameters.
+  if(rhats){
+    ## u rhats
+    ind <- grep('^u',rownames(stan_summary))
+    
+    n_rhat_df <- NULL
+    for(i in 1:length(models)){
+      ind = grep(sprintf('^u\\[[0-9]*,%s\\]', i), rownames(stan_summary))
+      n_rhat_df <- rbind(n_rhat_df, 
+                        data.frame(rhat = stan_summary[ind, 'Rhat'],
+                                   model = models[i]))
+      
+    }
+    
+    ## y rhats
+    browser()
+    ind = grep('y_pred', colnames(stan_fit))
+    y_pred_rhat <- stan_summary[ind, 'Rhat']
+    p_rhat_y <- ggplot(data = y_pred_rhat, aes(x = rhat)) + geom_density() + 
+      scale_x_continuous(trans='log2') + 
+      ggtitle('rhat of y values')
+    
+    plot_list = append(plot_list, list(plot_grid(p_rhat_u, p_rhat_y)))
   }
   
   ## get the spatial parameter estimates

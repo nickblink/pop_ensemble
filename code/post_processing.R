@@ -39,7 +39,7 @@ tt <- res$sim_list$stan_fit
 alpha <- extract(tt, 'alpha')[[1]]
 colMeans(alpha)
 apply(alpha, 2, median)
-# what? Wtf is being plotted?
+# what? Wtf is being plotted? Ah it was tau2. Dingus.
 
 #
 #### Results on US American Indian - four dif. models ####
