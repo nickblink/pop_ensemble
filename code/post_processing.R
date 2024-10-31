@@ -23,6 +23,25 @@ setwd(root_git)
 source('code/extra_functions_CAR.R')
 
 #
+#### Investigating US American Indian results ####
+# (1) Look at the distribution of alpha for PEP.
+# (2) Look at a single prediction from a single high alpha value - is it correct?
+
+setwd(root_results)
+load('../real_data/real_data_fit_softmax_preprocess_alpha_aian_ID97760_2024_10_28.RData')
+
+tt <- params$raw_data$data
+head(tt)
+colMeans(tt[,3:6])
+# Ah yes the preprocessing occurs within the fitting function, so the preprocessed data is not saved.
+
+tt <- res$sim_list$stan_fit
+alpha <- extract(tt, 'alpha')[[1]]
+colMeans(alpha)
+apply(alpha, 2, median)
+# what? Wtf is being plotted?
+
+#
 #### Results on US American Indian - four dif. models ####
 setwd(root_results)
 setwd('../')

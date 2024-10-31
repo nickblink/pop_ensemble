@@ -737,6 +737,8 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
 # CV_blocks: Number of blocks for running cross-validation. If null, only running the full model on the data.
 # seed_start: Value to shift the seed starting by.
 # return_quantiles: If true, only return quantiles of simulation results. If false, return the full simulation results.
+# alpha_variance_prior: Prior on the alpha variance to estimate. If NULL or < 0, alpha not estimated.
+# preprocess_scale: 
 ## Optional arguments
 # n.sample: number of stan chain samples.
 # burnin: length of burnin period for stan.
@@ -1422,7 +1424,7 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, model
     print('alpha est')
     alpha <- NULL
     for(i in 1:length(models)){
-      alpha <- rbind(tau2, 
+      alpha <- rbind(alpha, 
                      data.frame(value = stan_out$alpha[,i], 
                                 model = models[i]))
     }
