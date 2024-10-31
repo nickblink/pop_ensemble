@@ -1,6 +1,7 @@
 # ACS 2019, PEP 2019, WP 2019, FB 2019, Census 2020 
 
 library(tidycensus)
+library(tidyverse)
 library(tigris)
 library(sp)
 library(stringr)
@@ -92,3 +93,74 @@ df[NA_rows,]
 cor(df[,3:7])
 colSums(df[,3:7])
 # ok looking good.
+#### American Indian data ####
+# Set options for tidycensus
+# options(tigris_use_cache = TRUE)  # Cache spatial data
+# options(timeout = 300)            # Increase timeout limit
+
+v19 <- load_variables(2019, "acs1", cache = TRUE)
+ind <- grep('B02001', v19$name)
+v19[ind,]
+v19$label[v19$name == 'B02001_004']
+
+# ACS American Indian data.
+ACS_AIAN <- get_acs(
+  geography = "county",
+  variables = "B02001_004", # Code for American Indian and Alaska Native alone
+  year = 2019#,
+  #survey = "acs5" # Using 5-year estimates for more reliable county-level data
+) %>%
+  select(GEOID,
+         ACS = estimate)
+
+# PEP American Indian data
+PEP_raw <- get_estimates(
+  geography = "county",
+  product = "characteristics",
+  breakdown = "RACE",
+  breakdown_labels = TRUE,
+  year = 2019,
+  state = NULL  # NULL gets all states
+)
+
+# Clean and format the PEP data
+PEP_AIAN <- PEP_raw %>%
+  # Filter for AIAN alone
+  filter(RACE == "American Indian and Alaska Native alone") %>%
+  # Create clean names
+  separate(NAME, into = c("county_name", "state"), sep = ", ") %>%
+  # Select and rename columns
+  select(
+    GEOID,
+    PEP = value
+  ) %>%
+  # Sort by population in descending order
+  arrange(desc(PEP))
+
+# Census data
+# Get 2020 Census data for American Indian and Alaska Native population
+census_AIAN <- get_decennial(
+  geography = "county",
+  variables = "P1_005N",  # American Indian and Alaska Native alone
+  year = 2020,
+  sumfile = "pl"  # PL 94-171 Redistricting Data
+) %>%
+  select(GEOID,
+         census = value)
+# ARGH small counts are bad.
+
+# load in WP. Scale based off full population values.
+load('../../data/census_ACS_PEP_WP_cleaned_08292024.RData')
+WP_AIAN <- merge(df, ACS_AIAN, by = 'GEOID')
+WP_AIAN$WP <- WP_AIAN$wp/WP_AIAN$acs*WP_AIAN$ACS 
+WP_AIAN <- WP_AIAN %>%
+  select(GEOID, state, NAME, WP)
+
+# merge!
+df_AIAN <- merge(WP_AIAN, census_AIAN, by=c('GEOID')) %>%
+  merge(PEP_AIAN, by=c('GEOID')) %>%
+  merge(ACS_AIAN, by=c('GEOID')) %>%
+  # select names to exactly match names in other dataset.
+  select(GEOID, state, acs = ACS, census, pep = PEP, wp = WP, NAME)
+
+# save(df_AIAN, adjacency, file = '../../data/census_ACS_PEP_WP_AIAN_10282024.RData')

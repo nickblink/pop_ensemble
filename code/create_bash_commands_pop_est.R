@@ -110,6 +110,18 @@ bash_wrapper <- function(bash_file = NULL, theta_vec = NULL, rho_vec = NULL, out
   return(cmds)
 }
 
+#### Real bash - AIAN ####
+bash_command_real(dataset = 'AIAN', use_softmax = T, output_path_addition = 'softmax_AIAN')
+
+bash_command_real(dataset = 'AIAN', use_softmax = T, preprocess_scale = T,  output_path_addition = 'softmax_preprocess_AIAN')
+
+bash_command_real(dataset = 'AIAN', use_softmax = T, alpha_variance_prior = 0.01,  output_path_addition = 'softmax_alpha_AIAN')
+
+bash_command_real(dataset = 'AIAN', use_softmax = T, preprocess_scale = T, alpha_variance_prior = 0.01,  output_path_addition = 'softmax_preprocess_alpha_AIAN')
+
+#### Real bash - NY with higher MCMC ####
+bash_command_real(use_softmax = T, preprocess_scale = T, alpha_variance_prior = 0.01,  output_path_addition = 'softmax_preprocess_alpha', dataset = 'NY', n.sample = 20000, burnin = 5000)
+
 #### Real bash commands ####
 bash_command_real(use_softmax = F)
 bash_command_real(use_softmax = T, output_path_addition = 'softmax_parallel')
