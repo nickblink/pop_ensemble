@@ -23,6 +23,31 @@ setwd(root_git)
 source('code/extra_functions_CAR.R')
 
 #
+#### Results on US American Indian - four dif. models ####
+setwd(root_results)
+setwd('../')
+
+# softmax
+load('real_data/real_data_fit_softmax_aian_ID82309_2024_10_28.RData')
+p1 <- plot_real_results(res$sim_list$data_list, res$sim_list$stan_fit, CV_pred = res$sim_list$CV_pred, alpha_estimates = F)
+ggsave(plot = p1, filename = '../Figures/10312024_AmericanIndianAN_softmax_real_data.png', height = 12, width = 7)
+
+# softmax alpha
+load('real_data/real_data_fit_softmax_alpha_aian_ID7045_2024_10_28.RData')
+p1 <- plot_real_results(res$sim_list$data_list, res$sim_list$stan_fit, CV_pred = res$sim_list$CV_pred, alpha_estimates = T)
+ggsave(plot = p1, filename = '../Figures/10312024_AmericanIndianAN_softmax_alpha_real_data.png', height = 12, width = 7)
+
+# softmax preprocess
+load('real_data/real_data_fit_softmax_preprocess_aian_ID41695_2024_10_28.RData')
+p1 <- plot_real_results(res$sim_list$data_list, res$sim_list$stan_fit, CV_pred = res$sim_list$CV_pred, alpha_estimates = F)
+ggsave(plot = p1, filename = '../Figures/10312024_AmericanIndianAN_softmax_preprocess_real_data.png', height = 12, width = 7)
+
+# softmax preprocess alpha
+load('real_data/real_data_fit_softmax_preprocess_alpha_aian_ID97760_2024_10_28.RData')
+p1 <- plot_real_results(res$sim_list$data_list, res$sim_list$stan_fit, CV_pred = res$sim_list$CV_pred, alpha_estimates = T)
+ggsave(plot = p1, filename = '../Figures/10312024_AmericanIndianAN_softmax_preprocess_alpha_real_data.png', height = 12, width = 7)
+
+#
 #### Results on TX with high sample number ####
 setwd(root_results)
 setwd('../')
