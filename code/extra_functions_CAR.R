@@ -1381,15 +1381,21 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, model
       
     }
     
+    p_rhat_u <- ggplot(data = n_rhat_df, aes(x = rhat)) + geom_density(aes(colour = model)) + 
+      scale_x_continuous(trans='log10') +
+      scale_y_continuous(trans='sqrt') + 
+      ggtitle('rhat of u values')
+
     ## y rhats
-    browser()
-    ind = grep('y_pred', colnames(stan_fit))
-    y_pred_rhat <- stan_summary[ind, 'Rhat']
-    p_rhat_y <- ggplot(data = y_pred_rhat, aes(x = rhat)) + geom_density() + 
-      scale_x_continuous(trans='log2') + 
+    ind = grep('y_pred', rownames(stan_summary))
+    y_pred_rhat <- stan_summary[ind, 'Rhat',drop = F]
+    p_rhat_y <- ggplot(data = y_pred_rhat, aes(x = Rhat)) + geom_density() + 
+      scale_x_continuous(trans='log10') + 
+      scale_y_continuous(trans='sqrt') + 
       ggtitle('rhat of y values')
     
     plot_list = append(plot_list, list(plot_grid(p_rhat_u, p_rhat_y)))
+    rel_heights <- c(rel_heights, 1)
   }
   
   ## get the spatial parameter estimates
