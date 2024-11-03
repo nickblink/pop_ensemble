@@ -111,38 +111,39 @@ if(T){
 
 # 
 #### Results with pre-processing and whatnot. ####
+# REDOING ON 11/3/2024 with updated plotting function.
 setwd(root_results)
 setwd('../')
 
 # softmax, centering the X values, estimating alpha.
 load('real_data/real_data_fit_softmax_preprocess_alpha_ID57152_2024_09_16.RData')
 p1 <- plot_real_results(res$sim_list$data_list, res$sim_list$stan_fit, CV_pred = res$sim_list$CV_pred, alpha_estimates = T)
-ggsave(plot = p1, filename = '../Figures/09162024_softmax_centeringX_alpha_real_data.png', height = 12, width = 7)
+ggsave(plot = p1, filename = '../Figures/11032024_softmax_centeringX_alpha_real_data.png', height = 12, width = 7)
 
 # softmax, centering the X values, no alpha.
 load('real_data/real_data_fit_softmax_preprocess_ID26230_2024_09_16.RData')
 p1 <- plot_real_results(res$sim_list$data_list, res$sim_list$stan_fit, CV_pred = res$sim_list$CV_pred)
-ggsave(plot = p1, filename = '../Figures/09162024_softmax_centeringX_NOalpha_real_data.png', height = 12, width = 7)
+ggsave(plot = p1, filename = '../Figures/11032024_softmax_centeringX_NOalpha_real_data.png', height = 12, width = 7)
 
 # softmax, no centering, alpha.
 load('real_data/real_data_fit_softmax_alpha_ID31198_2024_09_16.RData')
 p1 <- plot_real_results(res$sim_list$data_list, res$sim_list$stan_fit, CV_pred = res$sim_list$CV_pred)
-ggsave(plot = p1, filename = '../Figures/09162024_softmax_NOcenteringX_alpha_real_data.png', height = 12, width = 7)
+ggsave(plot = p1, filename = '../Figures/11032024_softmax_NOcenteringX_alpha_real_data.png', height = 12, width = 7)
 
 # softmax, no centering, no alpha.
 load('real_data/real_data_fit_softmax_parallel_ID99987_2024_09_16.RData')
 p1 <- plot_real_results(res$sim_list$data_list, res$sim_list$stan_fit, CV_pred = res$sim_list$CV_pred)
-ggsave(plot = p1, filename = '../Figures/09162024_softmax_NOcenteringX_NOalpha_real_data.png', height = 12, width = 7)
+ggsave(plot = p1, filename = '../Figures/11032024_softmax_NOcenteringX_NOalpha_real_data.png', height = 12, width = 7)
 
 # direct estimate, centering the X values, no alpha.
 load('real_data/real_data_fit_directest_preprocess_ID84612_2024_09_16.RData')
 p1 <- plot_real_results(res$sim_list$data_list, res$sim_list$stan_fit, CV_pred = res$sim_list$CV_pred)
-ggsave(plot = p1, filename = '../Figures/09162024_directest_centeringX_NOalpha_real_data.png', height = 12, width = 7)
+ggsave(plot = p1, filename = '../Figures/11032024_directest_centeringX_NOalpha_real_data.png', height = 12, width = 7)
 
 # direct estimate, no centering, no alpha.
 load('real_data/real_data_fit_null_ID82460_2024_09_16.RData')
 p1 <- plot_real_results(res$sim_list$data_list, res$sim_list$stan_fit, CV_pred = res$sim_list$CV_pred)
-ggsave(plot = p1, filename = '../Figures/09162024_directest_NOcenteringX_NOalpha_real_data.png', height = 12, width = 7)
+ggsave(plot = p1, filename = '../Figures/11032024_directest_NOcenteringX_NOalpha_real_data.png', height = 12, width = 7)
 
 
 #

@@ -552,7 +552,8 @@ run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_
                    init = init_vals,
                    chains = chains_cores, 
                    cores = chains_cores,
-                   seed = seed,
+                   seed = seed, 
+                   thin = 10,
                    show_messages = F,
                    verbose = F)
 
