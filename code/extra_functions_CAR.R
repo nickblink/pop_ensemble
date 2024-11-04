@@ -833,7 +833,7 @@ fit_model_real <- function(raw_data, models=c('acs','pep','wp'), family = 'poiss
   # store results
   if(return_quantiles){
     stan_quants <- get_stan_quantiles(stan_fit)
-    tmp_lst <- list(data_list = raw_data, stan_fit = stan_quants, stan_MAP = stan_MAP)
+    tmp_lst <- list(data_list = raw_data, stan_fit = stan_fit, stan_quants = stan_quants, stan_MAP = stan_MAP)
   }else{
     tmp_lst <- list(data_list = raw_data, stan_fit = stan_fit, stan_MAP = stan_MAP)
   }
@@ -1305,7 +1305,7 @@ process_results <- function(data_list, stan_fit, stan_fit_quantiles = F, models 
 # likelihoods: whether to include the prior, likelihood, and posterior.
 # <XX>_estimates: whether to include the <XX> estimates.
 # RMSE_CP_values: whether to include the RMSE values and coverage probabilities.
-plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, models = c('acs','pep','wp'), CV_pred = T, ESS = T, rhats = T, rho_estimates = T, tau2_estimates = T, sigma2_estimates = F, theta_estimates = T, alpha_estimates = F, phi_estimates = F, pairwise_phi_estimates = T, u_estimates = T, y_estimates = T, RMSE_CP_values = T){
+plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, models = c('acs','pep','wp'), thin = NULL, CV_pred = T, ESS = T, rhats = T, rho_estimates = T, tau2_estimates = T, sigma2_estimates = F, theta_estimates = T, alpha_estimates = F, phi_estimates = F, pairwise_phi_estimates = T, u_estimates = T, y_estimates = T, RMSE_CP_values = T){
   
   # checking stan fit type.
   if(any(class(stan_fit) == 'matrix') & stan_fit_quantiles == F){
@@ -1317,6 +1317,29 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, model
   N = nrow(data_list$data)
   if(is.null(models)){
     models = grep('^X', colnames(data_list$data), value = T)
+  }
+  
+  if(!is.null(thin)){
+    stop('code not finished - it appears too slow to do')
+    draws_array <- as.array(stan_fit)
+    thinned_draws <- draws_array[seq(1, dim(draws_array)[1], by = thin)]
+    
+    thin_indices <- seq(1, fit@sim$iter, by = 10)
+    
+    # Modify the number of iterations and the list of samples
+    fit@sim$iter <- length(thin_indices)
+    fit@sim$samples <- lapply(fit@sim$samples, function(chain) {
+      lapply(chain, function(param) param[thin_indices])
+    })
+    
+    # Thin the samples for each chain directly without looping through each parameter
+    fit@sim$samples <- lapply(fit@sim$samples, function(chain) {
+      # Use vectorized indexing to thin all parameters at once in each chain
+      lapply(chain, `[`, thin_indices)
+    })
+    
+    # If your model also involves warmup draws, ensure to adjust the `warmup` parameter if needed
+    fit@sim$warmup2 <- fit@sim$warmup / 10
   }
   
   plot_list = NULL
@@ -1465,9 +1488,8 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, model
     p_alpha <- ggplot(data = alpha, aes(x = model, y = value)) + 
       geom_boxplot() + 
       ggtitle('alpha estimates') + 
-      theme(legend.position = 'none') +
-      scale_y_continuous(trans='log2')
-    
+      theme(legend.position = 'none') 
+
     # plot_list <- append(plot_list, list(p_alpha))
     # rel_heights <- c(rel_heights, 1)
   }
