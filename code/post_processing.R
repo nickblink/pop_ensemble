@@ -127,7 +127,7 @@ ggsave(plot = p1, filename = '../Figures/11032024_softmax_centeringX_NOalpha_rea
 
 # softmax, no centering, alpha.
 load('real_data/real_data_fit_softmax_alpha_ID31198_2024_09_16.RData')
-p1 <- plot_real_results(res$sim_list$data_list, res$sim_list$stan_fit, CV_pred = res$sim_list$CV_pred)
+p1 <- plot_real_results(res$sim_list$data_list, res$sim_list$stan_fit, CV_pred = res$sim_list$CV_pred, alpha_estimates = T)
 ggsave(plot = p1, filename = '../Figures/11032024_softmax_NOcenteringX_alpha_real_data.png', height = 12, width = 7)
 
 # softmax, no centering, no alpha.
