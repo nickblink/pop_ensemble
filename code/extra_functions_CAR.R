@@ -438,7 +438,7 @@ get_stan_MAP <- function(stan_fit, inc_warmup = T){
 # models: a vector of the models to use in the ensemble.
 # sigma2_prior_shape: Shape of the gamma distribution prior.
 # sigma2_prior_rate: rate of the gamma distribution prior.
-prep_stan_data_leroux_sparse <- function(data, W, models, outcome = 'y', use_softmax = F, use_pivot = F, use_normal = T, sigma2_prior_shape = 1, sigma2_prior_rate = 10, theta_prior_shape = .001, theta_prior_rate = .001, tau2_prior_shape = 1, tau2_prior_rate = 1, fixed_rho = - 1, fixed_tau2 = -1, alpha_variance_prior = NULL, family = NULL, rho = NULL, tau2 = NULL, ...){
+prep_stan_data_leroux_sparse <- function(data, W, models, outcome = 'y', use_softmax = F, use_pivot = F, use_normal = T, sigma2_prior_shape = 1, sigma2_prior_rate = 10, theta_prior_shape = .001, theta_prior_rate = .001, tau2_prior_shape = 1, tau2_prior_rate = 1, fixed_rho = - 1, fixed_tau2 = -1, alpha_variance_prior = NULL, family = NULL, rho = NULL, tau2 = NULL, Z = NULL, ...){
   # checking columns
   if(!(outcome %in% colnames(data))){
     stop(sprintf('need outcome %s as a column in data', outcome))
@@ -511,6 +511,10 @@ prep_stan_data_leroux_sparse <- function(data, W, models, outcome = 'y', use_sof
     stan_data <- c(stan_data, list(alpha_variance_prior = alpha_variance_prior))
   }
   
+  if(!is.null(Z)){
+    stan_data <- c(stan_data, list(num_vars = ncol(Z), Z = Z))
+  }
+  
   return(stan_data)
 }
 
@@ -523,7 +527,7 @@ prep_stan_data_leroux_sparse <- function(data, W, models, outcome = 'y', use_sof
 # n.sample: the number of iterations to run the rstan code.
 # burnin: the number of burnin iterations to run the rstan code.
 # seed: a seed for reproducability
-run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_type = 'Leroux', n.sample = 10000, burnin = 5000, seed = 10, stan_m = NULL, stan_path = "code/CAR_leroux_sparse.stan", tau2 = NULL, use_softmax = NULL, use_normal = T, use_pivot = F, init_vals = '0',family = family, chains_cores = 1, ...){
+run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_type = 'Leroux', n.sample = 10000, burnin = 5000, seed = 10, stan_m = NULL, stan_path = "code/CAR_leroux_sparse.stan", tau2 = NULL, use_softmax = NULL, use_normal = T, use_pivot = F, init_vals = '0', family = family, chains_cores = 1, Z = NULL, ...){
 
   # error checking for precision matrix type.
   if(precision_type != 'Leroux'){stop('only have Leroux precision coded')}
@@ -536,7 +540,7 @@ run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_
   }
   
   # prep the data.
-  stan_data <- prep_stan_data_leroux_sparse(data, adjacency, models, use_softmax = use_softmax, use_normal = use_normal, use_pivot = use_pivot, family = family, ...)
+  stan_data <- prep_stan_data_leroux_sparse(data, adjacency, models, use_softmax = use_softmax, use_normal = use_normal, use_pivot = use_pivot, family = family, Z = Z, ...)
   
   # create the stan model if not done already.
   if(is.null(stan_m)){
@@ -729,6 +733,11 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
   return(res_lst)
 }
 
+### This is a test if there's a better way to pass through parameters in nested functions. Alas, there is not (that I could find).
+fit_model_real_wrapper <- function(raw_data, ...){
+  out <- fit_model_real(raw_data, ...)
+  return(out)
+}
 
 ### Fit the real data
 # raw_data: data list containing "data" and "adjacency".
@@ -743,9 +752,7 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
 ## Optional arguments
 # n.sample: number of stan chain samples.
 # burnin: length of burnin period for stan.
-fit_model_real <- function(raw_data, models=c('acs','pep','wp'), family = 'poisson', stan_path = "code/CAR_leroux_sparse_poisson.stan", init_vals = '0', family_name_check = T, use_softmax = F, CV_blocks = NULL, seed_start = 0, return_quantiles = T, alpha_variance_prior=NULL, preprocess_scale = F, ...){
-  
-  rstan_options(auto_write = F)
+fit_model_real <- function(raw_data, models=c('acs','pep','wp'), family = 'poisson', stan_path = "code/CAR_leroux_sparse_poisson.stan", init_vals = '0', family_name_check = T, use_softmax = F, CV_blocks = NULL, seed_start = 0, return_quantiles = T, alpha_variance_prior=NULL, preprocess_scale = F, fixed_effects = NULL, ...){
   
   # capture the arguments
   arguments <- match.call()
@@ -767,15 +774,29 @@ fit_model_real <- function(raw_data, models=c('acs','pep','wp'), family = 'poiss
         stop('cant use alpha for direct estimate. Only for softmax.')
       }
     }
+    
+    if(!is.null(fixed_effects)){
+      if(!grepl('FE', stan_path)){
+        stop('If using fixed effects, need to call a stan script with FE.')
+      }
+      if(fixed_effects == 'intercept'){
+        Z = matrix(1, nrow = nrow(raw_data$data), ncol = 1)
+      }else{
+        browser()
+        # load(...)
+      }
+      
+    }
   }
   
-  # set use_normal variable
+  # set use_normal variable.
   if(tolower(family) %in% c('normal','gaussian')){
     use_normal = T
   }else{
     use_normal = F
   }
   
+  # pre-scale the input models to be centered at the census.
   if(preprocess_scale){
     census_sum <- sum(raw_data$data$census)
     for(m in models){
@@ -811,7 +832,7 @@ fit_model_real <- function(raw_data, models=c('acs','pep','wp'), family = 'poiss
       print('check 5')
       # run the model!
       print(sprintf('use softmax = %s', use_softmax))
-      tmp_stan_fit <- run_stan_CAR(block_data, raw_data$adjacency, models = models, stan_m = m, use_softmax = use_softmax, init_vals = init_vals, family = family, alpha_variance_prior = alpha_variance_prior, ...)
+      tmp_stan_fit <- run_stan_CAR(block_data, raw_data$adjacency, models = models, stan_m = m, use_softmax = use_softmax, init_vals = init_vals, family = family, alpha_variance_prior = alpha_variance_prior, Z = Z, ...)
       print('check 6')
       
       # store the outcome values:
@@ -825,7 +846,7 @@ fit_model_real <- function(raw_data, models=c('acs','pep','wp'), family = 'poiss
   }
   
   # fit the Bayesian model on the full data
-  stan_fit <- run_stan_CAR(raw_data$data, raw_data$adjacency, models = models, stan_m = m, use_softmax = use_softmax, init_vals = init_vals, family = family, ...)
+  stan_fit <- run_stan_CAR(raw_data$data, raw_data$adjacency, models = models, stan_m = m, use_softmax = use_softmax, init_vals = init_vals, family = family,  alpha_variance_prior = alpha_variance_prior, Z = Z, ...)
   
   # get the MAP posterior values.    
   stan_MAP <- get_stan_MAP(stan_fit)

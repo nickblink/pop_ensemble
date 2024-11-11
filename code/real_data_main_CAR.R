@@ -4,25 +4,26 @@ library(ggplot2)
 library(doRNG)
 library(doParallel)
 
-rstan_options(auto_write = F)
-
 # set working directory for home or laptop
 home_dir = T
 if(file.exists('C:/Users/Admin-Dell')){
   root_dir = 'C:/Users/Admin-Dell'
   setwd(sprintf('%s/Documents/github_projects/pop_ensemble/', root_dir))
+  rstan_options(auto_write = T)
 }else if(file.exists('C:/Users/nickl')){
   root_dir = 'C:/Users/nickl'
   setwd(sprintf('%s/Documents/github_projects/pop_ensemble/', root_dir))
+  rstan_options(auto_write = T)
 }else{
   home_dir = F
+  rstan_options(auto_write = F)
 }
 
 # load extra functions
 source('code/extra_functions_CAR.R')
 
 if(home_dir){
-  inputs = c('dataset=AIAN:n.sample=100:burnin=50:family=negbin:use_softmax=T:models=acs,pep,wp:outcome=census:fixed_rho=-1:fixed_tau2=-1:sigma2_prior_shape=0.001:sigma2_prior_rate=0.001:tau2_prior_shape=1:tau2_prior_rate=1:theta_prior_shape=0.001:theta_prior_rate=0.001:stan_path=code/CAR_leroux_sparse_negbin_alpha.stan:CV_blocks=5:return_quantiles=T:parallel=F:alpha_variance_prior=-1:chains_cores=1:output_path_addition=test:chains_cores=1:preprocess_scale=T')
+  inputs = c('dataset=AIAN:n.sample=100:burnin=50:family=negbin:use_softmax=T:models=acs,pep,wp:outcome=census:fixed_rho=-1:fixed_tau2=-1:sigma2_prior_shape=0.001:sigma2_prior_rate=0.001:tau2_prior_shape=1:tau2_prior_rate=1:theta_prior_shape=0.001:theta_prior_rate=0.001:stan_path=code/CAR_leroux_sparse_negbin_alpha_FE.stan:CV_blocks=5:return_quantiles=T:parallel=F:alpha_variance_prior=-1:chains_cores=1:output_path_addition=test:chains_cores=1:preprocess_scale=T:fixed_effects=intercept')
 }else{
   # cluster inputs
   inputs <- commandArgs(trailingOnly = TRUE)

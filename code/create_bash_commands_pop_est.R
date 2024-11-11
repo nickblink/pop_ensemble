@@ -41,7 +41,7 @@ bash_command <- function(R=40, dataset='NY', N_models=3, n.sample=10000, burnin=
 }
 
 ## This script makes bash commands for given simulations
-bash_command_real <- function(dataset='all', models='acs,pep,wp', n.sample=2000, burnin=1000, outcome = 'census', family='negbin', use_softmax=F, fixed_rho = -1, fixed_tau2 = -1, sigma2_prior_shape = 50, sigma2_prior_rate = 0.5, tau2_prior_shape = 1, tau2_prior_rate=1, theta_prior_shape = 0.001, theta_prior_rate = 0.001, stan_path='code/CAR_leroux_sparse_negbin_alpha.stan', CV_blocks = 5, return_quantiles = F, output_path_addition = NULL, alpha_variance_prior=-1, chains_cores=10, preprocess_scale = F){
+bash_command_real <- function(dataset='all', models='acs,pep,wp', n.sample=2000, burnin=1000, outcome = 'census', family='negbin', use_softmax=F, fixed_rho = -1, fixed_tau2 = -1, sigma2_prior_shape = 50, sigma2_prior_rate = 0.5, tau2_prior_shape = 1, tau2_prior_rate=1, theta_prior_shape = 0.001, theta_prior_rate = 0.001, stan_path='code/CAR_leroux_sparse_negbin_alpha_FE.stan', CV_blocks = 5, return_quantiles = F, output_path_addition = NULL, alpha_variance_prior=-1, chains_cores=10, preprocess_scale = F, fixed_effects = NULL){
   
   if(!grepl(family, stan_path)){
     warning('family not in stan path - is that correct?')
@@ -49,7 +49,7 @@ bash_command_real <- function(dataset='all', models='acs,pep,wp', n.sample=2000,
   
   job_name = sprintf('%s_%s_%smodels_CV%s', round(runif(1)*1000), ifelse(use_softmax, 'softmax', 'directest'), family, CV_blocks)
   
-  params <- list(dataset=dataset, models=models, n.sample=n.sample, burnin=burnin, outcome = outcome, family=family,use_softmax=use_softmax, fixed_rho = fixed_rho, fixed_tau2 = fixed_tau2,  sigma2_prior_shape = sigma2_prior_shape, sigma2_prior_rate = sigma2_prior_rate, tau2_prior_shape = tau2_prior_shape, tau2_prior_rate=tau2_prior_rate,  theta_prior_shape = theta_prior_shape, theta_prior_rate = theta_prior_rate, stan_path=stan_path, CV_blocks = CV_blocks, return_quantiles = return_quantiles, output_path_addition = output_path_addition, chains_cores = chains_cores, alpha_variance_prior = alpha_variance_prior, preprocess_scale = preprocess_scale)
+  params <- list(dataset=dataset, models=models, n.sample=n.sample, burnin=burnin, outcome = outcome, family=family,use_softmax=use_softmax, fixed_rho = fixed_rho, fixed_tau2 = fixed_tau2,  sigma2_prior_shape = sigma2_prior_shape, sigma2_prior_rate = sigma2_prior_rate, tau2_prior_shape = tau2_prior_shape, tau2_prior_rate=tau2_prior_rate,  theta_prior_shape = theta_prior_shape, theta_prior_rate = theta_prior_rate, stan_path=stan_path, CV_blocks = CV_blocks, return_quantiles = return_quantiles, output_path_addition = output_path_addition, chains_cores = chains_cores, alpha_variance_prior = alpha_variance_prior, preprocess_scale = preprocess_scale, fixed_effects = fixed_effects)
   
   param_str = paste(paste(names(params), params, sep = '='), collapse=':') %>%
     gsub(' |c\\(|\\)','',.) %>%
@@ -109,6 +109,16 @@ bash_wrapper <- function(bash_file = NULL, theta_vec = NULL, rho_vec = NULL, out
   
   return(cmds)
 }
+
+#### Real bash - Full pop with intercept ####
+
+## running the top three versions with the intercept - woohoo!
+bash_command_real(use_softmax = F, fixed_effects = 'intercept', output_path_addition = 'directest_interceptonly')
+bash_command_real(use_softmax = T, fixed_effects = 'intercept', output_path_addition = 'softmax_interceptonly')
+bash_command_real(use_softmax = T, fixed_effects = 'intercept', alpha_variance_prior = 0.01,  output_path_addition = 'softmax_alpha_interceptonly')
+bash_command_real(use_softmax = T, fixed_effects = 'intercept', preprocess_scale = T,  output_path_addition = 'softmax_preprocess_interceptonly')
+bash_command_real(use_softmax = T, fixed_effects = 'intercept', alpha_variance_prior = 0.01,  output_path_addition = 'softmax_alpha_interceptonly')
+bash_command_real(use_softmax = T, fixed_effects = 'intercept', preprocess_scale = T, alpha_variance_prior = 0.01,  output_path_addition = 'softmax_preprocess_alpha_interceptonly')
 
 #### Real bash - AIAN ####
 bash_command_real(dataset = 'AIAN', use_softmax = T, output_path_addition = 'softmax_AIAN')
