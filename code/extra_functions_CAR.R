@@ -854,9 +854,9 @@ fit_model_real <- function(raw_data, models=c('acs','pep','wp'), family = 'poiss
   # store results
   if(return_quantiles){
     stan_quants <- get_stan_quantiles(stan_fit)
-    tmp_lst <- list(data_list = raw_data, stan_fit = stan_fit, stan_quants = stan_quants, stan_MAP = stan_MAP)
+    tmp_lst <- list(data_list = raw_data, stan_fit = stan_fit, stan_quants = stan_quants, stan_MAP = stan_MAP, stan_summary = summary(stan_fit))
   }else{
-    tmp_lst <- list(data_list = raw_data, stan_fit = stan_fit, stan_MAP = stan_MAP)
+    tmp_lst <- list(data_list = raw_data, stan_fit = stan_fit, stan_MAP = stan_MAP, stan_summary = summary(stan_fit))
   }
   
   

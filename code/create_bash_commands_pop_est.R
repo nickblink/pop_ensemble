@@ -116,6 +116,8 @@ bash_wrapper <- function(bash_file = NULL, theta_vec = NULL, rho_vec = NULL, out
 bash_command_real(use_softmax = F, fixed_effects = 'intercept', output_path_addition = 'directest_interceptonly')
 bash_command_real(use_softmax = T, fixed_effects = 'intercept', output_path_addition = 'softmax_interceptonly')
 bash_command_real(use_softmax = T, fixed_effects = 'intercept', alpha_variance_prior = 0.01,  output_path_addition = 'softmax_alpha_interceptonly')
+
+
 bash_command_real(use_softmax = T, fixed_effects = 'intercept', preprocess_scale = T,  output_path_addition = 'softmax_preprocess_interceptonly')
 bash_command_real(use_softmax = T, fixed_effects = 'intercept', alpha_variance_prior = 0.01,  output_path_addition = 'softmax_alpha_interceptonly')
 bash_command_real(use_softmax = T, fixed_effects = 'intercept', preprocess_scale = T, alpha_variance_prior = 0.01,  output_path_addition = 'softmax_preprocess_alpha_interceptonly')
