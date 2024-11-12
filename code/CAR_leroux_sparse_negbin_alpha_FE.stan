@@ -200,7 +200,7 @@ model {
   y_obs ~ neg_binomial_2(observed_est, theta);
   // hyperparameter priors.
   theta ~ gamma(theta_prior_shape, theta_prior_rate); // prior on theta
-  //to_vector(beta) ~ normal(0, 1); // prior on beta.
+  to_vector(beta) ~ normal(0, 1); // prior on beta.
   
   // gamma prior on tau2 
   if(estimate_tau2 == 1){

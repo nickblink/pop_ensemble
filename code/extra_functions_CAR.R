@@ -852,13 +852,11 @@ fit_model_real <- function(raw_data, models=c('acs','pep','wp'), family = 'poiss
   stan_MAP <- get_stan_MAP(stan_fit)
   
   # store results
-  if(return_quantiles){
-    stan_quants <- get_stan_quantiles(stan_fit)
-    tmp_lst <- list(data_list = raw_data, stan_fit = stan_fit, stan_quants = stan_quants, stan_MAP = stan_MAP, stan_summary = summary(stan_fit))
-  }else{
-    tmp_lst <- list(data_list = raw_data, stan_fit = stan_fit, stan_MAP = stan_MAP, stan_summary = summary(stan_fit))
-  }
+  tmp_lst <- list(data_list = raw_data, stan_fit = stan_fit,  stan_MAP = stan_MAP, stan_summary = summary(stan_fit), stan_out = extract(stan_fit))
   
+  if(return_quantiles){
+    tmp_lst[['stan_quants']] <- stan_quants
+  }
   
   if(!is.null(CV_blocks)){
     if(return_quantiles){
@@ -1326,7 +1324,7 @@ process_results <- function(data_list, stan_fit, stan_fit_quantiles = F, models 
 # likelihoods: whether to include the prior, likelihood, and posterior.
 # <XX>_estimates: whether to include the <XX> estimates.
 # RMSE_CP_values: whether to include the RMSE values and coverage probabilities.
-plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, models = c('acs','pep','wp'), thin = NULL, CV_pred = T, ESS = T, rhats = T, rho_estimates = T, tau2_estimates = T, sigma2_estimates = F, theta_estimates = T, alpha_estimates = F, phi_estimates = F, pairwise_phi_estimates = T, u_estimates = T, y_estimates = T, RMSE_CP_values = T){
+plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, stan_summary = NULL, models = c('acs','pep','wp'), thin = NULL, CV_pred = T, ESS = T, rhats = T, rho_estimates = T, tau2_estimates = T, sigma2_estimates = F, theta_estimates = T, alpha_estimates = F, phi_estimates = F, pairwise_phi_estimates = T, u_estimates = T, y_estimates = T, RMSE_CP_values = T){
   
   # checking stan fit type.
   if(any(class(stan_fit) == 'matrix') & stan_fit_quantiles == F){
@@ -1368,14 +1366,21 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, model
   
   ## grab the results
   #stan_summary = summary(stan_fit, pars = c('tau2','rho', 'phi', 'u','y_exp','lp__'))$summary
-  if(!stan_fit_quantiles){
+  if(is.null(stan_summary)){
     stan_summary = summary(stan_fit)$summary
-    stan_out <- extract(stan_fit)
   }else{
-    if(ESS | likelihoods){
-      stop('cant return ESS or likelihoods when only quantiles of MCMC results are input.')
-    }
+    print('using input stan summary')
   }
+  stan_out <- extract(stan_fit)
+  
+  # if(!stan_fit_quantiles){
+  #   stan_summary = summary(stan_fit)$summary
+  #   stan_out <- extract(stan_fit)
+  # }else{
+  #   if(ESS | likelihoods){
+  #     stop('cant return ESS or likelihoods when only quantiles of MCMC results are input.')
+  #   }
+  # }
   
   ## get the effective sample size convergence parameters
   if(ESS){

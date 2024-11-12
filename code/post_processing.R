@@ -3,8 +3,6 @@ library(rstan)
 library(ggplot2)
 library(cowplot)
 
-rstan_options(auto_write = TRUE)
-
 # set working directory
 if(file.exists('C:/Users/Admin-Dell')){
   root_dir = 'C:/Users/Admin-Dell'
@@ -22,7 +20,19 @@ setwd(root_git)
 # load extra functions
 source('code/extra_functions_CAR.R')
 
-#
+#### Intercept only results ####
+setwd(root_results)
+load('../real_data/real_data_fit_softmax_preprocess_alpha_interceptonly_ID45884_2024_11_12.RData')
+
+tt <- res$sim_list$stan_fit
+ss <- extract(tt)
+
+p1 <- plot_real_results(data_list = res$sim_list$data_list,
+                        stan_fit = res$sim_list$stan_fit,
+                        stan_summary = res$sim_list$stan_summary$summary,
+                        CV_pred = res$sim_list$CV_pred,
+                        alpha_estimates = F)
+
 #### Investigating US American Indian results ####
 # (1) Look at the distribution of alpha for PEP.
 # (2) Look at a single prediction from a single high alpha value - is it correct?
