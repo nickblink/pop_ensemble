@@ -1,0 +1,183 @@
+[1] "dataset=all:models=acs,pep,wp:n.sample=2000:burnin=1000:outcome=census:family=negbin:use_softmax=T:fixed_rho=-1:fixed_tau2=-1:sigma2_prior_shape=50:sigma2_prior_rate=0.5:tau2_prior_shape=1:tau2_prior_rate=1:theta_prior_shape=0.001:theta_prior_rate=0.001:stan_path=code/CAR_leroux_sparse_negbin_alpha_FE.stan:CV_blocks=5:return_quantiles=F:output_path_addition=softmax_preprocess_alpha_interceptonly:chains_cores=10:alpha_variance_prior=0.01:preprocess_scale=T:fixed_effects=intercept"
+$dataset
+[1] "all"
+
+$models
+[1] "acs" "pep" "wp" 
+
+$n.sample
+[1] 2000
+
+$burnin
+[1] 1000
+
+$outcome
+[1] "census"
+
+$family
+[1] "negbin"
+
+$use_softmax
+[1] TRUE
+
+$fixed_rho
+[1] -1
+
+$fixed_tau2
+[1] -1
+
+$sigma2_prior_shape
+[1] 50
+
+$sigma2_prior_rate
+[1] 0.5
+
+$tau2_prior_shape
+[1] 1
+
+$tau2_prior_rate
+[1] 1
+
+$theta_prior_shape
+[1] 0.001
+
+$theta_prior_rate
+[1] 0.001
+
+$stan_path
+[1] "code/CAR_leroux_sparse_negbin_alpha_FE.stan"
+
+$CV_blocks
+[1] 5
+
+$return_quantiles
+[1] FALSE
+
+$output_path_addition
+[1] "softmax_preprocess_alpha_interceptonly"
+
+$chains_cores
+[1] 10
+
+$alpha_variance_prior
+[1] 0.01
+
+$preprocess_scale
+[1] TRUE
+
+$fixed_effects
+[1] "intercept"
+
+$results_file
+[1] "results/real_data_results/real_data_fit_softmax_preprocess_alpha_interceptonly_ID43412_2024_11_12.RData"
+
+[1] "check 1"
+[1] "check 1.5"
+groups
+  1   2   3   4   5 
+813 630 587 537 497 
+[1] "------------1------------"
+[1] "check 5"
+[1] "use softmax = TRUE"
+
+SAMPLING FOR MODEL 'anon_model' NOW (CHAIN 1).
+
+SAMPLING FOR MODEL 'anon_model' NOW (CHAIN 2).
+
+SAMPLING FOR MODEL 'anon_model' NOW (CHAIN 3).
+
+SAMPLING FOR MODEL 'anon_model' NOW (CHAIN 4).
+
+SAMPLING FOR MODEL 'anon_model' NOW (CHAIN 5).
+
+SAMPLING FOR MODEL 'anon_model' NOW (CHAIN 6).
+
+SAMPLING FOR MODEL 'anon_model' NOW (CHAIN 7).
+
+SAMPLING FOR MODEL 'anon_model' NOW (CHAIN 8).
+
+SAMPLING FOR MODEL 'anon_model' NOW (CHAIN 9).
+
+SAMPLING FOR MODEL 'anon_model' NOW (CHAIN 10).
+Chain 1: Unrecoverable error evaluating the log probability at the initial value.
+Chain 1: Exception: matrix assign rows: assigning variable zeta (1) and right hand side rows (3064) must match in size (in 'anon_model', line 130, column 2 to column 22)
+Chain 2: Unrecoverable error evaluating the log probability at the initial value.
+Chain 2: Exception: matrix assign rows: assigning variable zeta (1) and right hand side rows (3064) must match in size (in 'anon_model', line 130, column 2 to column 22)
+[1] "Error : Exception: matrix assign rows: assigning variable zeta (1) and right hand side rows (3064) must match in size (in 'anon_model', line 130, column 2 to column 22)"
+[2] "In addition: Warning message:"                                                                                                                                           
+[3] "Unable to color with 5 colors. Adjacent polygons may have the same color. "                                                                                              
+[1] "Error : Exception: matrix assign rows: assigning variable zeta (1) and right hand side rows (3064) must match in size (in 'anon_model', line 130, column 2 to column 22)"
+[2] "In addition: Warning message:"                                                                                                                                           
+[3] "Unable to color with 5 colors. Adjacent polygons may have the same color. "                                                                                              
+Chain 3: Unrecoverable error evaluating the log probability at the initial value.
+Chain 3: Exception: matrix assign rows: assigning variable zeta (1) and right hand side rows (3064) must match in size (in 'anon_model', line 130, column 2 to column 22)
+[1] "Error : Exception: matrix assign rows: assigning variable zeta (1) and right hand side rows (3064) must match in size (in 'anon_model', line 130, column 2 to column 22)"
+[2] "In addition: Warning message:"                                                                                                                                           
+[3] "Unable to color with 5 colors. Adjacent polygons may have the same color. "                                                                                              
+Chain 4: Unrecoverable error evaluating the log probability at the initial value.
+Chain 4: Exception: matrix assign rows: assigning variable zeta (1) and right hand side rows (3064) must match in size (in 'anon_model', line 130, column 2 to column 22)
+[1] "Error : Exception: matrix assign rows: assigning variable zeta (1) and right hand side rows (3064) must match in size (in 'anon_model', line 130, column 2 to column 22)"
+[2] "In addition: Warning message:"                                                                                                                                           
+[3] "Unable to color with 5 colors. Adjacent polygons may have the same color. "                                                                                              
+Chain 5: Unrecoverable error evaluating the log probability at the initial value.
+Chain 5: Exception: matrix assign rows: assigning variable zeta (1) and right hand side rows (3064) must match in size (in 'anon_model', line 130, column 2 to column 22)
+Chain 6: Unrecoverable error evaluating the log probability at the initial value.
+Chain 6: Exception: matrix assign rows: assigning variable zeta (1) and right hand side rows (3064) must match in size (in 'anon_model', line 130, column 2 to column 22)
+Chain 7: Unrecoverable error evaluating the log probability at the initial value.
+Chain 7: Exception: matrix assign rows: assigning variable zeta (1) and right hand side rows (3064) must match in size (in 'anon_model', line 130, column 2 to column 22)
+[1] "Error : Exception: matrix assign rows: assigning variable zeta (1) and right hand side rows (3064) must match in size (in 'anon_model', line 130, column 2 to column 22)"
+[2] "In addition: Warning message:"                                                                                                                                           
+[3] "Unable to color with 5 colors. Adjacent polygons may have the same color. "                                                                                              
+[1] "Error : Exception: matrix assign rows: assigning variable zeta (1) and right hand side rows (3064) must match in size (in 'anon_model', line 130, column 2 to column 22)"
+[2] "In addition: Warning message:"                                                                                                                                           
+[3] "Unable to color with 5 colors. Adjacent polygons may have the same color. "                                                                                              
+[1] "Error : Exception: matrix assign rows: assigning variable zeta (1) and right hand side rows (3064) must match in size (in 'anon_model', line 130, column 2 to column 22)"
+[2] "In addition: Warning message:"                                                                                                                                           
+[3] "Unable to color with 5 colors. Adjacent polygons may have the same color. "                                                                                              
+Chain 8: Unrecoverable error evaluating the log probability at the initial value.
+Chain 8: Exception: matrix assign rows: assigning variable zeta (1) and right hand side rows (3064) must match in size (in 'anon_model', line 130, column 2 to column 22)
+[1] "Error : Exception: matrix assign rows: assigning variable zeta (1) and right hand side rows (3064) must match in size (in 'anon_model', line 130, column 2 to column 22)"
+[2] "In addition: Warning message:"                                                                                                                                           
+[3] "Unable to color with 5 colors. Adjacent polygons may have the same color. "                                                                                              
+Chain 9: Unrecoverable error evaluating the log probability at the initial value.
+Chain 9: Exception: matrix assign rows: assigning variable zeta (1) and right hand side rows (3064) must match in size (in 'anon_model', line 130, column 2 to column 22)
+[1] "Error : Exception: matrix assign rows: assigning variable zeta (1) and right hand side rows (3064) must match in size (in 'anon_model', line 130, column 2 to column 22)"
+[2] "In addition: Warning message:"                                                                                                                                           
+[3] "Unable to color with 5 colors. Adjacent polygons may have the same color. "                                                                                              
+Chain 10: Unrecoverable error evaluating the log probability at the initial value.
+Chain 10: Exception: matrix assign rows: assigning variable zeta (1) and right hand side rows (3064) must match in size (in 'anon_model', line 130, column 2 to column 22)
+[1] "Error : Exception: matrix assign rows: assigning variable zeta (1) and right hand side rows (3064) must match in size (in 'anon_model', line 130, column 2 to column 22)"
+[2] "In addition: Warning message:"                                                                                                                                           
+[3] "Unable to color with 5 colors. Adjacent polygons may have the same color. "                                                                                              
+[[1]]
+Stan model 'anon_model' does not contain samples.
+
+[[2]]
+Stan model 'anon_model' does not contain samples.
+
+[[3]]
+Stan model 'anon_model' does not contain samples.
+
+[[4]]
+Stan model 'anon_model' does not contain samples.
+
+[[5]]
+Stan model 'anon_model' does not contain samples.
+
+[[6]]
+Stan model 'anon_model' does not contain samples.
+
+[[7]]
+Stan model 'anon_model' does not contain samples.
+
+[[8]]
+Stan model 'anon_model' does not contain samples.
+
+[[9]]
+Stan model 'anon_model' does not contain samples.
+
+[[10]]
+Stan model 'anon_model' does not contain samples.
+
+[1] "check 6"
+Stan model 'anon_model' does not contain samples.

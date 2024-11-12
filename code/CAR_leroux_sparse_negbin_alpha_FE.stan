@@ -125,7 +125,7 @@ transformed parameters {
   matrix[N + 1, M] ldet_vec;
   real rho[M];
   real tau2[M];
-  matrix[num_vars, M_phi] zeta; // mean estimates Z*beta + phi.
+  matrix[N, M_phi] zeta; // mean estimates Z*beta + phi.
   
   // update phi values by the fixed effects to get zeta estimates.
   zeta = Z*beta + phi;

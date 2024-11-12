@@ -23,7 +23,8 @@ if(file.exists('C:/Users/Admin-Dell')){
 source('code/extra_functions_CAR.R')
 
 if(home_dir){
-  inputs = c('dataset=AIAN:n.sample=100:burnin=50:family=negbin:use_softmax=T:models=acs,pep,wp:outcome=census:fixed_rho=-1:fixed_tau2=-1:sigma2_prior_shape=0.001:sigma2_prior_rate=0.001:tau2_prior_shape=1:tau2_prior_rate=1:theta_prior_shape=0.001:theta_prior_rate=0.001:stan_path=code/CAR_leroux_sparse_negbin_alpha_FE.stan:CV_blocks=5:return_quantiles=T:parallel=F:alpha_variance_prior=-1:chains_cores=1:output_path_addition=test:chains_cores=1:preprocess_scale=T:fixed_effects=intercept')
+  #inputs = c('dataset=AIAN:n.sample=100:burnin=50:family=negbin:use_softmax=T:models=acs,pep,wp:outcome=census:fixed_rho=-1:fixed_tau2=-1:sigma2_prior_shape=0.001:sigma2_prior_rate=0.001:tau2_prior_shape=1:tau2_prior_rate=1:theta_prior_shape=0.001:theta_prior_rate=0.001:stan_path=code/CAR_leroux_sparse_negbin_alpha_FE.stan:CV_blocks=5:return_quantiles=T:parallel=F:alpha_variance_prior=-1:chains_cores=1:output_path_addition=test:chains_cores=1:preprocess_scale=T:fixed_effects=intercept')
+  inputs = 'dataset=all:models=acs,pep,wp:n.sample=100:burnin=50:outcome=census:family=negbin:use_softmax=T:fixed_rho=-1:fixed_tau2=-1:sigma2_prior_shape=50:sigma2_prior_rate=0.5:tau2_prior_shape=1:tau2_prior_rate=1:theta_prior_shape=0.001:theta_prior_rate=0.001:stan_path=code/CAR_leroux_sparse_negbin_alpha_FE.stan:CV_blocks=NULL:return_quantiles=F:output_path_addition=softmax_interceptonly:chains_cores=1:alpha_variance_prior=-1:preprocess_scale=F:fixed_effects=intercept'
 }else{
   # cluster inputs
   inputs <- commandArgs(trailingOnly = TRUE)
@@ -44,7 +45,9 @@ for(str in strsplit(inputs,':')[[1]]){
     val = tolower(tmp[2])
   }
 
-  if(nn %in% c('n.sample', 'burnin', 'fixed_rho',  'fixed_tau2', 'sigma2_prior_shape', 'sigma2_prior_rate', 'tau2_prior_shape', 'tau2_prior_rate', 'CV_blocks','theta_prior_shape','theta_prior_rate', 'alpha_variance_prior', 'chains_cores')){
+  if(val %in% c('NULL', 'null')){
+    val <- NULL
+  }else if(nn %in% c('n.sample', 'burnin', 'fixed_rho',  'fixed_tau2', 'sigma2_prior_shape', 'sigma2_prior_rate', 'tau2_prior_shape', 'tau2_prior_rate', 'CV_blocks','theta_prior_shape','theta_prior_rate', 'alpha_variance_prior', 'chains_cores')){
     val = as.numeric(val)
   }else if(nn == 'N_models'){
     models <- paste0('X', 1:as.numeric(val))
@@ -52,13 +55,14 @@ for(str in strsplit(inputs,':')[[1]]){
     next
   }else if(val %in% c('t','f')){
     val = as.logical(ifelse(val == 't', T, F))
-  }else if(val %in% c('NULL', 'null')){
-    val <- NULL
+  # }else if(val %in% c('NULL', 'null')){
+  #   val <- NULL
   }else if(nn == 'models'){
     val = as.character(strsplit(val, ',')[[1]])
-  }else if(val %in% c('NULL', 'null')){
-    val <- NULL
   }
+  # else if(val %in% c('NULL', 'null')){
+  #   val <- NULL
+  # }
   
   params[[nn]] = val
 }
@@ -112,6 +116,15 @@ if(params[['dataset']] == 'aian'){
 # fit the real data!
 res <- do.call(fit_model_real, params)
 # res <- fit_model_real(params)
+
+if(F){
+  tt <- res$sim_list
+  tt$stan_summary$summary -> ss
+  grep('zeta', rownames(ss)) -> ind
+  head(ss[ind,])
+  grep('beta', rownames(ss)) -> ind2
+  head(ss[ind2,])
+}
 
 # save the results
 save(res, params, file = params$results_file)
