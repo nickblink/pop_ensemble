@@ -200,7 +200,7 @@ model {
   y_obs ~ neg_binomial_2(observed_est, theta);
   // hyperparameter priors.
   theta ~ gamma(theta_prior_shape, theta_prior_rate); // prior on theta
-  //beta ~ normal(0, 1); // prior on beta.
+  //to_vector(beta) ~ normal(0, 1); // prior on beta.
   
   // gamma prior on tau2 
   if(estimate_tau2 == 1){
@@ -208,9 +208,10 @@ model {
   }
   // alpha prior
   if(use_alpha == 1){
-    for(m in 1:M){
-	  alpha ~ normal(1, alpha_variance_prior);
-	}
+    //for(m in 1:M){
+	  //alpha ~ normal(1, alpha_variance_prior);
+	//}
+	alpha ~ normal(1, alpha_variance_prior);
   }
   // CAR prior
   for(m in 1:M_phi){

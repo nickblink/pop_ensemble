@@ -200,9 +200,10 @@ model {
     tau2_estimated ~ gamma(tau2_prior_shape, tau2_prior_rate);
   }
   if(use_alpha == 1){
-    for(m in 1:M){
-	  alpha ~ normal(1, alpha_variance_prior);
-	}
+    //for(m in 1:M){
+	  //alpha ~ normal(1, alpha_variance_prior);
+	//}
+	alpha ~ normal(1, alpha_variance_prior);
   }
 }
 generated quantities {
