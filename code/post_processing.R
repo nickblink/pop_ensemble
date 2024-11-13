@@ -9,7 +9,7 @@ if(file.exists('C:/Users/Admin-Dell')){
 }else{
   root_dir = 'C:/Users/nickl'
 }
-root_results <- sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Results/simulated_results',
+root_results <- sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Results/',
                         root_dir)
 
 root_git <- sprintf('%s/Documents/github_projects/pop_ensemble/', 
@@ -20,6 +20,34 @@ setwd(root_git)
 # load extra functions
 source('code/extra_functions_CAR.R')
 
+#### Intercept only results pt 2 ####
+setwd(root_results)
+load('real_data/real_data_fit_directest_interceptonly_ID70259_2024_11_12.RData')
+p1 <- plot_real_results(data_list = res$sim_list$data_list,
+                        stan_fit = res$sim_list$stan_fit,
+                        stan_summary = res$sim_list$stan_summary$summary,
+                        CV_pred = res$sim_list$CV_pred,
+                        alpha_estimates = F)
+ggsave(plot = p1, filename = '../Figures/11132024_fullpop_directest_interceptonly_real_data.png', height = 12, width = 7)
+tmp <- res$sim_list$stan_summary$summary
+tmp[grep('beta',rownames(tmp)),]
+# median -0.3, 0.6, 0.3
+
+load('real_data/real_data_fit_softmax_alpha_interceptonly_ID24617_2024_11_12.RData')
+p1 <- plot_real_results(data_list = res$sim_list$data_list,
+                        stan_fit = res$sim_list$stan_fit,
+                        stan_summary = res$sim_list$stan_summary$summary,
+                        CV_pred = res$sim_list$CV_pred,
+                        alpha_estimates = F)
+ggsave(plot = p1, filename = '../Figures/11132024_fullpop_softmax_alpha_interceptonly_real_data.png', height = 12, width = 7)
+tmp <- res$sim_list$stan_summary$summary
+tmp[grep('beta',rownames(tmp)),]
+# median -1.3, 2.9, -1.6
+
+
+
+
+#
 #### Intercept only results ####
 setwd(root_results)
 load('../real_data/real_data_fit_softmax_preprocess_alpha_interceptonly_ID45884_2024_11_12.RData')
