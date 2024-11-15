@@ -781,8 +781,28 @@ fit_model_real <- function(raw_data, models=c('acs','pep','wp'), family = 'poiss
       }
       if(fixed_effects == 'intercept'){
         Z = matrix(1, nrow = nrow(raw_data$data), ncol = 1)
+      }else if(fixed_effects == 'pep_density'){
+        Z = cbind(rep(1, nrow(raw_data$data)),
+                  log(raw_data$data$pep_density))
+      }else if(fixed_effects == 'acs_density'){
+        Z = cbind(rep(1, nrow(raw_data$data)),
+                  log(raw_data$data$acs_density))
+      }else if(fixed_effects == 'pep_fulldensity'){
+        Z = cbind(rep(1, nrow(raw_data$data)),
+                  log(raw_data$data$pep_density_full))
+      }else if(fixed_effects == 'acs_fulldensity'){
+        Z = cbind(rep(1, nrow(raw_data$data)),
+                  log(raw_data$data$acs_density_full))
+      }else if(fixed_effects == 'pep_density_proportion'){
+        Z = cbind(rep(1, nrow(raw_data$data)),
+                  log(raw_data$data$pep_density),
+                  log(raw_data$data$pep_AIAN_proportion))
+      }else if(fixed_effects == 'pep_fulldensity_proportion'){
+        Z = cbind(rep(1, nrow(raw_data$data)),
+                  log(raw_data$data$pep_density_full),
+                  log(raw_data$data$pep_AIAN_proportion))
       }else{
-        browser()
+        stop('not a valid fixed effects situation.')
         # load(...)
       }
       

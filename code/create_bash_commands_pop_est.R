@@ -110,6 +110,60 @@ bash_wrapper <- function(bash_file = NULL, theta_vec = NULL, rho_vec = NULL, out
   return(cmds)
 }
 
+#### Real bash - 8 models using different fixed effects ####
+#(1) Full pop, softmax, preprocess, intercept + density.
+bash_command_real(use_softmax = T, 
+                  preprocess_scale = T, 
+                  fixed_effects = 'pep_density',
+                  output_path_addition = 'softmax_preprocess_density')
+
+# (2) Full pop, softmax, alpha, intercept + density.
+bash_command_real(use_softmax = T, 
+                  alpha_variance_prior = .01,
+                  fixed_effects = 'pep_density',
+                  output_path_addition = 'softmax_alpha_density')
+
+# (3) Full pop, direct est, no prep, intercept + density.
+bash_command_real(use_softmax = F, 
+                  fixed_effects = 'pep_density',
+                  output_path_addition = 'directest_density')
+
+# (4) AIAN, softmax, preprocess, intercept.
+bash_command_real(dataset = 'AIAN',
+                  use_softmax = T, 
+                  preprocess_scale = T, 
+                  fixed_effects = 'intercept',
+                  output_path_addition = 'AIAN_softmax_interceptonly')
+
+# (5) AIAN, softmax, preprocess, AIAN density.
+bash_command_real(dataset = 'AIAN',
+                  use_softmax = T, 
+                  preprocess_scale = T, 
+                  fixed_effects = 'pep_density',
+                  output_path_addition = 'AIAN_softmax_AIANdensity')
+
+# (6) AIAN, softmax, preprocess, fullpop density.
+bash_command_real(dataset = 'AIAN',
+                  use_softmax = T, 
+                  preprocess_scale = T, 
+                  fixed_effects = 'pep_fulldensity',
+                  output_path_addition = 'AIAN_softmax_FULLdensity')
+
+# (7) AIAN, softmax, preprocess, AIAN density and AIAN proportion
+bash_command_real(dataset = 'AIAN',
+                  use_softmax = T, 
+                  preprocess_scale = T, 
+                  fixed_effects = 'pep_density_proportion',
+                  output_path_addition = 'AIAN_softmax_AIANdensityANDprop')
+
+# (8) AIAN, softmax, preprocess, full density and AIAN proportion
+bash_command_real(dataset = 'AIAN',
+                  use_softmax = T, 
+                  preprocess_scale = T, 
+                  fixed_effects = 'pep_fulldensity_proportion',
+                  output_path_addition = 'AIAN_softmax_FULLdensityANDprop')
+
+#
 #### Real bash - Full pop with intercept ####
 
 ## running the top three versions with the intercept - woohoo!

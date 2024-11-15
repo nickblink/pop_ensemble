@@ -167,7 +167,7 @@ df_AIAN <- merge(WP_AIAN, census_AIAN, by=c('GEOID')) %>%
 
 #### Creating density data ####
 ## Full pop
-load('../../data/census_ACS_PEP_WP_08292024.RData')
+load('../../data/census_ACS_PEP_WP_cleaned_08292024.RData')
 
 counties <- counties(cb = TRUE, year = 2019)
 
@@ -183,10 +183,12 @@ df$acs_density <- df$acs/df$ALAND_sqmi
 df$pep_density <- df$pep/df$ALAND_sqmi
 # these are highly correlated. They will need to be logged.
 
-# save(df, file = '../../data/census_ACS_PEP_WP_wDensity_11152024.RData')
+#save(df, file = '../../data/census_ACS_PEP_WP_wDensity_11152024.RData')
 
 ### Now with AIAN
-load('../../data/census_ACS_PEP_WP_AIAN_10282024.RData')
+load('../../data/census_ACS_PEP_WP_wDensity_11152024.RData')
+df_full <- df
+load('../../data/census_ACS_PEP_WP_AIAN_cleaned_10282024.RData')
 
 counties <- counties(cb = TRUE, year = 2019)
 
@@ -196,18 +198,18 @@ land_area <- counties %>%
   select(GEOID, ALAND) %>%
   mutate(ALAND_sqmi = ALAND * 0.0000003861)
 
-df_AIAN = merge(df_AIAN, land_area, by = 'GEOID')
-df_AIAN$acs_density <- df_AIAN$acs/df_AIAN$ALAND_sqmi
-df_AIAN$pep_density <- df_AIAN$pep/df_AIAN$ALAND_sqmi
+df = merge(df, land_area, by = 'GEOID')
+df$acs_density <- df$acs/df$ALAND_sqmi
+df$pep_density <- df$pep/df$ALAND_sqmi
 
 # Get the proportions.
-df2 <- merge(df %>% select(GEOID, acs_full = acs, pep_full = pep), 
-              df_AIAN %>% select(GEOID, acs, pep))
+df2 <- merge(df_full %>% select(GEOID, acs_full = acs, pep_full = pep, acs_density_full = acs_density, pep_density_full = pep_density), 
+              df %>% select(GEOID, acs, pep))
 df2$acs_AIAN_proportion <- df2$acs/df2$acs_full
 df2$pep_AIAN_proportion <- df2$pep/df2$pep_full
 
-df_AIAN <- merge(df_AIAN, df2 %>% select(GEOID, acs_AIAN_proportion, pep_AIAN_proportion))
+df <- merge(df, df2 %>% select(GEOID, acs_AIAN_proportion, pep_AIAN_proportion, acs_density_full, pep_density_full))
 
 # accidentally overwrote the old data anyway.
-#save(df_AIAN, adjacency, file = '../../data/census_ACS_PEP_WP_AIAN_wDensity_11152024.RData')
+# save(df, adjacency, file = '../../data/census_ACS_PEP_WP_AIAN_wDensity_11152024.RData')
 
