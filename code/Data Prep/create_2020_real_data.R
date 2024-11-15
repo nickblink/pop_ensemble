@@ -164,3 +164,50 @@ df_AIAN <- merge(WP_AIAN, census_AIAN, by=c('GEOID')) %>%
   select(GEOID, state, acs = ACS, census, pep = PEP, wp = WP, NAME)
 
 # save(df_AIAN, adjacency, file = '../../data/census_ACS_PEP_WP_AIAN_10282024.RData')
+
+#### Creating density data ####
+## Full pop
+load('../../data/census_ACS_PEP_WP_08292024.RData')
+
+counties <- counties(cb = TRUE, year = 2019)
+
+# Extract county name, FIPS code, and land area
+land_area <- counties %>%
+  sf::st_set_geometry(NULL) %>% # Remove geometry to keep only data
+  select(GEOID, ALAND) %>%
+  mutate(ALAND_sqmi = ALAND * 0.0000003861)
+
+# If using later data (like 2022), the 8 counties of CT are excluded because they don't report their population numbers directly. These have to be gathered from online if they are going to be used.
+df = merge(df, land_area, by = 'GEOID')
+df$acs_density <- df$acs/df$ALAND_sqmi
+df$pep_density <- df$pep/df$ALAND_sqmi
+# these are highly correlated. They will need to be logged.
+
+# save(df, file = '../../data/census_ACS_PEP_WP_wDensity_11152024.RData')
+
+### Now with AIAN
+load('../../data/census_ACS_PEP_WP_AIAN_10282024.RData')
+
+counties <- counties(cb = TRUE, year = 2019)
+
+# Extract county name, FIPS code, and land area
+land_area <- counties %>%
+  sf::st_set_geometry(NULL) %>% # Remove geometry to keep only data
+  select(GEOID, ALAND) %>%
+  mutate(ALAND_sqmi = ALAND * 0.0000003861)
+
+df_AIAN = merge(df_AIAN, land_area, by = 'GEOID')
+df_AIAN$acs_density <- df_AIAN$acs/df_AIAN$ALAND_sqmi
+df_AIAN$pep_density <- df_AIAN$pep/df_AIAN$ALAND_sqmi
+
+# Get the proportions.
+df2 <- merge(df %>% select(GEOID, acs_full = acs, pep_full = pep), 
+              df_AIAN %>% select(GEOID, acs, pep))
+df2$acs_AIAN_proportion <- df2$acs/df2$acs_full
+df2$pep_AIAN_proportion <- df2$pep/df2$pep_full
+
+df_AIAN <- merge(df_AIAN, df2 %>% select(GEOID, acs_AIAN_proportion, pep_AIAN_proportion))
+
+# accidentally overwrote the old data anyway.
+#save(df_AIAN, adjacency, file = '../../data/census_ACS_PEP_WP_AIAN_wDensity_11152024.RData')
+
