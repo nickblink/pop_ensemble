@@ -1692,7 +1692,12 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, stan_
   if(RMSE_CP_values){
     print('RMSE est')
     # initialize data frame:
-    RMSE_CP_df <- data.frame(dataset = as.character(NA), RMSE = as.numeric(NA), CP.95 = as.numeric(NA))
+    RMSE_CP_df <- data.frame(dataset = as.character(NA), 
+                             RMSE = as.numeric(NA), 
+                             rRMSE = as.numeric(NA),
+                             logRMSE = as.numeric(NA),
+                             MAPE = as.numeric(NA),
+                             CP.95 = as.numeric(NA))
     
     # get the median, lower, and upper predictions from this set.
     ind = grep('y_pred', rownames(stan_summary))
@@ -1700,12 +1705,19 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, stan_
     lower_y_pred <- stan_summary[ind,'2.5%']
     upper_y_pred <- stan_summary[ind,'97.5%']
     
-    # get the training set RMSE and CP
-    y = data_list$data$census
-    RMSE_train = sqrt(mean((median_y_pred - y)^2))
-    CP_train = mean(y >= lower_y_pred & y <= upper_y_pred)
+    # get the training set y.
+    y <- data_list$data$census
+    
+    # Calcute the RMSE, relative-RMSE, log RMSE, MAPE, and CV.
+    RMSE_train <- sqrt(mean((median_y_pred - y)^2))
+    rRMSE_train <- sqrt(mean(((median_y_pred - y)/y)^2))
+    logRMSE_train <-  sqrt(mean((log(median_y_pred) - log(y))^2))
+    MAPE_train <- 100*mean(abs((median_y_pred - y)/y))
+    CP_train <- mean(y >= lower_y_pred & y <= upper_y_pred)
+    
+    # store the results (separate rows because of separate character types).
     RMSE_CP_df[1,1] <- 'train'
-    RMSE_CP_df[1,2:3] <- c(RMSE_train, CP_train)
+    RMSE_CP_df[1,2:6] <- c(RMSE_train, rRMSE_train, logRMSE_train, MAPE_train, CP_train)
     
     # get the CV RMSE, if CV was run.
     if(!is.null(CV_pred)){
@@ -1713,14 +1725,20 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, stan_
         quantile(xx, probs = c(0.025, 0.5, 0.975))
       }))
       
+      # Calcute the RMSE, relative-RMSE, log RMSE, MAPE, and CV.
       RMSE_CV = sqrt(mean((CV_quants[,2] - y)^2))
+      rRMSE_CV <- sqrt(mean(((CV_quants[,2] - y)/y)^2))
+      logRMSE_CV <-  sqrt(mean((log(CV_quants[,2]) - log(y))^2))
+      MAPE_CV <- 100*mean(abs((CV_quants[,2] - y)/y))
       CP_CV = mean(y >= CV_quants[,1] & y <= CV_quants[,3])
-      RMSE_CP_df[2,1] <- 'train-CV'
-      RMSE_CP_df[2,2:3] <- c(RMSE_CV, CP_CV)
+      
+      # store the results.
+      RMSE_CP_df[2,1] <- 'CV'
+      RMSE_CP_df[2,2:6] <- c(RMSE_CV, rRMSE_CV, logRMSE_CV, MAPE_CV, CP_CV)
     }
     
     # rounding for display
-    RMSE_CP_df[,2:3] <- round(RMSE_CP_df[,2:3], 3)
+    RMSE_CP_df[,2:6] <- round(RMSE_CP_df[,2:6], 3)
     p_RMSE_CP <- gridExtra::tableGrob(RMSE_CP_df)
     
     plot_list <- append(plot_list, list(p_RMSE_CP))

@@ -1,0 +1,73 @@
+[1] "dataset=AIAN:models=acs,pep,wp:n.sample=2000:burnin=1000:outcome=census:family=negbin:use_softmax=T:fixed_rho=-1:fixed_tau2=-1:sigma2_prior_shape=50:sigma2_prior_rate=0.5:tau2_prior_shape=1:tau2_prior_rate=1:theta_prior_shape=0.001:theta_prior_rate=0.001:stan_path=code/CAR_leroux_sparse_negbin_alpha_FE.stan:CV_blocks=5:return_quantiles=F:output_path_addition=AIAN_softmax_FULLdensityANDprop:chains_cores=10:alpha_variance_prior=-1:preprocess_scale=T:fixed_effects=pep_fulldensity_proportion"
+$dataset
+[1] "aian"
+
+$models
+[1] "acs" "pep" "wp" 
+
+$n.sample
+[1] 2000
+
+$burnin
+[1] 1000
+
+$outcome
+[1] "census"
+
+$family
+[1] "negbin"
+
+$use_softmax
+[1] TRUE
+
+$fixed_rho
+[1] -1
+
+$fixed_tau2
+[1] -1
+
+$sigma2_prior_shape
+[1] 50
+
+$sigma2_prior_rate
+[1] 0.5
+
+$tau2_prior_shape
+[1] 1
+
+$tau2_prior_rate
+[1] 1
+
+$theta_prior_shape
+[1] 0.001
+
+$theta_prior_rate
+[1] 0.001
+
+$stan_path
+[1] "code/CAR_leroux_sparse_negbin_alpha_FE.stan"
+
+$CV_blocks
+[1] 5
+
+$return_quantiles
+[1] FALSE
+
+$output_path_addition
+[1] "aian_softmax_fulldensityandprop"
+
+$chains_cores
+[1] 10
+
+$alpha_variance_prior
+[1] -1
+
+$preprocess_scale
+[1] TRUE
+
+$fixed_effects
+[1] "pep_fulldensity_proportion"
+
+$results_file
+[1] "results/real_data_results/real_data_fit_aian_softmax_fulldensityandprop_ID50748_2024_11_15.RData"
+
