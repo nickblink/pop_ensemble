@@ -20,6 +20,56 @@ setwd(root_git)
 # load extra functions
 source('code/extra_functions_CAR.R')
 
+#### Chloropleth plots! ####
+setwd(root_results)
+load('real_data/real_data_fit_directest_interceptonly_ID70259_2024_11_12.RData')
+
+df<- res$sim_list$data_list$data
+val <- 'census'
+
+
+data <- merge(df, counties, by = 'GEOID')
+
+### Make a chloropleth map of a given result.
+# df: data frame to plot. 
+# val: the name of the column in df to plot.
+# counties: The counties sf data frame.
+# states: The states sf data frame.
+make_chloropleth_plot <- function(df, val, counties = NULL, states = NULL){
+  
+  # get county shapefiles.
+  if(is.null(counties)){
+    counties <- counties(cb = TRUE, year = 2020, class = "sf")
+  }
+
+  # Load state boundaries.
+  if(is.null(states)){
+    states <- states(cb = TRUE, year = 2020, class = "sf")
+  }
+
+  # merge in counties data.
+  data <- left_join(counties, df, by = 'GEOID')
+  
+  # get the outcome of interest.
+  data$outcome = data[,val,drop=T]
+  
+  p1 <- ggplot(data = data) +
+    geom_sf(aes(fill = outcome), color = NA) +
+    geom_sf(data = states, fill = NA, color = "black", size = 0.5) + 
+    scale_fill_viridis_c(option = "plasma", na.value = "white", trans = 'log',
+                         #breaks = pretty_breaks(n = 5),  # Use pretty breaks
+                         labels = function(x) round(x, digits = 0)) +  # Color scale
+    theme_minimal() +
+    coord_sf(xlim = c(-130, -65), ylim = c(24, 50)) +
+    labs(title = sprintf("County %s", val),
+         fill = "Value") +
+    theme(axis.text = element_blank(),
+          axis.ticks = element_blank(),
+          panel.grid = element_blank()) 
+  
+  return(p1)
+}
+  #
 #### Intercept only results pt 2 ####
 setwd(root_results)
 load('real_data/real_data_fit_directest_interceptonly_ID70259_2024_11_12.RData')

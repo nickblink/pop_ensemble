@@ -783,29 +783,34 @@ fit_model_real <- function(raw_data, models=c('acs','pep','wp'), family = 'poiss
         Z = matrix(1, nrow = nrow(raw_data$data), ncol = 1)
       }else if(fixed_effects == 'pep_density'){
         Z = cbind(rep(1, nrow(raw_data$data)),
-                  log(raw_data$data$pep_density))
+                  log(.01 + raw_data$data$pep_density))
       }else if(fixed_effects == 'acs_density'){
         Z = cbind(rep(1, nrow(raw_data$data)),
-                  log(raw_data$data$acs_density))
+                  log(.01 + raw_data$data$acs_density))
       }else if(fixed_effects == 'pep_fulldensity'){
         Z = cbind(rep(1, nrow(raw_data$data)),
-                  log(raw_data$data$pep_density_full))
+                  log(.01 + raw_data$data$pep_density_full))
       }else if(fixed_effects == 'acs_fulldensity'){
         Z = cbind(rep(1, nrow(raw_data$data)),
-                  log(raw_data$data$acs_density_full))
+                  log(.01 + raw_data$data$acs_density_full))
       }else if(fixed_effects == 'pep_density_proportion'){
         Z = cbind(rep(1, nrow(raw_data$data)),
-                  log(raw_data$data$pep_density),
-                  log(raw_data$data$pep_AIAN_proportion))
+                  log(.01 + raw_data$data$pep_density),
+                  log(.01 + raw_data$data$pep_AIAN_proportion))
       }else if(fixed_effects == 'pep_fulldensity_proportion'){
         Z = cbind(rep(1, nrow(raw_data$data)),
-                  log(raw_data$data$pep_density_full),
-                  log(raw_data$data$pep_AIAN_proportion))
+                  log(.01 + raw_data$data$pep_density_full),
+                  log(.01 + raw_data$data$pep_AIAN_proportion))
       }else{
         stop('not a valid fixed effects situation.')
         # load(...)
       }
-      
+
+      # normalize the columns.      
+      for(p in 2:ncol(Z)){
+        Z[,p] <- (Z[,p] - mean(Z[,p]))/sd(Z[,p])
+      }
+
     }
   }
   
@@ -1913,6 +1918,7 @@ plot_metrics <- function(input_lst, single_sim_res = NULL, include_MAP_rank = F,
   return(full_plot)
 }
 
+
 ### Make the panel plot that extracts different parameters from multiple simulations and plots them all together. This calls plot_s
 # res_lst: results list from running multiple sims
 make_panel_plot <- function(res_lst){
@@ -1928,4 +1934,45 @@ make_panel_plot <- function(res_lst){
   full_plot <- plot_grid(pp, tt1, tt2, tt3, nrow = 1, rel_widths = c(3,3,3,2))#, labels = c('One Sim','Params','Weights','Y'))
 
   return(full_plot)
+}
+
+
+### Make a chloropleth map of a given result.
+# df: data frame to plot. 
+# val: the name of the column in df to plot.
+# counties: The counties sf data frame.
+# states: The states sf data frame.
+make_chloropleth_plot <- function(df, val, counties = NULL, states = NULL){
+  
+  # get county shapefiles.
+  if(is.null(counties)){
+    counties <- counties(cb = TRUE, year = 2020, class = "sf")
+  }
+  
+  # Load state boundaries.
+  if(is.null(states)){
+    states <- states(cb = TRUE, year = 2020, class = "sf")
+  }
+  
+  # merge in counties data.
+  data <- left_join(counties, df, by = 'GEOID')
+  
+  # get the outcome of interest.
+  data$outcome = data[,val,drop=T]
+  
+  p1 <- ggplot(data = data) +
+    geom_sf(aes(fill = outcome), color = NA) +
+    geom_sf(data = states, fill = NA, color = "black", size = 0.5) + 
+    scale_fill_viridis_c(option = "plasma", na.value = "white", trans = 'log',
+                         #breaks = pretty_breaks(n = 5),  # Use pretty breaks
+                         labels = function(x) round(x, digits = 0)) +  # Color scale
+    theme_minimal() +
+    coord_sf(xlim = c(-130, -65), ylim = c(24, 50)) +
+    labs(title = sprintf("County %s", val),
+         fill = "Value") +
+    theme(axis.text = element_blank(),
+          axis.ticks = element_blank(),
+          panel.grid = element_blank()) 
+  
+  return(p1)
 }
