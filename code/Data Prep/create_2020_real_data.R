@@ -213,3 +213,22 @@ df <- merge(df, df2 %>% select(GEOID, acs_AIAN_proportion, pep_AIAN_proportion, 
 # accidentally overwrote the old data anyway.
 # save(df, adjacency, file = '../../data/census_ACS_PEP_WP_AIAN_wDensity_11152024.RData')
 
+
+#### Creating AIAN death data ####
+# Pull in COVID data.
+cvd <- read.table('C:/Users/Admin-Dell/Dropbox/Academic/HSPH/Research/Population Estimation/Data/Wonder CDC Underlying Cause of Death, 2018-2022, Single Race Non Hispanic.txt', 
+                  header = T, 
+                  sep = '\t', )
+cvd$County.Code <- as.character(cvd$County.Code)
+# adding a 0 to the four digit codes that are supposed to have one.
+cvd$County.Code <- ifelse(nchar(cvd$County.Code) == 4,
+                          paste0('0', cvd$County.Code), 
+                          cvd$County.Code)
+
+cvd <- cvd %>% 
+  filter(Year.Code == 2020,
+         Single.Race.6 == 'American Indian or Alaska Native') %>%
+  select(GEOID = County.Code, AIAN_deaths = Deaths)
+
+# save(cvd, file = '../../data/AmericanIndian_COVID_Deaths_2020.RData')
+

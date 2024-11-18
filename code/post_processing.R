@@ -20,6 +20,26 @@ setwd(root_git)
 # load extra functions
 source('code/extra_functions_CAR.R')
 
+#### COVID rates ####
+# Using our model 2020 estimates, census 2020 estimates, or PEP 2019 estimates, compute the COVID rates in all US counties for AIAN population in 2020.
+
+# Pull in COVID data.
+cvd <- read.table('C:/Users/Admin-Dell/Dropbox/Academic/HSPH/Research/Population Estimation/Data/Wonder CDC Underlying Cause of Death, 2018-2022, Single Race Non Hispanic.txt', 
+                  header = T, 
+                  sep = '\t', )
+cvd$County.Code <- as.character(cvd$County.Code)
+# adding a 0 to the four digit codes that are supposed to have one.
+cvd$County.Code <- ifelse(nchar(cvd$County.Code) == 4,
+                  paste0('0', cvd$County.Code), 
+                  cvd$County.Code)
+
+cvd <- cvd %>% 
+  filter(Year.Code == 2020,
+         Single.Race.6 == 'American Indian or Alaska Native')
+
+make_chloropleth_plot(cvd, 'Deaths')
+
+#
 #### Chloropleth plots! ####
 setwd(root_results)
 load('real_data/real_data_fit_directest_interceptonly_ID70259_2024_11_12.RData')
@@ -30,45 +50,7 @@ val <- 'census'
 
 data <- merge(df, counties, by = 'GEOID')
 
-### Make a chloropleth map of a given result.
-# df: data frame to plot. 
-# val: the name of the column in df to plot.
-# counties: The counties sf data frame.
-# states: The states sf data frame.
-make_chloropleth_plot <- function(df, val, counties = NULL, states = NULL){
-  
-  # get county shapefiles.
-  if(is.null(counties)){
-    counties <- counties(cb = TRUE, year = 2020, class = "sf")
-  }
 
-  # Load state boundaries.
-  if(is.null(states)){
-    states <- states(cb = TRUE, year = 2020, class = "sf")
-  }
-
-  # merge in counties data.
-  data <- left_join(counties, df, by = 'GEOID')
-  
-  # get the outcome of interest.
-  data$outcome = data[,val,drop=T]
-  
-  p1 <- ggplot(data = data) +
-    geom_sf(aes(fill = outcome), color = NA) +
-    geom_sf(data = states, fill = NA, color = "black", size = 0.5) + 
-    scale_fill_viridis_c(option = "plasma", na.value = "white", trans = 'log',
-                         #breaks = pretty_breaks(n = 5),  # Use pretty breaks
-                         labels = function(x) round(x, digits = 0)) +  # Color scale
-    theme_minimal() +
-    coord_sf(xlim = c(-130, -65), ylim = c(24, 50)) +
-    labs(title = sprintf("County %s", val),
-         fill = "Value") +
-    theme(axis.text = element_blank(),
-          axis.ticks = element_blank(),
-          panel.grid = element_blank()) 
-  
-  return(p1)
-}
   #
 #### Intercept only results pt 2 ####
 setwd(root_results)
