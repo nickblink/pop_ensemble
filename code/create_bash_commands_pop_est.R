@@ -110,58 +110,99 @@ bash_wrapper <- function(bash_file = NULL, theta_vec = NULL, rho_vec = NULL, out
   return(cmds)
 }
 
+
+bash_wrapper_real <- function(bash_file = NULL, ...){
+  cmds <- bash_command_real(...)
+  
+  if(!is.null(bash_file)){
+    # if it already exists, update it
+    if(file.exists(bash_file)){
+      lapply(cmds, write, bash_file, append = T, sep = '')
+      # if it doesn't exist, create it
+    }else{
+      out_file <- file(bash_file, open='wb')
+      lapply(cmds, write, out_file, append = T, sep = '')
+      close(out_file)
+    }
+    
+    # check that there are no repeats in commands
+    test <- read.table(bash_file)
+    col <- lapply(test[,ncol(test)], function(str){
+      tmp <- strsplit(str, ':')[[1]]
+      tmp <- tmp[-grep('output_path', tmp)]
+      paste(tmp, collapse = ':')
+    })
+    
+    if(length(unique(col)) != length(col)){
+      stop('there are repeating simulation commands')
+    }
+  }
+  
+  return(cmds)
+}
+
 #### Real bash - 8 models using different fixed effects ####
 #(1) Full pop, softmax, preprocess, intercept + density.
-bash_command_real(use_softmax = T, 
+bash_1118 <- 'code/bash_commands/real_data_bash_11182024.txt'
+
+bash_wrapper_real(use_softmax = T, 
                   preprocess_scale = T, 
                   fixed_effects = 'pep_density',
-                  output_path_addition = 'softmax_preprocess_density')
+                  output_path_addition = 'softmax_preprocess_density', 
+                  bash_file = bash_1118)
 
 # (2) Full pop, softmax, alpha, intercept + density.
-bash_command_real(use_softmax = T, 
+bash_wrapper_real(use_softmax = T, 
                   alpha_variance_prior = .01,
                   fixed_effects = 'pep_density',
-                  output_path_addition = 'softmax_alpha_density')
+                  output_path_addition = 'softmax_alpha_density',
+                  bash_file = bash_1118)
 
 # (3) Full pop, direct est, no prep, intercept + density.
-bash_command_real(use_softmax = F, 
+bash_wrapper_real(use_softmax = F, 
                   fixed_effects = 'pep_density',
-                  output_path_addition = 'directest_density')
+                  output_path_addition = 'directest_density',
+                  bash_file = bash_1118)
 
 # (4) AIAN, softmax, preprocess, intercept.
-bash_command_real(dataset = 'AIAN',
+bash_wrapper_real(dataset = 'AIAN',
                   use_softmax = T, 
                   preprocess_scale = T, 
                   fixed_effects = 'intercept',
-                  output_path_addition = 'AIAN_softmax_interceptonly')
+                  output_path_addition = 'AIAN_softmax_interceptonly',
+                  bash_file = bash_1118)
 
 # (5) AIAN, softmax, preprocess, AIAN density.
-bash_command_real(dataset = 'AIAN',
+bash_wrapper_real(dataset = 'AIAN',
                   use_softmax = T, 
                   preprocess_scale = T, 
                   fixed_effects = 'pep_density',
-                  output_path_addition = 'AIAN_softmax_AIANdensity')
+                  output_path_addition = 'AIAN_softmax_AIANdensity',
+                  bash_file = bash_1118)
 
 # (6) AIAN, softmax, preprocess, fullpop density.
-bash_command_real(dataset = 'AIAN',
+bash_wrapper_real(dataset = 'AIAN',
                   use_softmax = T, 
                   preprocess_scale = T, 
                   fixed_effects = 'pep_fulldensity',
-                  output_path_addition = 'AIAN_softmax_FULLdensity')
+                  output_path_addition = 'AIAN_softmax_FULLdensity',
+                  bash_file = bash_1118)
 
 # (7) AIAN, softmax, preprocess, AIAN density and AIAN proportion
-bash_command_real(dataset = 'AIAN',
+bash_wrapper_real(dataset = 'AIAN',
                   use_softmax = T, 
                   preprocess_scale = T, 
                   fixed_effects = 'pep_density_proportion',
-                  output_path_addition = 'AIAN_softmax_AIANdensityANDprop')
+                  output_path_addition = 'AIAN_softmax_AIANdensityANDprop',
+                  bash_file = bash_1118)
 
 # (8) AIAN, softmax, preprocess, full density and AIAN proportion
-bash_command_real(dataset = 'AIAN',
+bash_wrapper_real(dataset = 'AIAN',
                   use_softmax = T, 
                   preprocess_scale = T, 
                   fixed_effects = 'pep_fulldensity_proportion',
-                  output_path_addition = 'AIAN_softmax_FULLdensityANDprop')
+                  output_path_addition = 'AIAN_softmax_FULLdensityANDprop',
+                  bash_file = bash_1118)
 
 #
 #### Real bash - Full pop with intercept ####

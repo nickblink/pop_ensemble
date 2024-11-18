@@ -183,7 +183,7 @@ df$acs_density <- df$acs/df$ALAND_sqmi
 df$pep_density <- df$pep/df$ALAND_sqmi
 # these are highly correlated. They will need to be logged.
 
-#save(df, file = '../../data/census_ACS_PEP_WP_wDensity_11152024.RData')
+# save(df, adjacency, file = '../../data/census_ACS_PEP_WP_wDensity_11152024.RData')
 
 ### Now with AIAN
 load('../../data/census_ACS_PEP_WP_wDensity_11152024.RData')
