@@ -1958,7 +1958,7 @@ make_chloropleth_plot <- function(df, val, counties = NULL, states = NULL){
   data <- left_join(counties, df, by = 'GEOID')
   
   # get the outcome of interest.
-  data$outcome = data[,val,drop=T]
+  data$outcome = data[,val,drop=T] %>% as.numeric()
   
   p1 <- ggplot(data = data) +
     geom_sf(aes(fill = outcome), color = NA) +

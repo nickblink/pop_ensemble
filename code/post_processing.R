@@ -23,21 +23,10 @@ source('code/extra_functions_CAR.R')
 #### COVID rates ####
 # Using our model 2020 estimates, census 2020 estimates, or PEP 2019 estimates, compute the COVID rates in all US counties for AIAN population in 2020.
 
-# Pull in COVID data.
-cvd <- read.table('C:/Users/Admin-Dell/Dropbox/Academic/HSPH/Research/Population Estimation/Data/Wonder CDC Underlying Cause of Death, 2018-2022, Single Race Non Hispanic.txt', 
-                  header = T, 
-                  sep = '\t', )
-cvd$County.Code <- as.character(cvd$County.Code)
-# adding a 0 to the four digit codes that are supposed to have one.
-cvd$County.Code <- ifelse(nchar(cvd$County.Code) == 4,
-                  paste0('0', cvd$County.Code), 
-                  cvd$County.Code)
+# Pull in covid data
+load('data/AmericanIndian_COVID_Deaths_2020.RData')
 
-cvd <- cvd %>% 
-  filter(Year.Code == 2020,
-         Single.Race.6 == 'American Indian or Alaska Native')
-
-make_chloropleth_plot(cvd, 'Deaths')
+make_chloropleth_plot(cvd, 'AIAN_deaths')
 
 #
 #### Chloropleth plots! ####
