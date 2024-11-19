@@ -23,7 +23,7 @@ if(file.exists('C:/Users/Admin-Dell')){
 source('code/extra_functions_CAR.R')
 
 if(home_dir){
-  inputs = 'dataset=all:models=acs,pep,wp:n.sample=2000:burnin=1000:outcome=census:family=negbin:use_softmax=T:fixed_rho=-1:fixed_tau2=-1:sigma2_prior_shape=50:sigma2_prior_rate=0.5:tau2_prior_shape=1:tau2_prior_rate=1:theta_prior_shape=0.001:theta_prior_rate=0.001:stan_path=code/CAR_leroux_sparse_negbin_alpha_FE.stan:CV_blocks=5:return_quantiles=F:output_path_addition=softmax_preprocess_density:chains_cores=10:alpha_variance_prior=-1:preprocess_scale=T:fixed_effects=pep_density'
+  inputs = 'dataset=all:models=acs,pep,wp:n.sample=2000:burnin=1000:outcome=census:family=negbin:use_softmax=T:fixed_rho=-1:fixed_tau2=-1:sigma2_prior_shape=50:sigma2_prior_rate=0.5:tau2_prior_shape=1:tau2_prior_rate=1:theta_prior_shape=0.001:theta_prior_rate=0.001:theta_multiplier=1000:stan_path=code/CAR_leroux_sparse_negbin_alpha_FE.stan:CV_blocks=5:return_quantiles=F:output_path_addition=softmax_preprocess_density:chains_cores=10:alpha_variance_prior=-1:preprocess_scale=T:fixed_effects=pep_density'
 }else{
   # cluster inputs
   inputs <- commandArgs(trailingOnly = TRUE)
@@ -46,7 +46,7 @@ for(str in strsplit(inputs,':')[[1]]){
 
   if(val %in% c('NULL', 'null')){
     val <- NULL
-  }else if(nn %in% c('n.sample', 'burnin', 'fixed_rho',  'fixed_tau2', 'sigma2_prior_shape', 'sigma2_prior_rate', 'tau2_prior_shape', 'tau2_prior_rate', 'CV_blocks','theta_prior_shape','theta_prior_rate', 'alpha_variance_prior', 'chains_cores')){
+  }else if(nn %in% c('n.sample', 'burnin', 'fixed_rho',  'fixed_tau2', 'sigma2_prior_shape', 'sigma2_prior_rate', 'tau2_prior_shape', 'tau2_prior_rate', 'CV_blocks','theta_prior_shape','theta_prior_rate', 'alpha_variance_prior', 'chains_cores', 'theta_multiplier')){
     val = as.numeric(val)
   }else if(nn == 'N_models'){
     models <- paste0('X', 1:as.numeric(val))
@@ -114,7 +114,6 @@ if(params[['dataset']] == 'aian'){
 
 # fit the real data!
 res <- do.call(fit_model_real, params)
-# res <- fit_model_real(params)
 
 if(F){
   tt <- res$sim_list

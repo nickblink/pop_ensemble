@@ -438,7 +438,7 @@ get_stan_MAP <- function(stan_fit, inc_warmup = T){
 # models: a vector of the models to use in the ensemble.
 # sigma2_prior_shape: Shape of the gamma distribution prior.
 # sigma2_prior_rate: rate of the gamma distribution prior.
-prep_stan_data_leroux_sparse <- function(data, W, models, outcome = 'y', use_softmax = F, use_pivot = F, use_normal = T, sigma2_prior_shape = 1, sigma2_prior_rate = 10, theta_prior_shape = .001, theta_prior_rate = .001, tau2_prior_shape = 1, tau2_prior_rate = 1, fixed_rho = - 1, fixed_tau2 = -1, alpha_variance_prior = NULL, family = NULL, rho = NULL, tau2 = NULL, Z = NULL, ...){
+prep_stan_data_leroux_sparse <- function(data, W, models, outcome = 'y', use_softmax = F, use_pivot = F, use_normal = T, sigma2_prior_shape = 1, sigma2_prior_rate = 10, theta_prior_shape = .001, theta_prior_rate = .001, tau2_prior_shape = 1, tau2_prior_rate = 1, fixed_rho = - 1, fixed_tau2 = -1, alpha_variance_prior = NULL, family = NULL, rho = NULL, tau2 = NULL, Z = NULL, theta_multiplier = NULL, ...){
   # checking columns
   if(!(outcome %in% colnames(data))){
     stop(sprintf('need outcome %s as a column in data', outcome))
@@ -515,6 +515,10 @@ prep_stan_data_leroux_sparse <- function(data, W, models, outcome = 'y', use_sof
     stan_data <- c(stan_data, list(num_vars = ncol(Z), Z = Z))
   }
   
+  if(!is.null(theta_multiplier)){
+    stan_data <- c(stan_data, list(theta_multiplier = theta_multiplier))
+  }
+  
   return(stan_data)
 }
 
@@ -541,6 +545,8 @@ run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_
   
   # prep the data.
   stan_data <- prep_stan_data_leroux_sparse(data, adjacency, models, use_softmax = use_softmax, use_normal = use_normal, use_pivot = use_pivot, family = family, Z = Z, ...)
+  
+  browser()
   
   # create the stan model if not done already.
   if(is.null(stan_m)){
@@ -733,11 +739,6 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
   return(res_lst)
 }
 
-### This is a test if there's a better way to pass through parameters in nested functions. Alas, there is not (that I could find).
-fit_model_real_wrapper <- function(raw_data, ...){
-  out <- fit_model_real(raw_data, ...)
-  return(out)
-}
 
 ### Fit the real data
 # raw_data: data list containing "data" and "adjacency".
