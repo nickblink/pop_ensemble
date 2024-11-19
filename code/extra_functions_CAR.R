@@ -1349,7 +1349,7 @@ process_results <- function(data_list, stan_fit, stan_fit_quantiles = F, models 
 # likelihoods: whether to include the prior, likelihood, and posterior.
 # <XX>_estimates: whether to include the <XX> estimates.
 # RMSE_CP_values: whether to include the RMSE values and coverage probabilities.
-plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, stan_summary = NULL, models = c('acs','pep','wp'), thin = NULL, CV_pred = T, ESS = T, rhats = T, rho_estimates = T, tau2_estimates = T, sigma2_estimates = F, theta_estimates = T, alpha_estimates = F, phi_estimates = F, pairwise_phi_estimates = T, u_estimates = T, y_estimates = T, RMSE_CP_values = T){
+plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, stan_summary = NULL, models = c('acs','pep','wp'), thin = NULL, CV_pred = T, ESS = T, rhats = T, rho_estimates = T, tau2_estimates = T, sigma2_estimates = F, theta_estimates = T, alpha_estimates = F, phi_estimates = F, pairwise_phi_estimates = T, u_estimates = T, y_estimates = T, RMSE_CP_values = T, beta_estimates = T, beta_varnames = NULL){
   
   # checking stan fit type.
   if(any(class(stan_fit) == 'matrix') & stan_fit_quantiles == F){
@@ -1693,7 +1693,41 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, stan_
     }
   }
 
-  # get the RMSE CP values!
+  ## Plot the beta values
+  if(beta_estimates){
+    print('beta est')
+    beta <- NULL
+    
+    # get number of variables and their names.
+    n_vars <- length(stan_out$beta[1,,1])
+    if(is.null(beta_varnames)){
+      beta_varnames <- paste0('var',1:n_vars)
+    }
+    
+    # cycle through models and variables.
+    for(m in 1:length(models)){
+      for(ivar in 1:n_vars){
+        beta <- rbind(beta, 
+                      data.frame(value = stan_out$beta[,ivar,m], 
+                                 model = models[m],
+                                 var = beta_varnames[ivar]))
+      }
+    }
+    
+    # plot the beta param
+    p_beta <- ggplot(data = beta, aes(x = var, y = value, fill = model)) + 
+      geom_boxplot(position = position_dodge(width = 0.75)) + 
+      geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
+      ggtitle('Beta Estimates') + 
+      theme(legend.position = 'right') + 
+      scale_fill_brewer(palette = "Set2")
+    
+    # update the most recent CP_RMSE plot list and rel heights
+    plot_list <- append(plot_list, list(p_beta))
+    rel_heights <- c(rel_heights, 1)
+  }
+  
+  ## get the RMSE CP values!
   if(RMSE_CP_values){
     print('RMSE est')
     # initialize data frame:
@@ -1712,12 +1746,13 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, stan_
     
     # get the training set y.
     y <- data_list$data$census
+    nonzero_ind <- which(y > 0)
     
     # Calcute the RMSE, relative-RMSE, log RMSE, MAPE, and CV.
     RMSE_train <- sqrt(mean((median_y_pred - y)^2))
-    rRMSE_train <- sqrt(mean(((median_y_pred - y)/y)^2))
-    logRMSE_train <-  sqrt(mean((log(median_y_pred) - log(y))^2))
-    MAPE_train <- 100*mean(abs((median_y_pred - y)/y))
+    rRMSE_train <- sqrt(mean(((median_y_pred[nonzero_ind] - y[nonzero_ind])/y[nonzero_ind])^2))
+    logRMSE_train <-  sqrt(mean((log1p(median_y_pred[nonzero_ind]) - log1p(y[nonzero_ind]))^2))
+    MAPE_train <- 100*mean(abs((median_y_pred[nonzero_ind] - y[nonzero_ind])/y[nonzero_ind]))
     CP_train <- mean(y >= lower_y_pred & y <= upper_y_pred)
     
     # store the results (separate rows because of separate character types).
@@ -1732,9 +1767,9 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, stan_
       
       # Calcute the RMSE, relative-RMSE, log RMSE, MAPE, and CV.
       RMSE_CV = sqrt(mean((CV_quants[,2] - y)^2))
-      rRMSE_CV <- sqrt(mean(((CV_quants[,2] - y)/y)^2))
-      logRMSE_CV <-  sqrt(mean((log(CV_quants[,2]) - log(y))^2))
-      MAPE_CV <- 100*mean(abs((CV_quants[,2] - y)/y))
+      rRMSE_CV <- sqrt(mean(((CV_quants[nonzero_ind,2] - y[nonzero_ind])/y[nonzero_ind])^2))
+      logRMSE_CV <-  sqrt(mean((log1p(CV_quants[nonzero_ind,2]) - log1p(y[nonzero_ind]))^2))
+      MAPE_CV <- 100*mean(abs((CV_quants[nonzero_ind,2] - y[nonzero_ind])/y[nonzero_ind]))
       CP_CV = mean(y >= CV_quants[,1] & y <= CV_quants[,3])
       
       # store the results.
@@ -1749,7 +1784,7 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, stan_
     plot_list <- append(plot_list, list(p_RMSE_CP))
     rel_heights <- c(rel_heights, 1)
   }
-  
+
   ## Combine all the plots!
   full_plot <- plot_grid(plotlist = plot_list,
                          rel_heights = rel_heights,

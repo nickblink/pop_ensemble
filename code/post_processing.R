@@ -20,6 +20,17 @@ setwd(root_git)
 # load extra functions
 source('code/extra_functions_CAR.R')
 
+#### Fixed effects with covariates results ####
+setwd(root_results)
+load('real_data/real_data_fit_aian_softmax_fulldensityandprop_ID65031_2024_11_18.RData')
+p1 <- plot_real_results(data_list = res$sim_list$data_list, 
+                        stan_fit = res$sim_list$stan_fit,
+                        stan_summary = res$sim_list$stan_summary$summary,
+                        CV_pred = res$sim_list$CV_pred,
+                        alpha_estimates = F)
+ggsave(plot = p1, filename = '../Figures/TEST_11192024.png', height = 14, width = 7)
+
+#
 #### COVID rates ####
 # Using our model 2020 estimates, census 2020 estimates, or PEP 2019 estimates, compute the COVID rates in all US counties for AIAN population in 2020.
 
