@@ -24,7 +24,7 @@ source('code/extra_functions_CAR.R')
 setwd(root_results)
 
 # get the results files.
-files <- grep('11_18|11_19', dir('real_data', full.names = T), value = T)
+files <- grep('11_12|11_18|11_19', dir('real_data', full.names = T), value = T)
 
 # cycle through and save results.
 for(f in files){
@@ -42,10 +42,11 @@ for(f in files){
                           stan_fit = res$sim_list$stan_fit,
                           stan_summary = res$sim_list$stan_summary$summary,
                           CV_pred = res$sim_list$CV_pred,
-                          alpha_estimates = F)
+                          alpha_estimates = (params$alpha_variance_prior != -1))
   ggsave(plot = p1, filename = plot_name, height = 14, width = 7)
   
 }
+# HERE at 303pm on 11/20/2024
 
 #
 #### COVID rates ####
