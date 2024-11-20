@@ -531,7 +531,7 @@ prep_stan_data_leroux_sparse <- function(data, W, models, outcome = 'y', use_sof
 # n.sample: the number of iterations to run the rstan code.
 # burnin: the number of burnin iterations to run the rstan code.
 # seed: a seed for reproducability
-run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_type = 'Leroux', n.sample = 10000, burnin = 5000, seed = 10, stan_m = NULL, stan_path = "code/CAR_leroux_sparse.stan", tau2 = NULL, use_softmax = NULL, use_normal = T, use_pivot = F, init_vals = '0', family = family, chains_cores = 1, Z = NULL, ...){
+run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_type = 'Leroux', n.sample = 10000, burnin = 5000, seed = 10, stan_m = NULL, stan_path = NULL, tau2 = NULL, use_softmax = NULL, use_normal = T, use_pivot = F, init_vals = '0', family = family, chains_cores = 1, Z = NULL, ...){
 
   # error checking for precision matrix type.
   if(precision_type != 'Leroux'){stop('only have Leroux precision coded')}
@@ -545,8 +545,6 @@ run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_
   
   # prep the data.
   stan_data <- prep_stan_data_leroux_sparse(data, adjacency, models, use_softmax = use_softmax, use_normal = use_normal, use_pivot = use_pivot, family = family, Z = Z, ...)
-  
-  browser()
   
   # create the stan model if not done already.
   if(is.null(stan_m)){
@@ -755,6 +753,8 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
 # burnin: length of burnin period for stan.
 fit_model_real <- function(raw_data, models=c('acs','pep','wp'), family = 'poisson', stan_path = "code/CAR_leroux_sparse_poisson.stan", init_vals = '0', family_name_check = T, use_softmax = F, CV_blocks = NULL, seed_start = 0, return_quantiles = T, alpha_variance_prior=NULL, preprocess_scale = F, fixed_effects = NULL, ...){
   
+  print(sprintf('stan_path = %s', stan_path))
+  
   # capture the arguments
   arguments <- match.call()
   
@@ -858,7 +858,15 @@ fit_model_real <- function(raw_data, models=c('acs','pep','wp'), family = 'poiss
       print('check 5')
       # run the model!
       print(sprintf('use softmax = %s', use_softmax))
-      tmp_stan_fit <- run_stan_CAR(block_data, raw_data$adjacency, models = models, stan_m = m, use_softmax = use_softmax, init_vals = init_vals, family = family, alpha_variance_prior = alpha_variance_prior, Z = Z, ...)
+      tmp_stan_fit <- run_stan_CAR(block_data,
+                                   raw_data$adjacency,
+                                   models = models,
+                                   stan_m = m,
+                                   use_softmax = use_softmax, 
+                                   init_vals = init_vals, 
+                                   family = family,
+                                   alpha_variance_prior = alpha_variance_prior, 
+                                   Z = Z, ...)
       print('check 6')
       
       # store the outcome values:
@@ -872,7 +880,15 @@ fit_model_real <- function(raw_data, models=c('acs','pep','wp'), family = 'poiss
   }
   
   # fit the Bayesian model on the full data
-  stan_fit <- run_stan_CAR(raw_data$data, raw_data$adjacency, models = models, stan_m = m, use_softmax = use_softmax, init_vals = init_vals, family = family,  alpha_variance_prior = alpha_variance_prior, Z = Z, ...)
+  stan_fit <- run_stan_CAR(raw_data$data,
+                           raw_data$adjacency, 
+                           models = models, 
+                           stan_m = m, 
+                           use_softmax = use_softmax,
+                           init_vals = init_vals,
+                           family = family,
+                           alpha_variance_prior = alpha_variance_prior, 
+                           Z = Z, ...)
   
   # get the MAP posterior values.    
   stan_MAP <- get_stan_MAP(stan_fit)

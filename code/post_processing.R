@@ -22,13 +22,30 @@ source('code/extra_functions_CAR.R')
 
 #### Fixed effects with covariates results ####
 setwd(root_results)
-load('real_data/real_data_fit_aian_softmax_fulldensityandprop_ID65031_2024_11_18.RData')
-p1 <- plot_real_results(data_list = res$sim_list$data_list, 
-                        stan_fit = res$sim_list$stan_fit,
-                        stan_summary = res$sim_list$stan_summary$summary,
-                        CV_pred = res$sim_list$CV_pred,
-                        alpha_estimates = F)
-ggsave(plot = p1, filename = '../Figures/TEST_11192024.png', height = 14, width = 7)
+
+# get the results files.
+files <- grep('11_18|11_19', dir('real_data', full.names = T), value = T)
+
+# cycle through and save results.
+for(f in files){
+  load(f)
+  plot_name = sprintf('../Figures/%s_%s_%s_%s_%s_11192024.png',
+                      ifelse(params$dataset == 'all', 'fullpop', 'AIAN'),
+                      ifelse(params$use_softmax, 'softmax', 'directest'),
+                      ifelse(params$preprocess_scale, 'centering', 'NOcentering'),
+                      ifelse(params$alpha_variance_prior == -1, 'NOalpha','alpha'),
+                      params$fixed_effects)
+  print(f)
+  print(plot_name)
+  print('----------------')
+  p1 <- plot_real_results(data_list = res$sim_list$data_list, 
+                          stan_fit = res$sim_list$stan_fit,
+                          stan_summary = res$sim_list$stan_summary$summary,
+                          CV_pred = res$sim_list$CV_pred,
+                          alpha_estimates = F)
+  ggsave(plot = p1, filename = plot_name, height = 14, width = 7)
+  
+}
 
 #
 #### COVID rates ####
