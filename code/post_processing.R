@@ -20,6 +20,44 @@ setwd(root_git)
 # load extra functions
 source('code/extra_functions_CAR.R')
 
+#### 11/21/2024: AIAN get results and make chloropleth maps ####
+setwd(root_results)
+files <- grep('aian', dir('real_data', full.names = T), value = T)
+load(files[1])
+
+df <- res$sim_list$data_list$data %>%
+  select(GEOID, census, acs, pep, wp)
+
+for(f in files){
+  load(f)
+  outcome_name = sprintf('AIAN_%s_%s_%s_%s',
+                      ifelse(params$use_softmax, 'softmax', 'directest'),
+                      ifelse(params$preprocess_scale, 'centering', 'NOcentering'),
+                      ifelse(params$alpha_variance_prior == -1, 'NOalpha','alpha'),
+                      ifelse(!is.null(params$fixed_effects), params$fixed_effects, 'noFE'))
+  print(f)
+  print(outcome_name)
+  print('----------------')
+  
+  # check that the GEOID is equal.
+  if(any(res$sim_list$data_list$data$GEOID != df$GEOID)){
+    stop('error - GEOIDs not equal.')
+  }
+  
+  # update the data frame
+  if(is.null(res$sim_list$stan_summary$summary)){
+    tmp <- summary(res$sim_list$stan_fit)$summary
+  }else{
+    samples <- extract(res$sim_list$stan_fit, pars = "y_pred", permuted = TRUE)$y_pred
+    browser()
+    # get the median!
+  }
+  df[,outcome_name] <- tmp[grep('y_pred', rownames(tmp)), '50%']
+}
+
+save(df, file = '../Results/AIAN_')
+
+#
 #### Fixed effects with covariates results ####
 setwd(root_results)
 
@@ -46,7 +84,6 @@ for(f in files){
   ggsave(plot = p1, filename = plot_name, height = 14, width = 7)
   
 }
-# HERE at 303pm on 11/20/2024
 
 #
 #### COVID rates ####
