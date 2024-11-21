@@ -807,11 +807,13 @@ fit_model_real <- function(raw_data, models=c('acs','pep','wp'), family = 'poiss
         # load(...)
       }
 
-      # normalize the columns.      
-      for(p in 2:ncol(Z)){
-        Z[,p] <- (Z[,p] - mean(Z[,p]))/sd(Z[,p])
+      # normalize the columns. 
+      if(ncol(Z) > 1){
+        for(p in 2:ncol(Z)){
+          Z[,p] <- (Z[,p] - mean(Z[,p]))/sd(Z[,p])
+        }
       }
-
+      
     }
   }
   
