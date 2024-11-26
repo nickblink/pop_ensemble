@@ -751,7 +751,7 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
 ## Optional arguments
 # n.sample: number of stan chain samples.
 # burnin: length of burnin period for stan.
-fit_model_real <- function(raw_data, models=c('acs','pep','wp'), family = 'poisson', stan_path = "code/CAR_leroux_sparse_poisson.stan", init_vals = '0', family_name_check = T, use_softmax = F, CV_blocks = NULL, seed_start = 0, return_quantiles = T, alpha_variance_prior=NULL, preprocess_scale = F, fixed_effects = NULL, ...){
+fit_model_real <- function(raw_data, models=c('acs','pep','wp'), family = 'poisson', stan_path = "code/CAR_leroux_sparse_poisson.stan", init_vals = '0', family_name_check = T, use_softmax = F, CV_blocks = NULL, seed_start = 0, return_quantiles = T, alpha_variance_prior=NULL, preprocess_scale = F, fixed_effects = 'none', ...){
   
   print(sprintf('stan_path = %s', stan_path))
   
