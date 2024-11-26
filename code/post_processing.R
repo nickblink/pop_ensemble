@@ -22,11 +22,16 @@ source('code/extra_functions_CAR.R')
 
 #### 11/21/2024: AIAN get results and make chloropleth maps ####
 setwd(root_results)
+
+## Organizing the results
+{
 files <- grep('aian', dir('real_data', full.names = T), value = T)
-load(files[1])
+# doing file 5 because it's not preprocessed.
+load(files[5])
+params$preprocess_scale
 
 df <- res$sim_list$data_list$data %>%
-  select(GEOID, census, acs, pep, wp)
+  select(GEOID, state, census, acs, pep, wp)
 
 for(f in files){
   load(f)
@@ -44,18 +49,103 @@ for(f in files){
     stop('error - GEOIDs not equal.')
   }
   
-  # update the data frame
-  if(is.null(res$sim_list$stan_summary$summary)){
+  # get the median!
+  if(!is.null(res$sim_list$stan_summary$summary)){
     tmp <- summary(res$sim_list$stan_fit)$summary
+    out_col <- tmp[grep('y_pred', rownames(tmp)), '50%']
   }else{
     samples <- extract(res$sim_list$stan_fit, pars = "y_pred", permuted = TRUE)$y_pred
-    browser()
-    # get the median!
+    out_col <- apply(samples,2, median)
   }
-  df[,outcome_name] <- tmp[grep('y_pred', rownames(tmp)), '50%']
+  df[,outcome_name] <- out_col
 }
 
-save(df, file = '../Results/AIAN_')
+save(df, file = 'AIAN_medians_11212024.RData')
+}
+
+## save names
+aian_names <- colnames(df[,7:14])
+colnames(df)[7:14] <- paste0('model', 1:8)
+
+## Getting the correlations and means.
+cor_matrix <- cor(df[,3:14])
+
+ggcorrplot::ggcorrplot(cor_matrix, lab = TRUE, lab_size = 3, colors = c("blue", "white", "red"))
+
+colMeans(df[,3:14])
+
+## Merging in mortality.
+setwd(root_git)
+load('data/AmericanIndian_COVID_Deaths_2020.RData')
+df2 <- merge(cvd, df)
+
+df2 %>% 
+  group_by(state) %>% 
+  summarize(n = n(), n_d = sum(AIAN_deaths)) %>% 
+  arrange(n)
+
+## Make chloropleth plots.
+AIAN_cvd <- df2 %>%
+  filter(state %in% c('Arizona','New Mexico','Colorado','Utah','Oklahoma'))
+
+# Create new columns for mortality rates
+for (i in 4:15) {
+  col_name <- paste0("mortality_rate_", names(AIAN_cvd)[i])
+  AIAN_cvd[[col_name]] <- AIAN_cvd$AIAN_deaths / AIAN_cvd[[i]]
+}
+
+# Inspect the updated dataset
+head(AIAN_cvd)
+
+# load the counties
+counties <- tigris::counties(cb = TRUE, year = 2020, class = "sf")
+
+# Get state boundaries for the year 2020
+states <- tigris::states(cb = TRUE, year = 2020, class = "sf") %>%
+  filter(NAME %in% AIAN_cvd$state)
+
+
+# Merge the shapefile with the mortality rates data
+merged_data <- merge(counties, AIAN_cvd, by = 'GEOID')  # Adjust FIPS column names if different
+
+# Create a list to store the plots
+plots <- list()
+
+# Generate plots for each mortality rate column
+for (i in 4:15) {
+  col_name <- paste0("mortality_rate_", names(AIAN_cvd)[i])
+  
+  # Create the plot
+  p <- ggplot(data = merged_data) +
+    geom_sf(aes(fill = !!sym(col_name))) +
+    geom_sf(data = states, fill = NA, color = "black") +
+    scale_fill_viridis_c() +
+    ggtitle(paste("Mortality Rate:", col_name)) +
+    theme_minimal()
+  
+  # Add the plot to the list
+  plots[[col_name]] <- p
+}
+
+library(patchwork)
+
+# Define global limits for the color scale
+range_values <- range(AIAN_cvd[ , paste0("mortality_rate_", names(AIAN_cvd)[4:15])], na.rm = TRUE)
+
+# Update plots with consistent color scale
+for (i in 4:15) {
+  col_name <- paste0("mortality_rate_", names(AIAN_cvd)[i])
+  plots[[col_name]] <- plots[[col_name]] +
+    scale_fill_viridis_c(limits = range_values)
+}
+
+# Combine all plots into a grid
+combined_plot <- wrap_plots(plots, ncol = 3)
+print(combined_plot)
+
+# save it
+setwd(root_results)
+ggsave("../Figures/mortality_chloropleth_11212024.png", combined_plot, width = 15, height = 10)
 
 #
 #### Fixed effects with covariates results ####
@@ -101,7 +191,6 @@ load('real_data/real_data_fit_directest_interceptonly_ID70259_2024_11_12.RData')
 
 df<- res$sim_list$data_list$data
 val <- 'census'
-
 
 data <- merge(df, counties, by = 'GEOID')
 
