@@ -1,0 +1,31 @@
+Loading required package: StanHeaders
+
+rstan version 2.32.6 (Stan version 2.32.2)
+
+For execution on a local, multicore CPU with excess RAM we recommend calling
+options(mc.cores = parallel::detectCores()).
+To avoid recompilation of unchanged Stan programs, we recommend calling
+rstan_options(auto_write = TRUE)
+For within-chain threading using `reduce_sum()` or `map_rect()` Stan functions,
+change `threads_per_chain` option:
+rstan_options(threads_per_chain = 1)
+
+
+Attaching package: ‘dplyr’
+
+The following objects are masked from ‘package:stats’:
+
+    filter, lag
+
+The following objects are masked from ‘package:base’:
+
+    intersect, setdiff, setequal, union
+
+Warning message:
+In (function (df, time_unit, out_col, family, rescale_data = T,  :
+  rounding Y for integer outcomes
+Error : Exception: model245ccc5c451b54__namespace::model245ccc5c451b54_: Y_int[160] is -1477, but must be greater than or equal to 0.000000 (in 'anon_model', line 7, column 2 to column 24)
+In addition: Warning message:
+In readLines(file, warn = TRUE) :
+  incomplete final line found on '/n/netscratch/nethery_lab/Lab/nlink/WW_EWS/code/modular_outbreak_detection.stan'
+failed to create the sampler; sampling not done
