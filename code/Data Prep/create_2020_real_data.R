@@ -232,8 +232,57 @@ cvd <- cvd %>%
 # save(cvd, file = '../../data/AmericanIndian_COVID_Deaths_2020.RData')
 
 
-#### PEP AND ACS 2018 data ####
+#### AIAN 2018 data ####
 load('../../data/census_ACS_PEP_WP_AIAN_wDensity_11152024.RData')
+
+# ACS 2018 data.
+ACS_AIAN <- get_acs(
+  geography = "county",
+  variables = "B02001_004", # Code for American Indian and Alaska Native alone
+  year = 2018#,
+  #survey = "acs5" # Using 5-year estimates for more reliable county-level data
+) %>%
+  select(GEOID,
+         acs_2018 = estimate)
+
+# PEP 2018 data.
+PEP_raw <- get_estimates(
+  geography = "county",
+  product = "characteristics",
+  breakdown = "RACE",
+  breakdown_labels = TRUE,
+  year = 2018,
+  state = NULL  # NULL gets all states
+)
+
+# Clean and format the PEP data
+PEP_AIAN <- PEP_raw %>%
+  # Filter for AIAN alone
+  filter(RACE == "American Indian and Alaska Native alone") %>%
+  # Create clean names
+  separate(NAME, into = c("county_name", "state"), sep = ", ") %>%
+  # Select and rename columns
+  select(
+    GEOID,
+    pep_2018 = value
+  ) %>%
+  # Sort by population in descending order
+  arrange(desc(pep_2018))
+
+df2 <- df %>%
+  merge(ACS_AIAN, by = 'GEOID') %>%
+  merge(PEP_AIAN, by = 'GEOID')
+
+df2 <- df2 %>%
+  mutate(pep_diff = pep - pep_2018,
+         acs_diff = acs - acs_2018)
+
+df <- df2
+save(df, adjacency, file = '../../data/census_ACS_PEP_WP_AIAN_wDensity_and2018_01022024.RData')
+
+#
+#### PEP AND ACS 2018 data ####
+load('../../data/census_ACS_PEP_WP_wDensity_11152024.RData')
 
 # comparing vintage estimates
 {
@@ -276,8 +325,12 @@ df2 <- df %>%
   merge(PEP_2018, by = 'GEOID') %>%
   merge(ACS_2018, by = 'GEOID')
 
+df2 <- df2 %>%
+  mutate(pep_diff = pep - pep_2018,
+         acs_diff = acs - acs_2018)
+
 df <- df2
-# save(df, adjacency, file = '../../data/census_ACS_PEP_WP_AIAN_wDensity_and2018_01022024.RData')
+# save(df, adjacency, file = '../../data/census_ACS_PEP_WP_wDensity_and2018_01022024.RData')
 
 # regression analysis of the variables.
 lm.fit.1 <- lm(census ~ pep + acs + wp, data = df2)

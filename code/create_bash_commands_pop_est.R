@@ -141,9 +141,21 @@ bash_wrapper_real <- function(bash_file = NULL, ...){
 }
 
 #### Real bash - Full pop with 5 models ####
-bash_command_real(use_softmax = F, models = c('acs,pep,wp,acs_2018,pep_2018'), fixed_effects = 'intercept', preprocess_scale = T, output_path_addition = 'directest_preprocess_interceptonly_5models')
+bash_wrapper_real(bash_file = 'code/bash_commands/real_data_01022025.txt', use_softmax = F, models = c('acs,pep,wp,acs_2018,pep_2018'), fixed_effects = 'intercept', preprocess_scale = T, output_path_addition = 'directest_preprocess_interceptonly_5models')
 
-bash_command_real(use_softmax = T, models = c('acs,pep,wp,acs_2018,pep_2018'), fixed_effects = 'intercept', preprocess_scale = T, output_path_addition = 'softmax_preprocess_interceptonly_5models')
+bash_wrapper_real(bash_file = 'code/bash_commands/real_data_01022025.txt', use_softmax = T, models = c('acs,pep,wp,acs_2018,pep_2018'), fixed_effects = 'intercept', preprocess_scale = T, output_path_addition = 'softmax_preprocess_interceptonly_5models')
+
+bash_wrapper_real(bash_file = 'code/bash_commands/real_data_01022025.txt', use_softmax = F, models = c('acs,pep,wp,acs_diff,pep_diff'), fixed_effects = 'intercept', preprocess_scale = T, output_path_addition = 'directest_preprocess_interceptonly_5modelsDiff')
+
+bash_wrapper_real(bash_file = 'code/bash_commands/real_data_01022025.txt', use_softmax = T, models = c('acs,pep,wp,acs_diff,pep_diff'), fixed_effects = 'intercept', preprocess_scale = T, output_path_addition = 'softmax_preprocess_interceptonly_5modelsDiff')
+
+bash_wrapper_real(bash_file = 'code/bash_commands/real_data_01022025.txt', dataset = 'AIAN', use_softmax = F, models = c('acs,pep,wp,acs_2018,pep_2018'), fixed_effects = 'intercept', preprocess_scale = T, output_path_addition = 'AIAN_directest_preprocess_interceptonly_5models')
+
+bash_wrapper_real(bash_file = 'code/bash_commands/real_data_01022025.txt', dataset = 'AIAN', use_softmax = T, models = c('acs,pep,wp,acs_2018,pep_2018'), fixed_effects = 'intercept', preprocess_scale = T, output_path_addition = 'AIAN_softmax_preprocess_interceptonly_5models')
+
+bash_wrapper_real(bash_file = 'code/bash_commands/real_data_01022025.txt', dataset = 'AIAN', use_softmax = F, models = c('acs,pep,wp,acs_diff,pep_diff'), fixed_effects = 'intercept', preprocess_scale = T, output_path_addition = 'AIAN_directest_preprocess_interceptonly_5modelsDiff')
+
+bash_wrapper_real(bash_file = 'code/bash_commands/real_data_01022025.txt', dataset = 'AIAN',use_softmax = T, models = c('acs,pep,wp,acs_diff,pep_diff'), fixed_effects = 'intercept', preprocess_scale = T, output_path_addition = 'AIAN_softmax_preprocess_interceptonly_5modelsDiff')
 
 #
 #### Testing the theta multiplier ####
