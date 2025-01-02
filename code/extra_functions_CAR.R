@@ -545,13 +545,12 @@ run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_
   
   # prep the data.
   stan_data <- prep_stan_data_leroux_sparse(data, adjacency, models, use_softmax = use_softmax, use_normal = use_normal, use_pivot = use_pivot, family = family, Z = Z, ...)
-  
+
   # create the stan model if not done already.
   if(is.null(stan_m)){
     stan_m <- rstan::stan_model(stan_path)
   }
 
-  
   # fit the stan model.
   stan_fit <- rstan::sampling(object = stan_m,
                    data = stan_data, 
@@ -892,6 +891,7 @@ fit_model_real <- function(raw_data, models=c('acs','pep','wp'), family = 'poiss
                            alpha_variance_prior = alpha_variance_prior, 
                            Z = Z, ...)
   
+  browser()
   # get the MAP posterior values.    
   stan_MAP <- get_stan_MAP(stan_fit)
   

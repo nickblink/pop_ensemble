@@ -8,7 +8,6 @@ library(stringr)
 library(haven)
 library(reshape2)
 library(rstudioapi)
-library(dplyr)
 
 current_path <- getActiveDocumentContext()$path
 setwd(dirname(current_path))
@@ -232,3 +231,84 @@ cvd <- cvd %>%
 
 # save(cvd, file = '../../data/AmericanIndian_COVID_Deaths_2020.RData')
 
+
+#### PEP AND ACS 2018 data ####
+load('../../data/census_ACS_PEP_WP_AIAN_wDensity_11152024.RData')
+
+# comparing vintage estimates
+{
+PEP_2018 <- get_estimates(geography = "county",
+                     product = "population",
+                     time_series = TRUE, 
+                     vintage = 2018) %>%
+  filter(DATE == 11, variable == 'POP')
+
+PEP_2019 <- get_estimates(geography = "county",
+                          product = "population",
+                          time_series = TRUE, 
+                          vintage = 2019) %>%
+  filter(DATE == 11, variable == 'POP')
+
+test = merge(PEP_2018[,c('GEOID','value')],
+             PEP_2019[,c('GEOID','value')],
+             by = 'GEOID')
+# Cor is high.
+cor(test$value.x, test$value.y)
+
+# MAPE is 0.3%. Ok
+mean(abs(test$value.x - test$value.y)/test$value.x)
+}
+
+# getting 2018 values
+PEP_2018 <- get_estimates(geography = "county",
+                          product = "population",
+                          time_series = TRUE, 
+                          vintage = 2018) %>%
+  filter(DATE == 11, variable == 'POP') %>%
+  select(GEOID, pep_2018 = value)
+
+ACS_2018 <- get_acs(geography = "county",
+               variables = 'B01003_001', # Total Population
+               year=2018) %>%
+  select(GEOID, acs_2018 = estimate)
+
+df2 <- df %>% 
+  merge(PEP_2018, by = 'GEOID') %>%
+  merge(ACS_2018, by = 'GEOID')
+
+df <- df2
+# save(df, adjacency, file = '../../data/census_ACS_PEP_WP_AIAN_wDensity_and2018_01022024.RData')
+
+# regression analysis of the variables.
+lm.fit.1 <- lm(census ~ pep + acs + wp, data = df2)
+summary(lm.fit.1)
+# ok so ACS does seem to actually be useful here. Interesting.
+
+lm.fit.2 <- lm(census ~ pep, data = df2)
+summary(lm.fit.2)
+
+lm.fit.3 <- lm(census ~ pep_2018 + acs_2018 + wp, data = df2)
+summary(lm.fit.3)
+
+lm.fit.4 <- lm(census ~ pep_2018 + acs_2018, data = df2)
+summary(lm.fit.4)
+# interesting. This makes sense though - it's sort of getting at a trend in the data that is showing the difference in PEP and ACS to show the trends over the years.
+
+lm.fit.5 <- lm(census ~ pep + acs + pep_2018 + acs_2018 + +wp, data = df2)
+summary(lm.fit.5)
+
+#
+
+#### Regression Analysis AIAN ####
+load('../../data/census_ACS_PEP_WP_AIAN_wDensity_11152024.RData')
+lm.fit.1 <- lm(census ~ pep + acs + wp, data = df_AIAN)
+summary(lm.fit.1)
+# interesting. 
+
+lm.fit.2 <- lm(census ~ pep + acs, data = df_AIAN)
+summary(lm.fit.2)
+# So PEP is really dominating here. Why? 
+
+lm.fit.3 <- lm(log1p(census) ~ log1p(pep) + log1p(acs) + log1p(wp), data = df_AIAN)
+summary(lm.fit.3)
+# ok. Still not sure what to make of that. Darn darn.

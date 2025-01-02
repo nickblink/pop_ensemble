@@ -140,6 +140,12 @@ bash_wrapper_real <- function(bash_file = NULL, ...){
   return(cmds)
 }
 
+#### Real bash - Full pop with 5 models ####
+bash_command_real(use_softmax = F, models = c('acs,pep,wp,acs_2018,pep_2018'), fixed_effects = 'intercept', preprocess_scale = T, output_path_addition = 'directest_preprocess_interceptonly_5models')
+
+bash_command_real(use_softmax = T, models = c('acs,pep,wp,acs_2018,pep_2018'), fixed_effects = 'intercept', preprocess_scale = T, output_path_addition = 'softmax_preprocess_interceptonly_5models')
+
+#
 #### Testing the theta multiplier ####
 bash_wrapper_real(use_softmax = T, 
                   preprocess_scale = F, 

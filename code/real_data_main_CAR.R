@@ -23,7 +23,7 @@ if(file.exists('C:/Users/Admin-Dell')){
 source('code/extra_functions_CAR.R')
 
 if(home_dir){
-  inputs = 'dataset=all:models=acs,pep,wp:n.sample=2000:burnin=1000:outcome=census:family=negbin:use_softmax=T:fixed_rho=-1:fixed_tau2=-1:sigma2_prior_shape=50:sigma2_prior_rate=0.5:tau2_prior_shape=1:tau2_prior_rate=1:theta_prior_shape=0.001:theta_prior_rate=0.001:theta_multiplier=1000:stan_path=code/CAR_leroux_sparse_negbin_alpha_FE.stan:CV_blocks=NULL:return_quantiles=F:output_path_addition=softmax_preprocess_density:chains_cores=10:alpha_variance_prior=-1:preprocess_scale=T:fixed_effects=pep_density'
+  inputs = 'dataset=all:models=acs,pep,wp,acs_2018,pep_2018:n.sample=20:burnin=10:outcome=census:family=negbin:use_softmax=T:fixed_rho=-1:fixed_tau2=-1:sigma2_prior_shape=50:sigma2_prior_rate=0.5:tau2_prior_shape=1:tau2_prior_rate=1:theta_prior_shape=0.001:theta_prior_rate=0.001:theta_multiplier=1000:stan_path=code/CAR_leroux_sparse_negbin_alpha_FE.stan:CV_blocks=NULL:return_quantiles=F:output_path_addition=softmax_preprocess_density:chains_cores=1:alpha_variance_prior=-1:preprocess_scale=T:fixed_effects=pep_density'
 }else{
   # cluster inputs
   inputs <- commandArgs(trailingOnly = TRUE)
@@ -97,7 +97,7 @@ if(params[['dataset']] == 'aian'){
   params[['raw_data']] <- list(data = df, adjacency = adjacency)
 # full data
 }else{
-  load('data/census_ACS_PEP_WP_wDensity_11152024.RData')
+  load('data/census_ACS_PEP_WP_AIAN_wDensity_and2018_01022024.RData')
   # subset data by state
   if(params[['dataset']] == 'all'){
     # params[['raw_data']]
