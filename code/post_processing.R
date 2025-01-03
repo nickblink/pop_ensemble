@@ -20,6 +20,30 @@ setwd(root_git)
 # load extra functions
 source('code/extra_functions_CAR.R')
 
+#### 1/3/2025: Theta results part 2 ####
+setwd(root_results)
+setwd('real_data/')
+
+# pull file names
+recent_files(l = 6)
+files <- recent_files(l = 3) %>%
+  pull(file)
+
+# save images of results
+for(f in files){
+  load(f)
+  p1 <- plot_real_results(data_list = res$sim_list$data_list,
+                          stan_fit = res$sim_list$stan_fit,
+                          stan_summary = res$sim_list$stan_summary$summary,
+                          CV_pred = res$sim_list$CV_pred,
+                          alpha_estimates = F)
+  out_name <- sprintf('../../Figures/01022025_AIAN_%s_real_data.png', sub(".*fit_(.*?)_ID.*", "\\1", f))
+  ggsave(plot = p1, filename = out_name, height = 12, width = 7)
+}
+
+# Done! Now inspect the results!
+
+#
 #### 1/2/2025: Fixed tau2 results and theta (?) results from last month ####
 setwd(root_results)
 files <- grep('11_22|11_26', dir('real_data', full.names = T), value = T)

@@ -891,7 +891,6 @@ fit_model_real <- function(raw_data, models=c('acs','pep','wp'), family = 'poiss
                            alpha_variance_prior = alpha_variance_prior, 
                            Z = Z, ...)
   
-  browser()
   # get the MAP posterior values.    
   stan_MAP <- get_stan_MAP(stan_fit)
   

@@ -47,7 +47,7 @@ bash_command_real <- function(dataset='all', models='acs,pep,wp', n.sample=2000,
     warning('family not in stan path - is that correct?')
   }
   
-  job_name = sprintf('%s_%s_%smodels_CV%s', round(runif(1)*1000), ifelse(use_softmax, 'softmax', 'directest'), family, CV_blocks)
+  job_name = sprintf('%s_%s_%smodels_CV%s', round(runif(1)*1000), ifelse(use_softmax, 'softmax', 'directest'), family, ifelse(is.null(CV_blocks), 'none', CV_blocks))
   
   params <- list(dataset=dataset, models=models, n.sample=n.sample, burnin=burnin, outcome = outcome, family=family,use_softmax=use_softmax, fixed_rho = fixed_rho, fixed_tau2 = fixed_tau2,  sigma2_prior_shape = sigma2_prior_shape, sigma2_prior_rate = sigma2_prior_rate, tau2_prior_shape = tau2_prior_shape, tau2_prior_rate=tau2_prior_rate,  theta_prior_shape = theta_prior_shape, theta_prior_rate = theta_prior_rate, theta_multiplier = theta_multiplier, stan_path=stan_path, CV_blocks = CV_blocks, return_quantiles = return_quantiles, output_path_addition = output_path_addition, chains_cores = chains_cores, alpha_variance_prior = alpha_variance_prior, preprocess_scale = preprocess_scale, fixed_effects = fixed_effects)
   
@@ -140,22 +140,26 @@ bash_wrapper_real <- function(bash_file = NULL, ...){
   return(cmds)
 }
 
+#### TESTING ####
+bash_command_real(use_softmax = F, models = c('acs,pep,wp,acs_2018,pep_2018'), fixed_effects = 'intercept', preprocess_scale = T, output_path_addition = 'directest_preprocess_interceptonly_5models', CV_blocks = NULL, n.sample = 100, burnin = 50, chains_cores = 1)
+
+
 #### Real bash - Full pop with 5 models ####
-bash_wrapper_real(bash_file = 'code/bash_commands/real_data_01022025.txt', use_softmax = F, models = c('acs,pep,wp,acs_2018,pep_2018'), fixed_effects = 'intercept', preprocess_scale = T, output_path_addition = 'directest_preprocess_interceptonly_5models')
+bash_wrapper_real(bash_file = 'code/bash_commands/real_data_01032025.txt', use_softmax = F, models = c('acs,pep,wp,acs_2018,pep_2018'), fixed_effects = 'intercept', preprocess_scale = T, output_path_addition = 'directest_preprocess_interceptonly_5models')
 
-bash_wrapper_real(bash_file = 'code/bash_commands/real_data_01022025.txt', use_softmax = T, models = c('acs,pep,wp,acs_2018,pep_2018'), fixed_effects = 'intercept', preprocess_scale = T, output_path_addition = 'softmax_preprocess_interceptonly_5models')
+bash_wrapper_real(bash_file = 'code/bash_commands/real_data_01032025.txt', use_softmax = T, models = c('acs,pep,wp,acs_2018,pep_2018'), fixed_effects = 'intercept', preprocess_scale = T, output_path_addition = 'softmax_preprocess_interceptonly_5models')
 
-bash_wrapper_real(bash_file = 'code/bash_commands/real_data_01022025.txt', use_softmax = F, models = c('acs,pep,wp,acs_diff,pep_diff'), fixed_effects = 'intercept', preprocess_scale = T, output_path_addition = 'directest_preprocess_interceptonly_5modelsDiff')
+bash_wrapper_real(bash_file = 'code/bash_commands/real_data_01032025.txt', use_softmax = F, models = c('acs,pep,wp,acs_diff,pep_diff'), fixed_effects = 'intercept', preprocess_scale = T, output_path_addition = 'directest_preprocess_interceptonly_5modelsDiff')
 
-bash_wrapper_real(bash_file = 'code/bash_commands/real_data_01022025.txt', use_softmax = T, models = c('acs,pep,wp,acs_diff,pep_diff'), fixed_effects = 'intercept', preprocess_scale = T, output_path_addition = 'softmax_preprocess_interceptonly_5modelsDiff')
+bash_wrapper_real(bash_file = 'code/bash_commands/real_data_01032025.txt', use_softmax = T, models = c('acs,pep,wp,acs_diff,pep_diff'), fixed_effects = 'intercept', preprocess_scale = T, output_path_addition = 'softmax_preprocess_interceptonly_5modelsDiff')
 
-bash_wrapper_real(bash_file = 'code/bash_commands/real_data_01022025.txt', dataset = 'AIAN', use_softmax = F, models = c('acs,pep,wp,acs_2018,pep_2018'), fixed_effects = 'intercept', preprocess_scale = T, output_path_addition = 'AIAN_directest_preprocess_interceptonly_5models')
+bash_wrapper_real(bash_file = 'code/bash_commands/real_data_01032025.txt', dataset = 'AIAN', use_softmax = F, models = c('acs,pep,wp,acs_2018,pep_2018'), fixed_effects = 'intercept', preprocess_scale = T, output_path_addition = 'AIAN_directest_preprocess_interceptonly_5models')
 
-bash_wrapper_real(bash_file = 'code/bash_commands/real_data_01022025.txt', dataset = 'AIAN', use_softmax = T, models = c('acs,pep,wp,acs_2018,pep_2018'), fixed_effects = 'intercept', preprocess_scale = T, output_path_addition = 'AIAN_softmax_preprocess_interceptonly_5models')
+bash_wrapper_real(bash_file = 'code/bash_commands/real_data_01032025.txt', dataset = 'AIAN', use_softmax = T, models = c('acs,pep,wp,acs_2018,pep_2018'), fixed_effects = 'intercept', preprocess_scale = T, output_path_addition = 'AIAN_softmax_preprocess_interceptonly_5models')
 
-bash_wrapper_real(bash_file = 'code/bash_commands/real_data_01022025.txt', dataset = 'AIAN', use_softmax = F, models = c('acs,pep,wp,acs_diff,pep_diff'), fixed_effects = 'intercept', preprocess_scale = T, output_path_addition = 'AIAN_directest_preprocess_interceptonly_5modelsDiff')
+bash_wrapper_real(bash_file = 'code/bash_commands/real_data_01032025.txt', dataset = 'AIAN', use_softmax = F, models = c('acs,pep,wp,acs_diff,pep_diff'), fixed_effects = 'intercept', preprocess_scale = T, output_path_addition = 'AIAN_directest_preprocess_interceptonly_5modelsDiff')
 
-bash_wrapper_real(bash_file = 'code/bash_commands/real_data_01022025.txt', dataset = 'AIAN',use_softmax = T, models = c('acs,pep,wp,acs_diff,pep_diff'), fixed_effects = 'intercept', preprocess_scale = T, output_path_addition = 'AIAN_softmax_preprocess_interceptonly_5modelsDiff')
+bash_wrapper_real(bash_file = 'code/bash_commands/real_data_01032025.txt', dataset = 'AIAN',use_softmax = T, models = c('acs,pep,wp,acs_diff,pep_diff'), fixed_effects = 'intercept', preprocess_scale = T, output_path_addition = 'AIAN_softmax_preprocess_interceptonly_5modelsDiff')
 
 #
 #### Testing the theta multiplier ####
