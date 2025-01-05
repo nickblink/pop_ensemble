@@ -1368,6 +1368,8 @@ process_results <- function(data_list, stan_fit, stan_fit_quantiles = F, models 
 # <XX>_estimates: whether to include the <XX> estimates.
 # RMSE_CP_values: whether to include the RMSE values and coverage probabilities.
 plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, stan_summary = NULL, models = c('acs','pep','wp'), thin = NULL, CV_pred = NULL, ESS = T, rhats = T, rho_estimates = T, tau2_estimates = T, sigma2_estimates = F, theta_estimates = T, alpha_estimates = F, phi_estimates = F, pairwise_phi_estimates = T, u_estimates = T, y_estimates = T, RMSE_CP_values = T, beta_estimates = T, beta_varnames = NULL){
+  # check the divergences
+  check_divergences(stan_fit)
   
   # checking stan fit type.
   if(any(class(stan_fit) == 'matrix') & stan_fit_quantiles == F){

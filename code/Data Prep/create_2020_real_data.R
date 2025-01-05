@@ -352,6 +352,42 @@ summary(lm.fit.5)
 
 #
 
+#### PCA on the data? ####
+load('../../data/census_ACS_PEP_WP_wDensity_and2018_01022024.RData')
+
+X <- df %>%
+  select(acs, pep, wp, acs_2018, pep_2018)
+
+#pca_result <- prcomp(X, center = TRUE, scale. = TRUE)
+pca_result <- prcomp(X, center = F, scale. = F)
+
+# Summary of PCA
+summary(pca_result)
+
+head(pca_result$x)
+
+pca_result$rotation
+# ah that makes sense. The first PC is the common direction of all of them (towards the magnitude of census), and then the following PCs differentiate them.
+#
+plot(pca_result, type = "l", main = "Scree Plot")
+biplot(pca_result, scale = 0)
+
+PC_cols <- pca_result$x
+
+# make all columns positive on average.
+PC_cols_pos <- PC_cols
+for(j in 1:ncol(PC_cols)){
+  if(sum(PC_cols[,j]) < 0){
+    PC_cols_pos[,j] <- -PC_cols_pos[,j]
+  }
+}
+
+df <- cbind(df, PC_cols_pos)
+
+# save(df, adjacency, file = '../../data/census_ACS_PEP_WP_wDensity_and2018_01022024.RData')
+
+
+#
 #### Regression Analysis AIAN ####
 load('../../data/census_ACS_PEP_WP_AIAN_wDensity_11152024.RData')
 lm.fit.1 <- lm(census ~ pep + acs + wp, data = df_AIAN)

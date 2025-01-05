@@ -140,6 +140,20 @@ bash_wrapper_real <- function(bash_file = NULL, ...){
   return(cmds)
 }
 
+#### 5 models runs - take 2, with no preprocess, and with PCA ####
+bash_wrapper_real(bash_file = 'code/bash_commands/real_data_01052025.txt', use_softmax = F, models = c('acs,pep,wp,acs_2018,pep_2018'), fixed_effects = 'intercept', preprocess_scale = F, output_path_addition = 'directest_interceptonly_5models')
+
+bash_wrapper_real(bash_file = 'code/bash_commands/real_data_01052025.txt', use_softmax = F, models = c('acs,pep,wp,acs_diff,pep_diff'), fixed_effects = 'intercept', preprocess_scale = F, output_path_addition = 'directest_interceptonly_5modelsDiff')
+
+bash_wrapper_real(bash_file = 'code/bash_commands/real_data_01052025.txt', use_softmax = F, models = c('PC1,PC2,PC3,PC4,PC5'), fixed_effects = 'intercept', preprocess_scale = F, output_path_addition = 'directest_interceptonly_5modelsPCA')
+
+bash_wrapper_real(bash_file = 'code/bash_commands/real_data_01052025.txt', use_softmax = T, models = c('acs,pep,wp,acs_2018,pep_2018'), fixed_effects = 'intercept', preprocess_scale = F, alpha_variance_prior = 1, output_path_addition = 'softmax_interceptonly_5models')
+
+bash_wrapper_real(bash_file = 'code/bash_commands/real_data_01052025.txt', use_softmax = T, models = c('acs,pep,wp,acs_diff,pep_diff'), fixed_effects = 'intercept', preprocess_scale = F, alpha_variance_prior = 1, output_path_addition = 'softmax_interceptonly_5modelsDiff')
+
+bash_wrapper_real(bash_file = 'code/bash_commands/real_data_01052025.txt', use_softmax = T, models = 'PC1,PC2,PC3,PC4,PC5', fixed_effects = 'intercept', preprocess_scale = F, alpha_variance_prior = 1, output_path_addition = 'softmax_interceptonly_5modelsPCA')
+
+#
 #### TESTING ####
 bash_command_real(use_softmax = F, models = c('acs,pep,wp,acs_2018,pep_2018'), fixed_effects = 'intercept', preprocess_scale = T, output_path_addition = 'directest_preprocess_interceptonly_5models', CV_blocks = NULL, n.sample = 100, burnin = 50, chains_cores = 1)
 

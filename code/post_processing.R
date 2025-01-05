@@ -20,6 +20,55 @@ setwd(root_git)
 # load extra functions
 source('code/extra_functions_CAR.R')
 
+
+#### Results with ACS and PEP 2018 and 2019 ####
+setwd(root_results)
+setwd('real_data/')
+recent_files(2)
+
+divergence_check <- function(res){
+  fit <- res$sim_list$stan_fit
+  check_divergences(fit)
+}
+
+files <- recent_files(l = 2) %>%
+  pull(file)
+
+# save images of results
+for(f in files){
+  load(f)
+  #divergence_check(res)  
+  p1 <- plot_real_results(data_list = res$sim_list$data_list,
+                          stan_fit = res$sim_list$stan_fit,
+                          stan_summary = res$sim_list$stan_summary$summary,
+                          models = params$models,
+                          CV_pred = res$sim_list$CV_pred,
+                          alpha_estimates = F)
+  out_name <- sprintf('../../Figures/01052025_%s_real_data.png', sub(".*fit_(.*?)_ID.*", "\\1", f))
+  print(out_name)
+  ggsave(plot = p1, filename = out_name, height = 12, width = 7)
+}
+
+# doing some error checking
+{
+load('real_data_fit_aian_directest_preprocess_interceptonly_5models_ID55316_2025_01_03.RData')
+
+#load('real_data_fit_softmax_preprocess_density_ID10231_2024_11_19.RData')
+
+fit <- res$sim_list$stan_fit
+stan_diag(fit)
+
+stan_diag(fit, info = 'sample')
+
+stan_diag(fit, info = 'stepsize')
+
+stan_diag(fit, info = 'treedepth')
+
+stan_diag(fit, info = 'divergence')
+
+check_divergences(fit)
+}
+#
 #### 1/3/2025: Theta results part 2 ####
 setwd(root_results)
 setwd('real_data/')

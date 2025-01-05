@@ -210,7 +210,7 @@ model {
   }
   // alpha prior.
   if(use_alpha == 1){
-	alpha ~ normal(1, alpha_variance_prior);
+	alpha ~ normal(1, sqrt(alpha_variance_prior));
   }
   // CAR prior.
   for(m in 1:M_phi){
