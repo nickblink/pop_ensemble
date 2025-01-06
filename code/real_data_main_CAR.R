@@ -23,7 +23,7 @@ if(file.exists('C:/Users/Admin-Dell')){
 source('code/extra_functions_CAR.R')
 
 if(home_dir){
-  inputs = 'dataset=aian:models=acs,pep,wp,acs_2018,pep_2018:n.sample=20:burnin=10:outcome=census:family=negbin:use_softmax=T:fixed_rho=-1:fixed_tau2=-1:sigma2_prior_shape=50:sigma2_prior_rate=0.5:tau2_prior_shape=1:tau2_prior_rate=1:theta_prior_shape=0.001:theta_prior_rate=0.001:theta_multiplier=-1:stan_path=code/CAR_leroux_sparse_negbin_alpha_FE.stan:CV_blocks=NULL:return_quantiles=F:output_path_addition=softmax_preprocess_density:chains_cores=1:alpha_variance_prior=-1:preprocess_scale=T:fixed_effects=pep_density'
+  inputs = 'dataset=all:models=PC1,PC2,PC3,PC4,PC5:n.sample=2000:burnin=1000:outcome=census:family=negbin:use_softmax=T:fixed_rho=-1:fixed_tau2=-1:sigma2_prior_shape=50:sigma2_prior_rate=0.5:tau2_prior_shape=1:tau2_prior_rate=1:theta_prior_shape=0.001:theta_prior_rate=0.001:theta_multiplier=1:stan_path=code/CAR_leroux_sparse_negbin_alpha_FE.stan:CV_blocks=5:return_quantiles=F:output_path_addition=softmax_interceptonly_5modelsPCA:chains_cores=10:alpha_variance_prior=1:preprocess_scale=F:fixed_effects=intercept'
 }else{
   # cluster inputs
   inputs <- commandArgs(trailingOnly = TRUE)
