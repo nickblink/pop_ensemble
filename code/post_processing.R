@@ -20,16 +20,34 @@ setwd(root_git)
 # load extra functions
 source('code/extra_functions_CAR.R')
 
-
-#### Results with ACS and PEP 2018 and 2019 ####
+#### Results with ACS and PEP PCs - direct est ####
 setwd(root_results)
 setwd('real_data/')
 recent_files(2)
 
-divergence_check <- function(res){
-  fit <- res$sim_list$stan_fit
-  check_divergences(fit)
+file <- recent_files(1)$file
+
+for(f in file){
+  load(f)
+  #divergence_check(res)  
+  p1 <- plot_real_results(data_list = res$sim_list$data_list,
+                          stan_fit = res$sim_list$stan_fit,
+                          stan_summary = res$sim_list$stan_summary$summary,
+                          models = params$models,
+                          CV_pred = res$sim_list$CV_pred,
+                          alpha_estimates = F)
+  out_name <- sprintf('../../Figures/%s_%s_real_data.png',
+                      format(Sys.Date(), "%m%d%Y"), 
+                      sub(".*fit_(.*?)_ID.*", "\\1", f))
+  print(out_name)
+  ggsave(plot = p1, filename = out_name, height = 12, width = 7)
 }
+
+#
+#### Results with ACS and PEP 2018 and 2019 ####
+setwd(root_results)
+setwd('real_data/')
+recent_files(2)
 
 files <- recent_files(l = 2) %>%
   pull(file)
