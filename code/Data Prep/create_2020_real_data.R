@@ -12,6 +12,67 @@ library(rstudioapi)
 current_path <- getActiveDocumentContext()$path
 setwd(dirname(current_path))
 
+#### Checking AIAN PEP Vintage vs. Year ####
+load('../../data/census_ACS_PEP_WP_AIAN_10282024.RData')
+
+# PEP American Indian data <- now with VINTAGE!!
+PEP_raw <- get_estimates(
+  geography = "county",
+  product = "characteristics",
+  breakdown = "RACE",
+  breakdown_labels = TRUE,
+  vintage = 2019,
+  state = NULL  # NULL gets all states
+)
+
+# Clean and format the PEP data
+PEP_AIAN <- PEP_raw %>%
+  # Filter for AIAN alone
+  filter(RACE == "American Indian and Alaska Native alone") %>%
+  # Create clean names
+  separate(NAME, into = c("county_name", "state"), sep = ", ") %>%
+  # Select and rename columns
+  select(
+    GEOID,
+    PEP_vintage = value
+  ) %>%
+  # Sort by population in descending order
+  arrange(desc(PEP_vintage))
+
+test <- merge(df_AIAN %>% select(GEOID, census, acs, wp, pep),
+              PEP_AIAN, by = 'GEOID')
+
+lm.fit <- lm(census ~ acs + wp + pep, data = df_AIAN)
+
+### Testing things
+# PEP American Indian data <- now with VINTAGE!!
+PEP_raw <- get_estimates(
+  geography = "county",
+  product = "characteristics",
+  breakdown = "RACE",
+  breakdown_labels = TRUE,
+  vintage = 2024,
+  year = 2019,
+  state = 'MA'  # NULL gets all states
+)
+
+# Clean and format the PEP data
+PEP_AIAN <- PEP_raw %>%
+  # Filter for AIAN alone
+  filter(RACE == "American Indian and Alaska Native alone") %>%
+  # Create clean names
+  separate(NAME, into = c("county_name", "state"), sep = ", ") %>%
+  # Select and rename columns
+  select(
+    GEOID,
+    PEP_vintage = value
+  ) %>%
+  # Sort by population in descending order
+  arrange(desc(PEP_vintage))
+
+
+
+#
 #### Census 2020 ####
 load_variables(2020, "pl")
 census <- get_decennial(
@@ -255,6 +316,28 @@ PEP_raw <- get_estimates(
   state = NULL  # NULL gets all states
 )
 
+
+# PEP 2018 data.
+PEP_raw1 <- get_estimates(
+  geography = "county",
+  product = "characteristics",
+  breakdown = "RACE",
+  breakdown_labels = TRUE,
+  year = 2015,
+  vintage = 2019,
+  state = NULL  # NULL gets all states
+)
+# PEP 2018 data.
+PEP_raw2 <- get_estimates(
+  geography = "county",
+  product = "characteristics",
+  breakdown = "RACE",
+  breakdown_labels = TRUE,
+  year = 2015,
+  vintage = 2015,
+  state = NULL  # NULL gets all states
+)
+
 # Clean and format the PEP data
 PEP_AIAN <- PEP_raw %>%
   # Filter for AIAN alone
@@ -350,7 +433,11 @@ summary(lm.fit.4)
 lm.fit.5 <- lm(census ~ pep + acs + pep_2018 + acs_2018 + +wp, data = df2)
 summary(lm.fit.5)
 
-#
+lm.fit.6 <- lm(census ~ acs + wp, data = df2)
+summary(lm.fit.6)
+# hm not great.
+
+###
 
 #### PCA on the data? ####
 load('../../data/census_ACS_PEP_WP_wDensity_and2018_01022024.RData')
@@ -402,3 +489,7 @@ summary(lm.fit.2)
 lm.fit.3 <- lm(log1p(census) ~ log1p(pep) + log1p(acs) + log1p(wp), data = df_AIAN)
 summary(lm.fit.3)
 # ok. Still not sure what to make of that. Darn darn.
+
+lm.fit.5 <- lm(census ~ acs + wp, data = df_AIAN)
+summary(lm.fit.5)
+# interesting. WP could be negative?
