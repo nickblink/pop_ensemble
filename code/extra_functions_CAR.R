@@ -1756,6 +1756,7 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, stan_
                              rRMSE = as.numeric(NA),
                              logRMSE = as.numeric(NA),
                              MAPE = as.numeric(NA),
+                             MAE = as.numeric(NA),
                              CP.95 = as.numeric(NA),
                              med_int = as.numeric(NA),
                              mean_p_int = as.numeric(NA))
@@ -1776,14 +1777,15 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, stan_
     rRMSE_train <- sqrt(mean(((median_y_pred[nonzero_ind] - y[nonzero_ind])/y[nonzero_ind])^2))
     logRMSE_train <-  sqrt(mean((log1p(median_y_pred[nonzero_ind]) - log1p(y[nonzero_ind]))^2))
     MAPE_train <- 100*mean(abs((median_y_pred[nonzero_ind] - y[nonzero_ind])/y[nonzero_ind]))
+    MAE_train <- mean(abs(y - median_y_pred))
     CP_train <- mean(y >= lower_y_pred & y <= upper_y_pred)
     med_int <- median(int_widths)
     mean_p_int <- mean(int_widths/y)
     
     # store the results (separate rows because of separate character types).
     RMSE_CP_df[1,1] <- 'train'
-    RMSE_CP_df[1,2:8] <- c(RMSE_train, rRMSE_train, logRMSE_train, MAPE_train, CP_train, med_int, mean_p_int)
-    
+    RMSE_CP_df[1,2:9] <- c(RMSE_train, rRMSE_train, logRMSE_train, MAPE_train, MAE_train, CP_train, med_int, mean_p_int)
+
     # get the CV RMSE, if CV was run.
     if(!is.null(CV_pred)){
       CV_quants = t(apply(CV_pred, 1, function(xx){
@@ -1796,17 +1798,18 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, stan_
       rRMSE_CV <- sqrt(mean(((CV_quants[nonzero_ind,2] - y[nonzero_ind])/y[nonzero_ind])^2))
       logRMSE_CV <-  sqrt(mean((log1p(CV_quants[nonzero_ind,2]) - log1p(y[nonzero_ind]))^2))
       MAPE_CV <- 100*mean(abs((CV_quants[nonzero_ind,2] - y[nonzero_ind])/y[nonzero_ind]))
+      MAE_CV <- mean(abs(CV_quants[,2] - y))
       CP_CV = mean(y >= CV_quants[,1] & y <= CV_quants[,3])
       med_int_CV <- median(int_widths_CV)
       mean_p_int_CV <- mean(int_widths_CV/y)
       
       # store the results.
       RMSE_CP_df[2,1] <- 'CV'
-      RMSE_CP_df[2,2:8] <- c(RMSE_CV, rRMSE_CV, logRMSE_CV, MAPE_CV, CP_CV, med_int_CV, mean_p_int_CV)
+      RMSE_CP_df[2,2:9] <- c(RMSE_CV, rRMSE_CV, logRMSE_CV, MAPE_CV, MAE_CV, CP_CV, med_int_CV, mean_p_int_CV)
     }
 
     # rounding for display
-    RMSE_CP_df[,2:8] <- round(RMSE_CP_df[,2:8], 3)
+    RMSE_CP_df[,2:9] <- round(RMSE_CP_df[,2:9], 3)
     rownames(RMSE_CP_df) <- NULL
     p_RMSE_CP <- gridExtra::tableGrob(RMSE_CP_df)
     

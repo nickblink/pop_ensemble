@@ -1,6 +1,6 @@
 library(Metrics) # For RMSE and MAPE calculations
 
-current_path <- getActiveDocumentContext()$path
+current_path <- rstudioapi::getActiveDocumentContext()$path
 setwd(dirname(current_path))
 
 compute_regression_metrics <- function(data, formulas, outcome, family = 'normal', k = 10) {
@@ -138,27 +138,39 @@ compute_regression_metrics <- function(data, formulas, outcome, family = 'normal
   return(results)
 }
 
-print_model_metrics <- function(metrics) {
+print_model_metrics <- function(metrics, return_df = FALSE) {
+  all_results <- data.frame()  # Initialize an empty data frame to store results
+  
   for (model_name in names(metrics)) {
-    cat("\n", model_name, "\n")
-    cat(rep("-", 40), "\n")
-    
     # Extract training and CV metrics
     train_metrics <- metrics[[model_name]]$Training
     cv_metrics <- metrics[[model_name]]$CrossValidation
     
     # Combine into a data frame
     results_table <- data.frame(
+      Model = model_name,
+      Type = c("Training", "CV"),
       RMSE = c(train_metrics$RMSE, cv_metrics$RMSE),
       MAPE = c(train_metrics$MAPE, cv_metrics$MAPE),
       MAE = c(train_metrics$MAE, cv_metrics$MAE),
       Coverage = c(train_metrics$Coverage, cv_metrics$Coverage),
-      Interval_Width = c(train_metrics$Interval_Width, cv_metrics$Interval_Width),
-      row.names = c("Training", "CV")
+      Interval_Width = c(train_metrics$Interval_Width, cv_metrics$Interval_Width)
     )
     
-    # Print the table
-    print(results_table)
+    # Append results to the overall results data frame
+    all_results <- rbind(all_results, results_table)
+    
+    # Print only if return_df is FALSE
+    if (!return_df) {
+      cat("\n", model_name, "\n")
+      cat(rep("-", 40), "\n")
+      print(results_table)
+    }
+  }
+  
+  # Return the combined data frame if requested
+  if (return_df) {
+    return(all_results)
   }
 }
 
@@ -180,17 +192,20 @@ model_formulas2 <- list(
   PCs = census ~ pc1 + pc2 + pc3 + pc4 + pc5
 )
 
-#load('../data/census_ACS_PEP_WP_wDensity_and2018_01022024.RData')
+models_all <- c(model_formulas, model_formulas2)
+models_all_noPC <- models_all[-which(names(models_all) == 'PCs')]
+
+load('../data/census_ACS_PEP_WP_wDensity_and2018_01022024.RData')
+
+metrics <- compute_regression_metrics(df, models_all, outcome = 'census', family = 'normal')
+print_model_metrics(metrics, T)
+
+metrics_raw <- compute_regression_metrics(df, models_all, outcome = 'census', family = 'none')
+print_model_metrics(metrics_raw, T)
+
 load('../data/census_ACS_PEP_WP_AIAN_wDensity_and2018_01022024.RData')
+metrics <- compute_regression_metrics(df, models_all_noPC, outcome = 'census', family = 'normal')
+print_model_metrics(metrics, T)
 
-metrics <- compute_regression_metrics(df, model_formulas, outcome = 'census', family = 'normal')
-print_model_metrics(metrics)
-
-metrics_raw <- compute_regression_metrics(df, model_formulas, outcome = 'census', family = 'none')
-print_model_metrics(metrics_raw)
-
-metrics2 <- compute_regression_metrics(df, model_formulas2, outcome = 'census', family = 'normal')
-print_model_metrics(metrics2)
-
-metrics2_raw <- compute_regression_metrics(df, model_formulas2, outcome = 'census', family = 'none')
-print_model_metrics(metrics2_raw)
+metrics_raw <- compute_regression_metrics(df, models_all_noPC, outcome = 'census', family = 'none')
+print_model_metrics(metrics_raw, T)
