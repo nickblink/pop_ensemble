@@ -1358,6 +1358,27 @@ process_results <- function(data_list, stan_fit, stan_fit_quantiles = F, models 
   return(full_plot)
 }
 
+just_metrics <- function(data_list, stan_fit, stan_fit_quantiles = F, stan_summary, models, CV_pred = NULL){
+  p1 <- plot_real_results(data_list = data_list,
+                    stan_fit = stan_fit,
+                    stan_summary = stan_summary,
+                    models = models,
+                    CV_pred = CV_pred,
+                    ESS = F,
+                    rhats = F,
+                    alpha_estimates = F, 
+                    tau2_estimates = F, 
+                    rho_estimates = F,
+                    theta_estimates = F, 
+                    phi_estimates = F,
+                    pairwise_phi_estimates = F,
+                    u_estimates = F,
+                    y_estimates = F,
+                    beta_estimates = F,
+                    RMSE_CP_values = T)
+  return(p1)
+}
+
 ### plot_real_results. Prints ESS for spatial params and returns a plot of various results for parameter estimates.
 # data_list: List containing data used for the fit, the true phi values, and the true u values.
 # stan_fit: The result of the stan fit on this data.

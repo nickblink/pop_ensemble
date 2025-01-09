@@ -62,10 +62,11 @@ compute_regression_metrics <- function(data, formulas, outcome, family = 'normal
       D_M <- model.matrix(formula, data = data)[, -1, drop = F]
       train_preds <- rowMeans(D_M)
       train_actuals <- data[[outcome]]
+      ind_positive <- which(train_actuals > 0)
       
       # Training metrics
       train_rmse <- rmse(train_actuals, train_preds)
-      train_mape <- mape(train_actuals, train_preds) * 100
+      train_mape <- mape(train_actuals[ind_positive], train_preds[ind_positive]) * 100
       train_mae <- mean(abs(train_actuals - train_preds))
       
       # Save results

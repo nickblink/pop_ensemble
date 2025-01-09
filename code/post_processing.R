@@ -20,6 +20,66 @@ setwd(root_git)
 # load extra functions
 source('code/extra_functions_CAR.R')
 
+#### Getting metrics for the top results - full pop ####
+setwd(root_results)
+setwd('real_data/')
+
+files_full <- dir()[-grep('aian', dir(), ignore.case = T)]
+
+plotz <- list()
+file_names <- c()
+
+for (i in seq_along(files_full)) {
+  print(i)
+  print(files_full[i])
+  tryCatch({
+    load(files_full[i])
+    plotz <- append(plotz, list(just_metrics(
+      data_list = res$sim_list$data_list,
+      stan_fit = res$sim_list$stan_fit,
+      stan_summary = res$sim_list$stan_summary$summary,
+      models = params$models,
+      CV_pred = res$sim_list$CV_pred
+    )))
+    file_names <- c(file_names, files_full[i])
+  }, error = function(e) {
+    cat("Error in file:", files_full[i], "\n")
+    cat("Error message:", e$message, "\n")
+  })
+}
+# dear god the 10,000 iteration ones!
+# save the raw results. 
+save(plotz, file_names, file = '?.RData')
+# save the plot! Extra long, of course.
+plot_grid(plotlist = plotz, ncol = 1, labels = file_names)
+
+# now do this for aian
+{
+files_aian <- dir()[grep('aian', dir(), ignore.case = T)]
+
+plotz_aian <- list()
+file_names_aian <- c()
+
+for (i in seq_along(files_aian)) {
+  print(i)
+  print(files_aian[i])
+  tryCatch({
+    load(files_aian[i])
+    plotz_aian <- append(plotz_aian, list(just_metrics(
+      data_list = res$sim_list$data_list,
+      stan_fit = res$sim_list$stan_fit,
+      stan_summary = res$sim_list$stan_summary$summary,
+      models = params$models,
+      CV_pred = res$sim_list$CV_pred
+    )))
+    file_names_aian <- c(file_names_aian, files_aian[i])
+  }, error = function(e) {
+    cat("Error in file:", files_aian[i], "\n")
+    cat("Error message:", e$message, "\n")
+  })
+}
+}
+#
 #### Results with ACS and PEP PCs - direct est ####
 setwd(root_results)
 setwd('real_data/')
@@ -64,7 +124,7 @@ for(f in files){
                           alpha_estimates = F)
   out_name <- sprintf('../../Figures/01052025_%s_real_data.png', sub(".*fit_(.*?)_ID.*", "\\1", f))
   print(out_name)
-  ggsave(plot = p1, filename = out_name, height = 12, width = 7)
+  #ggsave(plot = p1, filename = out_name, height = 12, width = 7)
 }
 
 # doing some error checking
