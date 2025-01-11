@@ -27,6 +27,7 @@ setwd('real_data/')
 files_full <- dir()[-grep('aian', dir(), ignore.case = T)]
 
 plotz <- list()
+metricz <- list()
 file_names <- c()
 
 for (i in seq_along(files_full)) {
@@ -34,30 +35,40 @@ for (i in seq_along(files_full)) {
   print(files_full[i])
   tryCatch({
     load(files_full[i])
-    plotz <- append(plotz, list(just_metrics(
+    stan_fit <-  res$sim_list$stan_fit
+    if(dim(stan_fit)[1]*dim(stan_fit)[2] > 10000){
+      print('skipping because dim(stan_fit) = ')
+      print(dim(stan_fit))
+      next
+    }
+    res <- just_metrics(
       data_list = res$sim_list$data_list,
       stan_fit = res$sim_list$stan_fit,
       stan_summary = res$sim_list$stan_summary$summary,
       models = params$models,
       CV_pred = res$sim_list$CV_pred
-    )))
+    )
+    plotz <- append(plotz, list(res$plot))
+    metricz <- append(metricz, list(res$metrics))
     file_names <- c(file_names, files_full[i])
   }, error = function(e) {
     cat("Error in file:", files_full[i], "\n")
     cat("Error message:", e$message, "\n")
   })
 }
-# dear god the 10,000 iteration ones!
+# real_data_fit_softmax_alpha_interceptonly_ID24617_2024_11_12.RData had 2.6% divergence. N bueno
 # save the raw results. 
-save(plotz, file_names, file = '?.RData')
+save(plotz, metricz, file_names, file = '../01092025_full_population_metrics.RData')
 # save the plot! Extra long, of course.
-plot_grid(plotlist = plotz, ncol = 1, labels = file_names)
+p1 <- plot_grid(plotlist = plotz, ncol = 1, labels = file_names)
+
 
 # now do this for aian
 {
 files_aian <- dir()[grep('aian', dir(), ignore.case = T)]
 
 plotz_aian <- list()
+metrics_aian <- list()
 file_names_aian <- c()
 
 for (i in seq_along(files_aian)) {
@@ -65,20 +76,40 @@ for (i in seq_along(files_aian)) {
   print(files_aian[i])
   tryCatch({
     load(files_aian[i])
-    plotz_aian <- append(plotz_aian, list(just_metrics(
+    res <- just_metrics(
       data_list = res$sim_list$data_list,
       stan_fit = res$sim_list$stan_fit,
       stan_summary = res$sim_list$stan_summary$summary,
       models = params$models,
       CV_pred = res$sim_list$CV_pred
-    )))
+    )
+    plotz_aian <- append(plotz_aian, list(res$plot))
+    metrics_aian <- append(metrics_aian, list(res$metrics))
     file_names_aian <- c(file_names_aian, files_aian[i])
   }, error = function(e) {
     cat("Error in file:", files_aian[i], "\n")
     cat("Error message:", e$message, "\n")
   })
 }
+# "real_data_fit_softmax_preprocess_alpha_aian_ID97760_2024_10_28.RData" had 8/10k divergences.
+
+# "real_data_fit_aian_directest_preprocess_interceptonly_5models_ID55316_2025_01_03.RData" had 11/1000 divergences (maybe concerning)
+
+# save it!
+save(plotz_aian, metrics_aian, file_names_aian, file = '../01092025_AIAN_metrics.RData')
 }
+
+outcome_aian <- data.frame()
+for(i in seq_along(metrics_aian)){
+  extracted_text <- stringr::str_extract(file_names_aian[i], "(?<=fit_).*?(?=_ID)")
+  print(extracted_text)
+  tmp_df <- data.frame(model = rep(extracted_text, 2)) %>%
+    cbind(metrics_aian[[i]])
+  outcome_aian <- rbind(outcome_aian, tmp_df)
+}
+
+# next change the output to save the actual table as well. So not JUST the plot. That would be sensible.
+
 #
 #### Results with ACS and PEP PCs - direct est ####
 setwd(root_results)

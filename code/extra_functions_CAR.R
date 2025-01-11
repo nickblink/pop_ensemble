@@ -1045,8 +1045,8 @@ generate_metrics_list <- function(folder = NULL, root = NULL, debug_mode = F){
 # ESS: Whether to include the ESS of the parameters.
 # likelihoods: whether to include the prior, likelihood, and posterior.
 # <XX>_estimates: whether to include the <XX> estimates.
-# RMSE_CP_values: whether to include the RMSE values and coverage probabilities.
-process_results <- function(data_list, stan_fit, stan_fit_quantiles = F, models = NULL, CV_pred = NULL, ESS = T, likelihoods = T, rho_estimates = T, tau2_estimates = T, sigma2_estimates = F, phi_estimates = T, u_estimates = T, y_estimates = T, RMSE_CP_values = T){
+# metrics_values: whether to include the RMSE values and coverage probabilities.
+process_results <- function(data_list, stan_fit, stan_fit_quantiles = F, models = NULL, CV_pred = NULL, ESS = T, likelihoods = T, rho_estimates = T, tau2_estimates = T, sigma2_estimates = F, phi_estimates = T, u_estimates = T, y_estimates = T, metrics_values = T){
   
   # checking stan fit type.
   if(any(class(stan_fit) == 'matrix') & stan_fit_quantiles == F){
@@ -1307,10 +1307,10 @@ process_results <- function(data_list, stan_fit, stan_fit_quantiles = F, models 
     plot_list <- append(plot_list, list(plot_grid(plotlist = p_y_plots, nrow = 1)))
   }
   
-  if(RMSE_CP_values){
+  if(metrics_values){
     print('RMSE est')
     # initialize data frame:
-    RMSE_CP_df <- data.frame(dataset = as.character(NA), RMSE = as.numeric(NA), CP.95 = as.numeric(NA))
+    metrics_df <- data.frame(dataset = as.character(NA), RMSE = as.numeric(NA), CP.95 = as.numeric(NA))
     
     # get the median, lower, and upper predictions from this set.
     ind = grep('y_pred', rownames(stan_summary))
@@ -1322,15 +1322,15 @@ process_results <- function(data_list, stan_fit, stan_fit_quantiles = F, models 
     y = data_list$data$y
     RMSE_train = sqrt(mean((median_y_pred - y)^2))
     CP_train = mean(y >= lower_y_pred & y <= upper_y_pred)
-    RMSE_CP_df[1,1] <- 'train'
-    RMSE_CP_df[1,2:3] <- c(RMSE_train, CP_train)
+    metrics_df[1,1] <- 'train'
+    metrics_df[1,2:3] <- c(RMSE_train, CP_train)
     
     # get the generalization RMSE in a new set.
     y2 = data_list$data$y2
     RMSE_general = sqrt(mean((median_y_pred - y2)^2))
     CP_general = mean(y2 >= lower_y_pred & y2 <= upper_y_pred)
-    RMSE_CP_df[2,1] <- 'generalize'
-    RMSE_CP_df[2,2:3] <- c(RMSE_general, CP_general)
+    metrics_df[2,1] <- 'generalize'
+    metrics_df[2,2:3] <- c(RMSE_general, CP_general)
     
     # get the CV RMSE, if CV was run.
     if(!is.null(CV_pred)){
@@ -1340,15 +1340,15 @@ process_results <- function(data_list, stan_fit, stan_fit_quantiles = F, models 
       
       RMSE_CV = sqrt(mean((CV_quants[,2] - y)^2))
       CP_CV = mean(y >= CV_quants[,1] & y <= CV_quants[,3])
-      RMSE_CP_df[3,1] <- 'train-CV'
-      RMSE_CP_df[3,2:3] <- c(RMSE_CV, CP_CV)
+      metrics_df[3,1] <- 'train-CV'
+      metrics_df[3,2:3] <- c(RMSE_CV, CP_CV)
     }
     
     # rounding for display
-    RMSE_CP_df[,2:3] <- round(RMSE_CP_df[,2:3], 3)
-    p_RMSE_CP <- gridExtra::tableGrob(RMSE_CP_df)
+    metrics_df[,2:3] <- round(metrics_df[,2:3], 3)
+    p_metrics <- gridExtra::tableGrob(metrics_df)
     
-    plot_list <- append(plot_list, list(p_RMSE_CP))
+    plot_list <- append(plot_list, list(p_metrics))
   }
   
   ## Combine all the plots!
@@ -1359,7 +1359,7 @@ process_results <- function(data_list, stan_fit, stan_fit_quantiles = F, models 
 }
 
 just_metrics <- function(data_list, stan_fit, stan_fit_quantiles = F, stan_summary, models, CV_pred = NULL){
-  p1 <- plot_real_results(data_list = data_list,
+  res <- plot_real_results(data_list = data_list,
                     stan_fit = stan_fit,
                     stan_summary = stan_summary,
                     models = models,
@@ -1375,8 +1375,9 @@ just_metrics <- function(data_list, stan_fit, stan_fit_quantiles = F, stan_summa
                     u_estimates = F,
                     y_estimates = F,
                     beta_estimates = F,
-                    RMSE_CP_values = T)
-  return(p1)
+                    metrics_values = T,
+                    return_table = T)
+  return(res)
 }
 
 ### plot_real_results. Prints ESS for spatial params and returns a plot of various results for parameter estimates.
@@ -1387,8 +1388,8 @@ just_metrics <- function(data_list, stan_fit, stan_fit_quantiles = F, stan_summa
 # ESS: Whether to include the ESS of the parameters.
 # likelihoods: whether to include the prior, likelihood, and posterior.
 # <XX>_estimates: whether to include the <XX> estimates.
-# RMSE_CP_values: whether to include the RMSE values and coverage probabilities.
-plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, stan_summary = NULL, models = c('acs','pep','wp'), thin = NULL, CV_pred = NULL, ESS = T, rhats = T, rho_estimates = T, tau2_estimates = T, sigma2_estimates = F, theta_estimates = T, alpha_estimates = F, phi_estimates = F, pairwise_phi_estimates = T, u_estimates = T, y_estimates = T, RMSE_CP_values = T, beta_estimates = T, beta_varnames = NULL){
+# metrics_values: whether to include the RMSE values and coverage probabilities.
+plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, stan_summary = NULL, models = c('acs','pep','wp'), thin = NULL, CV_pred = NULL, ESS = T, rhats = T, rho_estimates = T, tau2_estimates = T, sigma2_estimates = F, theta_estimates = T, alpha_estimates = F, phi_estimates = F, pairwise_phi_estimates = T, u_estimates = T, y_estimates = T, metrics_values = T, beta_estimates = T, beta_varnames = NULL, return_table = F){
   # check the divergences
   check_divergences(stan_fit)
   
@@ -1769,10 +1770,10 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, stan_
   }
   
   ## get the RMSE CP values!
-  if(RMSE_CP_values){
+  if(metrics_values){
     print('RMSE est')
     # initialize data frame:
-    RMSE_CP_df <- data.frame(dataset = as.character(NA), 
+    metrics_df <- data.frame(dataset = as.character(NA), 
                              RMSE = as.numeric(NA), 
                              rRMSE = as.numeric(NA),
                              logRMSE = as.numeric(NA),
@@ -1804,8 +1805,8 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, stan_
     mean_p_int <- mean(int_widths/y)
     
     # store the results (separate rows because of separate character types).
-    RMSE_CP_df[1,1] <- 'train'
-    RMSE_CP_df[1,2:9] <- c(RMSE_train, rRMSE_train, logRMSE_train, MAPE_train, MAE_train, CP_train, med_int, mean_p_int)
+    metrics_df[1,1] <- 'train'
+    metrics_df[1,2:9] <- c(RMSE_train, rRMSE_train, logRMSE_train, MAPE_train, MAE_train, CP_train, med_int, mean_p_int)
 
     # get the CV RMSE, if CV was run.
     if(!is.null(CV_pred)){
@@ -1825,16 +1826,16 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, stan_
       mean_p_int_CV <- mean(int_widths_CV/y)
       
       # store the results.
-      RMSE_CP_df[2,1] <- 'CV'
-      RMSE_CP_df[2,2:9] <- c(RMSE_CV, rRMSE_CV, logRMSE_CV, MAPE_CV, MAE_CV, CP_CV, med_int_CV, mean_p_int_CV)
+      metrics_df[2,1] <- 'CV'
+      metrics_df[2,2:9] <- c(RMSE_CV, rRMSE_CV, logRMSE_CV, MAPE_CV, MAE_CV, CP_CV, med_int_CV, mean_p_int_CV)
     }
 
     # rounding for display
-    RMSE_CP_df[,2:9] <- round(RMSE_CP_df[,2:9], 3)
-    rownames(RMSE_CP_df) <- NULL
-    p_RMSE_CP <- gridExtra::tableGrob(RMSE_CP_df)
+    metrics_df[,2:9] <- round(metrics_df[,2:9], 3)
+    rownames(metrics_df) <- NULL
+    p_metrics <- gridExtra::tableGrob(metrics_df)
     
-    plot_list <- append(plot_list, list(p_RMSE_CP))
+    plot_list <- append(plot_list, list(p_metrics))
     rel_heights <- c(rel_heights, 1)
   }
 
@@ -1843,7 +1844,12 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, stan_
                          rel_heights = rel_heights,
                          ncol = 1)
   
-  return(full_plot)
+  if(return_table){
+    return(list(plot = full_plot, 
+                metrics = metrics_df))
+  }else{
+    return(full_plot)  
+  }
 }
 
 
@@ -1979,7 +1985,7 @@ plot_metrics <- function(input_lst, single_sim_res = NULL, include_MAP_rank = F,
     p_yfit <- process_results(single_sim_res$data_list, 
                           CV_pred = single_sim_res$CV_pred, 
                           stan_fit = single_sim_res$stan_fit, 
-                          ESS = F, likelihoods = F, rho_estimates = F, tau2_estimates = F, sigma2_estimates = F, phi_estimates = F, u_estimates = F, RMSE_CP_values = F, 
+                          ESS = F, likelihoods = F, rho_estimates = F, tau2_estimates = F, sigma2_estimates = F, phi_estimates = F, u_estimates = F, metrics_values = F, 
                           y_estimates = T)
     
     plot_list <- append(plot_list, list(p_yfit))
