@@ -93,11 +93,11 @@ print(params)
 ## pull in the data
 # American Indian Alaska Native data
 if(params[['dataset']] == 'aian'){
-  load('data/census_ACS_PEP_WP_AIAN_wDensity_and2018_01022024.RData')
+  load('data/census_ACS_PEP_WP_AIAN_wDensity_and2017_01022024.RData')
   params[['raw_data']] <- list(data = df, adjacency = adjacency)
 # full data
 }else{
-  load('data/census_ACS_PEP_WP_wDensity_and2018_01022024.RData')
+  load('data/census_ACS_PEP_WP_wDensity_and2017_01022024.RData')
   # subset data by state
   if(params[['dataset']] == 'all'){
     # params[['raw_data']]

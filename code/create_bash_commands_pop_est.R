@@ -155,6 +155,53 @@ bash_wrapper_real <- function(bash_file = NULL, ...){
   return(cmds)
 }
 
+#### 1/13/2025 2017 and 2018 prediction models ####
+
+## Directest intercept only
+{
+# (1.1) Full pop,  directest, interceptonly: 2018 only
+bash_wrapper_real(dataset = 'all', bash_file = 'code/bash_commands/real_data_laggedyear_01132025.txt', use_softmax = F, fixed_effects = 'intercept', output_path_addition = 'directest_interceptonly_2018only', models = 'acs_2018,pep_2018,wp')
+
+# (1.2) Full pop,  directest, interceptonly: 2018 and 2019
+bash_wrapper_real(dataset = 'all', bash_file = 'code/bash_commands/real_data_laggedyear_01132025.txt', use_softmax = F, fixed_effects = 'intercept', output_path_addition = 'directest_interceptonly_20182019', models = 'acs_2018,pep_2018,acs,pep,wp')
+
+# (1.3) Full pop,  directest, interceptonly: 2017 and 2018
+bash_wrapper_real(dataset = 'all', bash_file = 'code/bash_commands/real_data_laggedyear_01132025.txt', use_softmax = F, fixed_effects = 'intercept', output_path_addition = 'directest_interceptonly_20172018', models = 'acs_2018,pep_2018,acs_2017,pep_2017 ,wp')
+
+# (1.4) AIAN,  directest, interceptonly: 2018 only
+bash_wrapper_real(dataset = 'AIAN', bash_file = 'code/bash_commands/real_data_laggedyear_01132025.txt', use_softmax = F, fixed_effects = 'intercept', output_path_addition = 'aian_directest_interceptonly_2018only', models = 'acs_2018,pep_2018,wp')
+
+# (1.5) AIAN,  directest, interceptonly: 2018 and 2019
+bash_wrapper_real(dataset = 'AIAN', bash_file = 'code/bash_commands/real_data_laggedyear_01132025.txt', use_softmax = F, fixed_effects = 'intercept', output_path_addition = 'aian_directest_interceptonly_20182019', models = 'acs_2018,pep_2018,acs,pep,wp')
+
+# (1.6) Full pop,  directest, interceptonly: 2017 and 2018
+bash_wrapper_real(dataset = 'AIAN', bash_file = 'code/bash_commands/real_data_laggedyear_01132025.txt', use_softmax = F, fixed_effects = 'intercept', output_path_addition = 'aian_directest_interceptonly_20172018', models = 'acs_2018,pep_2018,acs_2017,pep_2017 ,wp')
+}
+
+## Softmax alpha density 
+{
+  
+  # (2.1) Full pop,  softmax_alpha, density: 2018 only
+  bash_wrapper_real(dataset = 'all', bash_file = 'code/bash_commands/real_data_laggedyear_01132025.txt', use_softmax = T,  alpha_variance_prior = .01, fixed_effects = 'pep_density', output_path_addition = 'softmax_alpha_density_2018only', models = 'acs_2018,pep_2018,wp')
+  
+  # (2.2) Full pop,  softmax_alpha, density: 2018 and 2019
+  bash_wrapper_real(dataset = 'all', bash_file = 'code/bash_commands/real_data_laggedyear_01132025.txt', use_softmax = T,  alpha_variance_prior = .01, fixed_effects = 'pep_density', output_path_addition = 'softmax_alpha_density_20182019', models = 'acs_2018,pep_2018,acs,pep,wp')
+  
+  # (2.3) Full pop,  softmax_alpha, density: 2017 and 2018
+  bash_wrapper_real(dataset = 'all', bash_file = 'code/bash_commands/real_data_laggedyear_01132025.txt', use_softmax = T,  alpha_variance_prior = .01, fixed_effects = 'pep_density', output_path_addition = 'softmax_alpha_density_20172018', models = 'acs_2018,pep_2018,acs_2017,pep_2017 ,wp')
+  
+  # (2.4) AIAN,  softmax_alpha, pep_fulldensity: 2018 only
+  bash_wrapper_real(dataset = 'AIAN', bash_file = 'code/bash_commands/real_data_laggedyear_01132025.txt', use_softmax = T,  alpha_variance_prior = .01, fixed_effects = 'pep_fulldensity', output_path_addition = 'aian_softmax_alpha_pepfulldensity_2018only', models = 'acs_2018,pep_2018,wp')
+  
+  # (2.5) AIAN,  softmax_alpha, pep_fulldensity: 2018 and 2019
+  bash_wrapper_real(dataset = 'AIAN', bash_file = 'code/bash_commands/real_data_laggedyear_01132025.txt', use_softmax = T,  alpha_variance_prior = .01, fixed_effects = 'pep_fulldensity', output_path_addition = 'aian_softmax_alpha_pepfulldensity_20182019', models = 'acs_2018,pep_2018,acs,pep,wp')
+  
+  # (2.6) Full pop,  softmax_alpha, pep_fulldensity: 2017 and 2018
+  bash_wrapper_real(dataset = 'AIAN', bash_file = 'code/bash_commands/real_data_laggedyear_01132025.txt', use_softmax = T,  alpha_variance_prior = .01, fixed_effects = 'pep_fulldensity', output_path_addition = 'aian_softmax_alpha_pepfulldensity_20172018', models = 'acs_2018,pep_2018,acs_2017,pep_2017 ,wp')
+  
+}
+
+#
 #### 1/13/2025 Re-doing main models with CV = 10 ####
 ## 6 models to run.
 ## Make sure to increase total run time!

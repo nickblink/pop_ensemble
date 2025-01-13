@@ -316,27 +316,29 @@ PEP_raw <- get_estimates(
   state = NULL  # NULL gets all states
 )
 
-
-# PEP 2018 data.
-PEP_raw1 <- get_estimates(
-  geography = "county",
-  product = "characteristics",
-  breakdown = "RACE",
-  breakdown_labels = TRUE,
-  year = 2015,
-  vintage = 2019,
-  state = NULL  # NULL gets all states
-)
-# PEP 2018 data.
-PEP_raw2 <- get_estimates(
-  geography = "county",
-  product = "characteristics",
-  breakdown = "RACE",
-  breakdown_labels = TRUE,
-  year = 2015,
-  vintage = 2015,
-  state = NULL  # NULL gets all states
-)
+# checking if vintage impacts results
+{
+# # PEP 2018 data.
+# PEP_raw1 <- get_estimates(
+#   geography = "county",
+#   product = "characteristics",
+#   breakdown = "RACE",
+#   breakdown_labels = TRUE,
+#   year = 2015,
+#   vintage = 2019,
+#   state = NULL  # NULL gets all states
+# )
+# # PEP 2018 data.
+# PEP_raw2 <- get_estimates(
+#   geography = "county",
+#   product = "characteristics",
+#   breakdown = "RACE",
+#   breakdown_labels = TRUE,
+#   year = 2015,
+#   vintage = 2015,
+#   state = NULL  # NULL gets all states
+# )
+}
 
 # Clean and format the PEP data
 PEP_AIAN <- PEP_raw %>%
@@ -439,6 +441,78 @@ summary(lm.fit.6)
 
 ###
 
+#### AIAN 2017 data ####
+load('../../data/census_ACS_PEP_WP_AIAN_wDensity_and2018_01022024.RData')
+
+# ACS 2017 data.
+ACS_AIAN <- get_acs(
+  geography = "county",
+  variables = "B02001_004", # Code for American Indian and Alaska Native alone
+  year = 2017#,
+  #survey = "acs5" # Using 5-year estimates for more reliable county-level data
+) %>%
+  select(GEOID,
+         acs_2017 = estimate)
+
+# PEP 2017 data.
+PEP_raw <- get_estimates(
+  geography = "county",
+  product = "characteristics",
+  breakdown = "RACE",
+  breakdown_labels = TRUE,
+  vintage = 2017,
+  year = 2017,
+  state = NULL  # NULL gets all states
+)
+
+# Clean and format the PEP data
+PEP_AIAN <- PEP_raw %>%
+  # Filter for AIAN alone
+  filter(RACE == "American Indian and Alaska Native alone") %>%
+  # Create clean names
+  separate(NAME, into = c("county_name", "state"), sep = ", ") %>%
+  # Select and rename columns
+  select(
+    GEOID,
+    pep_2017 = value
+  ) %>%
+  # Sort by population in descending order
+  arrange(desc(pep_2017))
+
+df2 <- df %>%
+  merge(ACS_AIAN, by = 'GEOID') %>%
+  merge(PEP_AIAN, by = 'GEOID')
+
+df <- df2
+#save(df, adjacency, file = '../../data/census_ACS_PEP_WP_AIAN_wDensity_and2017_01022024.RData')
+
+
+#
+#### PEP AND ACS 2017 data ####
+load('../../data/census_ACS_PEP_WP_wDensity_and2018_01022024.RData')
+
+# getting 2017 values
+PEP_2017 <- get_estimates(geography = "county",
+                          product = "population",
+                          time_series = TRUE, 
+                          vintage = 2017) %>%
+  filter(DATE == 10, variable == 'POP') %>%
+  select(GEOID, pep_2017 = value)
+
+ACS_2017 <- get_acs(geography = "county",
+                    variables = 'B01003_001', # Total Population
+                    year=2017) %>%
+  select(GEOID, acs_2017 = estimate)
+
+df2 <- df %>% 
+  merge(PEP_2017, by = 'GEOID') %>%
+  merge(ACS_2017, by = 'GEOID')
+
+df <- df2
+# save(df, adjacency, file = '../../data/census_ACS_PEP_WP_wDensity_and2017_01022024.RData')
+
+
+#
 #### PCA on the data? ####
 load('../../data/census_ACS_PEP_WP_wDensity_and2018_01022024.RData')
 
