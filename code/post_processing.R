@@ -20,7 +20,7 @@ setwd(root_git)
 # load extra functions
 source('code/extra_functions_CAR.R')
 
-#### Getting metrics for the top results - full pop ####
+#### 1/13/2025: Getting metrics for all results - full pop and AIAN ####
 setwd(root_results)
 setwd('real_data/')
 
@@ -35,6 +35,7 @@ for (i in seq_along(files_full)) {
   print(files_full[i])
   tryCatch({
     load(files_full[i])
+    if(params$dataset == 'aian'){next} # didnt originally have this but it seems important.
     stan_fit <-  res$sim_list$stan_fit
     if(dim(stan_fit)[1]*dim(stan_fit)[2] > 10000){
       print('skipping because dim(stan_fit) = ')
@@ -62,6 +63,14 @@ save(plotz, metricz, file_names, file = '../01092025_full_population_metrics.RDa
 # save the plot! Extra long, of course.
 p1 <- plot_grid(plotlist = plotz, ncol = 1, labels = file_names)
 
+# get order of CV MAE
+names(metricz) <- file_names
+CV_MAE <- sapply(metricz, function(tmp){ tmp[2,'MAE']})
+CV_MAPE <- sapply(metricz, function(tmp){ tmp[2,'MAPE']})
+MAE_ord <- order(CV_MAE)
+
+# look at them all.
+metricz[MAE_ord]
 
 # now do this for aian
 {
@@ -108,7 +117,14 @@ for(i in seq_along(metrics_aian)){
   outcome_aian <- rbind(outcome_aian, tmp_df)
 }
 
-# next change the output to save the actual table as well. So not JUST the plot. That would be sensible.
+names(metrics_aian) <- file_names_aian
+CV_MAE <- sapply(metrics_aian, function(tmp){ tmp[2,'MAE']})
+CV_MAPE <- sapply(metrics_aian, function(tmp){ tmp[2,'MAPE']})
+MAE_ord <- order(CV_MAE)
+
+# look at them all.
+metrics_aian[MAE_ord]
+
 
 #
 #### Results with ACS and PEP PCs - direct est ####

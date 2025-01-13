@@ -43,9 +43,24 @@ bash_command <- function(R=40, dataset='NY', N_models=3, n.sample=10000, burnin=
 ## This script makes bash commands for given simulations
 bash_command_real <- function(dataset='all', models='acs,pep,wp', n.sample=2000, burnin=1000, outcome = 'census', family='negbin', use_softmax=F, fixed_rho = -1, fixed_tau2 = -1, sigma2_prior_shape = 50, sigma2_prior_rate = 0.5, tau2_prior_shape = 1, tau2_prior_rate=1, theta_multiplier = 1, theta_prior_shape = 0.001, theta_prior_rate = 0.001, stan_path='code/CAR_leroux_sparse_negbin_alpha_FE.stan', CV_blocks = 5, return_quantiles = F, output_path_addition = NULL, alpha_variance_prior=-1, chains_cores=10, preprocess_scale = F, fixed_effects = NULL){
   
+  ## Parameter error checking.
   if(!grepl(family, stan_path)){
     warning('family not in stan path - is that correct?')
   }
+  
+  if(!is.null(fixed_effects)){
+    if(!(fixed_effects %in% c('intercept', 'pep_density', 'acs_density', 'pep_fulldensity', 'acs_fulldensity', 'pep_density_proportion', 'pep_fulldensity_proportion'))){
+      stop('Incorrect fixed effects')
+    }
+  }
+  
+  if(!(tolower(dataset) %in% c('all','aian'))){
+    stop('Incorrect dataset')
+  }
+  
+  # if(!use_softmax & (tau2_prior_shape > 0.1 | tau2_prior_rate > 0.1)){
+  #   print('Are you sure you want tau2 so high?')
+  # } ## Gamma(1,1) is fine for low values of tau2.
   
   job_name = sprintf('%s_%s_%smodels_CV%s', round(runif(1)*1000), ifelse(use_softmax, 'softmax', 'directest'), family, ifelse(is.null(CV_blocks), 'none', CV_blocks))
   
@@ -140,8 +155,32 @@ bash_wrapper_real <- function(bash_file = NULL, ...){
   return(cmds)
 }
 
+#### 1/13/2025 Re-doing main models with CV = 10 ####
+## 6 models to run.
+## Make sure to increase total run time!
+
+# Full pop, CV10, directest, interceptonly
+bash_wrapper_real(dataset = 'all', bash_file = 'code/bash_commands/real_data_CV10models_01132025.txt', use_softmax = F, fixed_effects = 'intercept', CV_blocks = 10, output_path_addition = 'directest_CV10_interceptonly')
+
+# Full pop, CV10, softmax, alpha, pep_density (double check param name)
+bash_wrapper_real(dataset = 'all', bash_file = 'code/bash_commands/real_data_CV10models_01132025.txt', use_softmax = T, alpha_variance_prior = .01, fixed_effects = 'pep_density', CV_blocks = 10, output_path_addition = 'softmax_alpha_CV10_density')
+
+# Full pop, CV10, softmax, density
+bash_wrapper_real(dataset = 'all', bash_file = 'code/bash_commands/real_data_CV10models_01132025.txt', use_softmax = T, fixed_effects = 'pep_density', CV_blocks = 10,output_path_addition = 'softmax_CV10_density')
+
+# AIAN, CV10, directest, interceptonly
+bash_wrapper_real(dataset = 'aian', bash_file = 'code/bash_commands/real_data_CV10models_01132025.txt', use_softmax = F, fixed_effects = 'intercept', CV_blocks = 10, output_path_addition = 'AIAN_directest_CV10_interceptonly')
+
+# AIAN,  CV10, softmax, alpha, pep_fulldensity
+bash_wrapper_real(dataset = 'aian', bash_file = 'code/bash_commands/real_data_CV10models_01132025.txt', use_softmax = T, alpha_variance_prior = .01, fixed_effects = 'pep_fulldensity', CV_blocks = 10, output_path_addition = 'AIAN_softmax_alpha_CV10_pepfulldensity')
+
+# AIAN, CV10, softmax, pep_fulldensity
+bash_wrapper_real(dataset = 'aian', bash_file = 'code/bash_commands/real_data_CV10models_01132025.txt', use_softmax = T, fixed_effects = 'pep_fulldensity', CV_blocks = 10, output_path_addition = 'AIAN_softmax_CV10_pepfulldensity')
+
+
+#
 #### 5 models runs - take 2, with no preprocess, and with PCA ####
-bash_wrapper_real(bash_file = 'code/bash_commands/real_data_01052025.txt', use_softmax = F, models = c('acs,pep,wp,acs_2018,pep_2018'), fixed_effects = 'intercept', preprocess_scale = F, output_path_addition = 'directest_interceptonly_5models')
+bash_wrapper_real(bash_file = 'code/bash_commands/real_data_01052025.txt', use_softmax = F, models = 'acs,pep,wp,acs_2018,pep_2018', fixed_effects = 'intercept', preprocess_scale = F, output_path_addition = 'directest_interceptonly_5models')
 
 bash_wrapper_real(bash_file = 'code/bash_commands/real_data_01052025.txt', use_softmax = F, models = c('acs,pep,wp,acs_diff,pep_diff'), fixed_effects = 'intercept', preprocess_scale = F, output_path_addition = 'directest_interceptonly_5modelsDiff')
 
