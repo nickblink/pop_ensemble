@@ -1,0 +1,92 @@
+[1] "dataset=AIAN:models=acs_2018,pep_2018,acs_2017,pep_2017,wp:n.sample=20:burnin=10:outcome=census:family=negbin:use_softmax=T:fixed_rho=-1:fixed_tau2=-1:sigma2_prior_shape=50:sigma2_prior_rate=0.5:tau2_prior_shape=1:tau2_prior_rate=1:theta_prior_shape=0.001:theta_prior_rate=0.001:theta_multiplier=1:stan_path=code/CAR_leroux_sparse_negbin_alpha_FE.stan:CV_blocks=5:return_quantiles=F:output_path_addition=aian_softmax_alpha_pepfulldensity_20172018:chains_cores=10:alpha_variance_prior=0.01:preprocess_scale=F:fixed_effects=pep_fulldensity"
+$dataset
+[1] "aian"
+
+$models
+[1] "acs_2018" "pep_2018" "acs_2017" "pep_2017" "wp"      
+
+$n.sample
+[1] 20
+
+$burnin
+[1] 10
+
+$outcome
+[1] "census"
+
+$family
+[1] "negbin"
+
+$use_softmax
+[1] TRUE
+
+$fixed_rho
+[1] -1
+
+$fixed_tau2
+[1] -1
+
+$sigma2_prior_shape
+[1] 50
+
+$sigma2_prior_rate
+[1] 0.5
+
+$tau2_prior_shape
+[1] 1
+
+$tau2_prior_rate
+[1] 1
+
+$theta_prior_shape
+[1] 0.001
+
+$theta_prior_rate
+[1] 0.001
+
+$theta_multiplier
+[1] 1
+
+$stan_path
+[1] "code/CAR_leroux_sparse_negbin_alpha_FE.stan"
+
+$CV_blocks
+[1] 5
+
+$return_quantiles
+[1] FALSE
+
+$output_path_addition
+[1] "aian_softmax_alpha_pepfulldensity_20172018"
+
+$chains_cores
+[1] 10
+
+$alpha_variance_prior
+[1] 0.01
+
+$preprocess_scale
+[1] FALSE
+
+$fixed_effects
+[1] "pep_fulldensity"
+
+$results_file
+[1] "results/real_data_results/real_data_fit_aian_softmax_alpha_pepfulldensity_20172018_ID66050_2025_01_14.RData"
+
+ [1] "GEOID"               "state"               "acs"                
+ [4] "census"              "pep"                 "wp"                 
+ [7] "NAME"                "ALAND"               "ALAND_sqmi"         
+[10] "acs_density"         "pep_density"         "acs_AIAN_proportion"
+[13] "pep_AIAN_proportion" "acs_density_full"    "pep_density_full"   
+[16] "acs_2018"            "pep_2018"            "pep_diff"           
+[19] "acs_diff"           
+[1] "stan_path = code/CAR_leroux_sparse_negbin_alpha_FE.stan"
+[1] "check 1"
+[1] "check 1.5"
+groups
+  1   2   3   4   5 
+824 639 599 522 480 
+[1] "------------1------------"
+[1] "check 5"
+[1] "use softmax = TRUE"
