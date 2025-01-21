@@ -20,7 +20,86 @@ setwd(root_git)
 # load extra functions
 source('code/extra_functions_CAR.R')
 
+#### 1/21/2025: Make chloropleth plots of the results ####
+setwd(root_results)
+setwd('real_data/')
+load('real_data_fit_directest_cv10_interceptonly_ID81515_2025_01_15.RData')
+
+stan_out <- extract(res$sim_list$stan_fit)
+
+u_est <- as.data.frame(matrix(0, nrow = N, ncol = length(models)))
+colnames(u_est) <- models
+for(i in 1:length(models)){
+  ind = grep(sprintf('^u\\[[0-9]*,%s\\]', i), rownames(stan_summary))
+  u_est[,i] <- stan_summary[ind,'50%']
+}
+u_est$index = 1:N
+
+# Bring back in county fips codes.
+
+# get county shapefiles.
+counties <- counties(cb = TRUE, year = 2020, class = "sf")
+
+merged_df <- NULL
+merged_df$outcome <- PEP_U_ESTIMATES
+
+p1 <- ggplot(data = merged_data) +
+  geom_sf(aes(fill = outcome), color = NA) +
+  geom_sf(data = states, fill = NA, color = "black", size = 0.5) + 
+  scale_fill_viridis_c(option = "plasma", na.value = "white", trans = 'log',
+                       #breaks = pretty_breaks(n = 5),  # Use pretty breaks
+                       labels = function(x) round(x, digits = 0)) +  # Color scale
+  theme_minimal() +
+  coord_sf(xlim = c(-130, -65), ylim = c(24, 50)) +
+  labs(title = sprintf("County %s", val),
+       fill = "Value") +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        panel.grid = element_blank()) 
+
+## Other code for density plotting
+if(F){
+  # convert estimates to long
+  u_est_long <- tidyr::gather(u_est, key = model, value = u_median_est, -index)
+  
+  # plot 'em
+  p_u <- ggplot(u_est_long, aes(x = u_median_est)) + 
+    geom_density() + 
+    facet_wrap(~model, scales = 'free') + 
+    xlab('estimate') + 
+    ylab('density') + 
+    theme(axis.text.y = element_blank()) +
+    ggtitle('u estimates')
+}
+
+
+#
+#### 1/21/2025: Make weight density plots ####
+setwd(root_results)
+setwd('real_data/')
+load('real_data_fit_directest_cv10_interceptonly_ID81515_2025_01_15.RData')
+
+p1 <- plot_real_results(data_list = res$sim_list$data_list,
+                        stan_fit = res$sim_list$stan_fit,
+                        stan_summary = res$sim_list$stan_summary$summary,
+                        models = params$models,
+                        CV_pred = res$sim_list$CV_pred,
+                        alpha_estimates = F,
+                        ESS = F, rho_estimates = F, tau2_estimates = F, 
+                        sigma2_estimates = F, theta_estimates = F, phi_estimates = F,
+                        pairwise_phi_estimates = F, y_estimates = F, metrics_values = F, beta_estimates = F)
+# inspect plot. How is it?
+
+#
 #### 1/20/2025: All the recent results! ####
+make_table_line <- function(metric, cols = c('dataset','MAPE', 'MAE', 'CP.95', 'med_int')){
+  res <- apply(metric, 1, function(xx){
+    paste(xx[cols], collapse = ' & ')
+  })
+  return(res)
+}
+
+
 setwd(root_results)
 setwd('real_data/')
 recent_files(2)
@@ -60,7 +139,7 @@ for (i in seq_along(files_full)) {
     cat("Error message:", e$message, "\n")
   })
 }
-# real_data_fit_softmax_alpha_cv10_density_ID77695_2025_01_15.RData had 17/1000 divergence.
+# real_data_fit_softmax_alpha_cv10_density_ID77695_2025_01_15.RData had 17/1000 divergence. IGNORING, though this could be an issue.
 # real_data_fit_softmax_alpha_density_20172018_ID59308_2025_01_15.RData had 176/1000 divergence!!
 # real_data_fit_softmax_alpha_density_2018only_ID54737_2025_01_15.RData had 63/1000 divergence.
 
@@ -68,8 +147,9 @@ names(metrics) <- file_names
 CV_MAE <- sapply(metrics, function(tmp){ tmp[2,'MAE']})
 CV_MAPE <- sapply(metrics, function(tmp){ tmp[2,'MAPE']})
 MAE_ord <- order(CV_MAE)
-metrics[MAE_ord,]
+metrics[MAE_ord]
 # save(plots, metrics, files_full, file = '../01202025_full_population_metrics_CVand5models.RData')
+load('../01202025_full_population_metrics_CVand5models.RData')
 
 
 ### AIAN model
