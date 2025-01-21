@@ -20,6 +20,105 @@ setwd(root_git)
 # load extra functions
 source('code/extra_functions_CAR.R')
 
+#### 1/20/2025: All the recent results! ####
+setwd(root_results)
+setwd('real_data/')
+recent_files(2)
+files <- grep('2025_01_15', dir(), value = T)
+ind_aian <- grep('aian', files)
+files_full <- files[-ind_aian]
+files_aian <- files[ind_aian]
+
+### Full model
+plots <- list()
+metrics <- list()
+file_names <- c()
+
+for (i in seq_along(files_full)) {
+  print(i)
+  print(files_full[i])
+  tryCatch({
+    load(files_full[i])
+    stan_fit <-  res$sim_list$stan_fit
+    if(dim(stan_fit)[1]*dim(stan_fit)[2] > 10000){
+      print('skipping because dim(stan_fit) = ')
+      print(dim(stan_fit))
+      next
+    }
+    res <- just_metrics(
+      data_list = res$sim_list$data_list,
+      stan_fit = res$sim_list$stan_fit,
+      stan_summary = res$sim_list$stan_summary$summary,
+      models = params$models,
+      CV_pred = res$sim_list$CV_pred
+    )
+    plots <- append(plots, list(res$plot))
+    metrics <- append(metrics, list(res$metrics))
+    file_names <- c(file_names, files_full[i])
+  }, error = function(e) {
+    cat("Error in file:", files_full[i], "\n")
+    cat("Error message:", e$message, "\n")
+  })
+}
+# real_data_fit_softmax_alpha_cv10_density_ID77695_2025_01_15.RData had 17/1000 divergence.
+# real_data_fit_softmax_alpha_density_20172018_ID59308_2025_01_15.RData had 176/1000 divergence!!
+# real_data_fit_softmax_alpha_density_2018only_ID54737_2025_01_15.RData had 63/1000 divergence.
+
+names(metrics) <- file_names
+CV_MAE <- sapply(metrics, function(tmp){ tmp[2,'MAE']})
+CV_MAPE <- sapply(metrics, function(tmp){ tmp[2,'MAPE']})
+MAE_ord <- order(CV_MAE)
+metrics[MAE_ord,]
+# save(plots, metrics, files_full, file = '../01202025_full_population_metrics_CVand5models.RData')
+
+
+### AIAN model
+plots_aian <- list()
+metrics_aian <- list()
+file_names_aian <- c()
+
+for (i in seq_along(files_aian)) {
+  print(i)
+  print(files_aian[i])
+  tryCatch({
+    load(files_aian[i])
+    stan_fit <-  res$sim_list$stan_fit
+    if(dim(stan_fit)[1]*dim(stan_fit)[2] > 10000){
+      print('skipping because dim(stan_fit) = ')
+      print(dim(stan_fit))
+      next
+    }
+    res <- just_metrics(
+      data_list = res$sim_list$data_list,
+      stan_fit = res$sim_list$stan_fit,
+      stan_summary = res$sim_list$stan_summary$summary,
+      models = params$models,
+      CV_pred = res$sim_list$CV_pred
+    )
+    plots_aian <- append(plots_aian, list(res$plot))
+    metrics_aian <- append(metrics_aian, list(res$metrics))
+    file_names_aian <- c(file_names_aian, files_aian[i])
+  }, error = function(e) {
+    cat("Error in file:", files_aian[i], "\n")
+    cat("Error message:", e$message, "\n")
+  })
+}
+# real_data_fit_aian_softmax_alpha_pepfulldensity_2018only_ID88033_2025_01_15.RData had 278/1000 divergences!
+# real_data_fit_aian_softmax_alpha_pepfulldensity_20182019_ID48754_2025_01_15.RData had 374/1000 divergences!
+# real_data_fit_aian_softmax_alpha_pepfulldensity_20172018_ID60604_2025_01_15.RData had 366/1000 divergences!
+# real_data_fit_aian_softmax_alpha_cv10_pepfulldensity_ID17611_2025_01_15.RData had 300/1000 divergences!
+# the first four had 2-8 divergences.
+
+names(metrics_aian) <- file_names_aian
+CV_MAE <- sapply(metrics_aian, function(tmp){ tmp[2,'MAE']})
+CV_MAPE <- sapply(metrics_aian, function(tmp){ tmp[2,'MAPE']})
+MAE_ord_aian <- order(CV_MAE)
+metrics_aian[MAE_ord_aian]
+save(plots_aian, metrics_aian, files_full, file = '../01202025_aianmetrics_CVand5models.RData')
+
+
+
+#
 #### 1/13/2025: Getting metrics for all results - full pop and AIAN ####
 setwd(root_results)
 setwd('real_data/')
@@ -125,6 +224,8 @@ MAE_ord <- order(CV_MAE)
 # look at them all.
 metrics_aian[MAE_ord]
 
+
+#
 
 #
 #### Results with ACS and PEP PCs - direct est ####
