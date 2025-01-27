@@ -25,8 +25,12 @@ setwd(root_results)
 setwd('real_data/')
 load('real_data_fit_directest_cv10_interceptonly_ID81515_2025_01_15.RData')
 
-stan_out <- extract(res$sim_list$stan_fit)
+# stan_out <- extract(res$sim_list$stan_fit)
 
+data_list = res$sim_list$data_list
+N = nrow(data_list$data)
+models <- params$models
+stan_summary <- res$sim_list$stan_summary$summary
 u_est <- as.data.frame(matrix(0, nrow = N, ncol = length(models)))
 colnames(u_est) <- models
 for(i in 1:length(models)){
@@ -36,26 +40,39 @@ for(i in 1:length(models)){
 u_est$index = 1:N
 
 # Bring back in county fips codes.
+u_est$GEOID <- data_list$data$GEOID
 
 # get county shapefiles.
-counties <- counties(cb = TRUE, year = 2020, class = "sf")
+counties <- tigris::counties(cb = TRUE, year = 2020, class = "sf")
 
-merged_df <- NULL
-merged_df$outcome <- PEP_U_ESTIMATES
+# Load state boundaries.
+states <- tigris::states(cb = TRUE, year = 2020, class = "sf")
 
-p1 <- ggplot(data = merged_data) +
+merged_df <- merge(counties, u_est, by = 'GEOID')
+merged_df$outcome <- merged_df$pep
+
+p1 <- ggplot(data = merged_df) +
   geom_sf(aes(fill = outcome), color = NA) +
   geom_sf(data = states, fill = NA, color = "black", size = 0.5) + 
-  scale_fill_viridis_c(option = "plasma", na.value = "white", trans = 'log',
-                       #breaks = pretty_breaks(n = 5),  # Use pretty breaks
-                       labels = function(x) round(x, digits = 0)) +  # Color scale
+  scale_fill_gradient2(
+    low = "blue",
+    mid = "white",
+    high = "red",
+    midpoint = 0.97, # Centering the scale around 1
+    limits = c(0.83, 1.07), # Adjusting to your data range
+    na.value = "white"
+  ) +
   theme_minimal() +
   coord_sf(xlim = c(-130, -65), ylim = c(24, 50)) +
-  labs(title = sprintf("County %s", val),
-       fill = "Value") +
-  theme(axis.text = element_blank(),
-        axis.ticks = element_blank(),
-        panel.grid = element_blank()) 
+  labs(fill = "PEP Weight") +
+  theme(
+    axis.text = element_blank(),
+    axis.ticks = element_blank(),
+    panel.grid = element_blank()
+  )
+
+ggsave(p1, file = '../../Figures/01152025_pep_estimates_chloropleth_directest_cv10_interceptonly.png',
+       width = 10, height = 5)
 
 ## Other code for density plotting
 if(F){
@@ -83,12 +100,14 @@ p1 <- plot_real_results(data_list = res$sim_list$data_list,
                         stan_fit = res$sim_list$stan_fit,
                         stan_summary = res$sim_list$stan_summary$summary,
                         models = params$models,
-                        CV_pred = res$sim_list$CV_pred,
+                        CV_pred = res$sim_list$CV_pred, rhats = F,
                         alpha_estimates = F,
                         ESS = F, rho_estimates = F, tau2_estimates = F, 
                         sigma2_estimates = F, theta_estimates = F, phi_estimates = F,
                         pairwise_phi_estimates = F, y_estimates = F, metrics_values = F, beta_estimates = F)
 # inspect plot. How is it?
+ggsave(p1, file = '../../Figures/01152025_u_estimates_directest_cv10_interceptonly.png', width = 6, height = 3)
+
 
 #
 #### 1/20/2025: All the recent results! ####
