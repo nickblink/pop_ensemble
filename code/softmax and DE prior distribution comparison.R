@@ -16,12 +16,26 @@ softmax <- function(x) {
 n_samples <- 10000
 
 # Generate samples from a normal distribution and apply softmax
-samples <- replicate(n_samples, softmax(rnorm(3, 0, 1)))
+softmax_samples <- replicate(n_samples, softmax(rnorm(3, 0, 1)))
 
 # Convert to a data frame
-df <- as.data.frame(t(samples))
-colnames(df) <- c("X1", "X2", "X3")
+df_softmax <- as.data.frame(t(softmax_samples))
+colnames(df_softmax) <- c("u1", "u2", "u3")
 
+DE_samples <- replicate(n_samples,rnorm(3, 1/3, sd = .1))
+df_DE <- as.data.frame(t(DE_samples))
+
+X_samples <- replicate(n_samples, rnorm(3, 100, sd = 10))
+X_df <- as.data.frame(t(X_samples))
+
+Y_softmax <- rowSums(df_softmax * X_df)
+Y_DE <- rowSums(df_DE * X_df)
+
+sd(Y_softmax)
+sd(Y_DE)
+
+## Plot softmax
+{
 # Convert to long format for ggplot
 df_long <- df %>%
   pivot_longer(cols = everything(), names_to = "Variable", values_to = "Value")
@@ -37,5 +51,5 @@ ggplot(df_long, aes(x = Value, fill = Variable)) +
 df_long %>%
   group_by(Variable) %>%
   summarize(var(Value))
-
+}
 
