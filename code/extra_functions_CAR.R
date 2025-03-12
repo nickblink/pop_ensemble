@@ -587,13 +587,16 @@ run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_
 # burnin: length of burnin period for stan.
 # sigma2: sigma2 value of y distribution.
 multiple_sims <- function(raw_data, models, means, variances, family = 'poisson', N_sims = 10, stan_path = "code/CAR_leroux_sparse_poisson.stan", init_vals = '0', family_name_check = T, use_softmax = F, CV_blocks = NULL, seed_start = 0, return_quantiles = T, ...){
-  
+  print(getwd())
   rstan_options(auto_write = F)
+  
   
   ### Parameter error checks
   {
     # checking stan path exists 
     if(!file.exists(stan_path)){
+      print(getwd())
+      print(sprintf('stan_path = %s', stan_path))
       stop('stan path does not exist.')
     }
     
@@ -708,7 +711,8 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
       stan_quants <- get_stan_quantiles(stan_fit)
       tmp_lst <- list(data_list = data_lst, stan_fit = stan_quants, stan_MAP = stan_MAP)
     }else{
-      tmp_lst <- list(data_list = data_lst, stan_fit = stan_fit, stan_MAP = stan_MAP)
+      stan_quants <- get_stan_quantiles(stan_fit)
+      tmp_lst <- list(data_list = data_lst, stan_fit = stan_fit, stan_quants = stan_quants, stan_MAP = stan_MAP)
     }
     
     

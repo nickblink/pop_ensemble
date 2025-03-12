@@ -155,6 +155,12 @@ bash_wrapper_real <- function(bash_file = NULL, ...){
   return(cmds)
 }
 
+#### 3/12/2025: Simulation bash again! Creating round 1 sim commands for paper ####
+bash_wrapper(use_softmax = T, tau2 = 1, CV_blocks = 10, theta_vec = c(100), rho_vec = c(0.3, 0.99), family = 'negbin', stan_path = 'code/CAR_leroux_sparse_negbin.stan', bash_file = 'code/bash_commands/simulation_bash_03122025.txt')
+
+bash_wrapper(use_softmax = F, tau2 = .01, CV_blocks = 10, theta_vec = c(100), rho_vec = c(0.3, 0.99), family = 'negbin', stan_path = 'code/CAR_leroux_sparse_negbin.stan', bash_file = 'code/bash_commands/simulation_bash_03122025.txt')
+
+#
 #### 1/13/2025 2017 and 2018 prediction models ####
 
 ## Directest intercept only
