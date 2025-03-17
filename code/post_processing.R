@@ -1,4 +1,5 @@
 library(dplyr)
+library(tidyverse)
 library(rstan)
 library(ggplot2)
 library(cowplot)
@@ -20,6 +21,58 @@ setwd(root_git)
 # load extra functions
 source('code/extra_functions_CAR.R')
 
+#### 3/17/2025: Make simulation results figures ####
+setwd(root_results)
+setwd('simulated_results/')
+files <- grep('2025_03_13', dir(), value = T)
+
+results_list <- lapply(files, function(f){
+  generate_metrics_list(f)})
+
+warning('Hardcoding names of results - make sure they match')
+names(results_list) <- c('DE_rho03', 'SM_rho03', 'DE_rho099', 'SM_rho099')
+
+# pull out the u-rank of each file
+u_rank_scores <- lapply(results_list, function(xx){
+  rank <- colMeans(sapply(xx$metrics_list, function(yy) yy[['rank_equal']]))
+  rank
+})
+
+# Convert list to a tidy data frame
+df <- u_rank_scores %>%
+  enframe(name = "Group", value = "Values") %>%
+  unnest(Values)
+df$Group <- factor(df$Group, levels = c("SM_rho03", "SM_rho099", "DE_rho03", "DE_rho099"))
+
+# Compute the 10%, 50% (median), and 90% quantiles for each group
+df_summary <- df %>%
+  group_by(Group) %>%
+  summarise(
+    lowest = min(Values),
+    lower = quantile(Values, 0.10),   # 10th percentile
+    middle = quantile(Values, 0.50),  # Median (50th percentile)
+    upper = quantile(Values, 0.90),   # 90th percentile
+    highest = max(Values),
+    .groups = "drop"
+  )
+
+# Create the customized boxplot
+ggplot(df, aes(x = Group, y = Values)) +
+  # Use geom_segment() for whiskers (instead of geom_errorbar)
+  geom_segment(data = df_summary, aes(x = Group, xend = Group, y = lowest, yend = highest), color = "black") +
+  # Use geom_crossbar() to create the box
+  geom_crossbar(data = df_summary, aes(x = Group, ymin = lower, y = middle, ymax = upper), fill = "white", color = "black") +
+  # Add a horizontal reference line at y = 1/6
+  geom_hline(yintercept = 1/6, linetype = "dashed", color = "red") +
+  # Clean theme
+  theme_minimal() +
+  labs(x = NULL, y = "u-rank within simulation run", title = "Boxplot of u-rank-scores (10%-90% Quantiles)") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none")  # Remove legend
+
+ggsave(filename = '../../Figures/03172025_urank_boxplot.png', height = 5, width = 7)
+
+#
 #### 1/21/2025: Make chloropleth plots of the results ####
 setwd(root_results)
 setwd('real_data/')

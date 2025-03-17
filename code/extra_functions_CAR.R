@@ -1015,7 +1015,7 @@ generate_metrics_list <- function(folder = NULL, root = NULL, debug_mode = F){
         vec_to_mat(., n_models = 3)
 
       metrics_lst[[iter]] <- list(mean_y = mean(y),
-                                  mdeian_y = median(y),
+                                  median_y = median(y),
                                   RMSE_train = sqrt(mean((median_y_pred - y)^2)),
                                   RMSE_general = sqrt(mean((median_y_pred - y2)^2)),
                                   RMSE_CV = sqrt(mean((tmp$CV_pred['0.5',] - y)^2)),
