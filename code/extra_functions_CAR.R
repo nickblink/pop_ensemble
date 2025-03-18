@@ -1033,7 +1033,8 @@ generate_metrics_list <- function(folder = NULL, root = NULL, debug_mode = F){
                                   CP_95_CV = (y >= tmp$CV_pred['0.025',] & y <= tmp$CV_pred['0.975',]),
                                   CP_90_phi = (phi_true_flat >= phi_est_05 & phi_true_flat <= phi_est_95),
                                   CP_90_u = (u_true_flat >= u_est_05 & u_true_flat <= u_est_95),
-                                  median_int_width = median(int_widths_95),
+                                  median_int_width_train = median(int_widths_95),
+                                  median_int_width_CV = median(tmp$CV_pred['0.975',] - tmp$CV_pred['0.025',]),
                                   rank_equal = sapply(1:nrow(median_u_mat), function(xx){
                                     res <- all(rank(median_u_mat[xx,]) == rank(u_true[xx,-ncol(u_true)]))
                                     res

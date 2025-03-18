@@ -21,7 +21,7 @@ setwd(root_git)
 # load extra functions
 source('code/extra_functions_CAR.R')
 
-#### 3/17/2025: Make simulation results figures ####
+#### 3/17/2025: Make simulation results figures and tables ####
 setwd(root_results)
 setwd('simulated_results/')
 files <- grep('2025_03_13', dir(), value = T)
@@ -40,13 +40,21 @@ names(results_list) <- c('DE_rho03', 'SM_rho03', 'DE_rho099', 'SM_rho099')
     rank
   })
   
+  # Define LaTeX-style expressions for x-axis labels
+  group_labels <- c(
+    "SM_rho03" = expression(SM ~ rho == 0.3),
+    "SM_rho099" = expression(SM ~ rho == 0.99),
+    "DE_rho03" = expression(DE ~ rho == 0.3),
+    "DE_rho099" = expression(DE ~ rho == 0.99)
+  )
+  
   # Convert list to a tidy data frame
   df <- u_rank_scores %>%
     enframe(name = "Group", value = "Values") %>%
     unnest(Values)
-  df$Group <- factor(df$Group, levels = c("SM_rho03", "SM_rho099", "DE_rho03", "DE_rho099"))
+  df$Group <- factor(df$Group, levels = names(group_labels))  # Ensure correct ordering
   
-  # Compute the 10%, 50% (median), and 90% quantiles for each group
+  # Compute the 5%, 50% (median), and 95% quantiles for each group
   df_summary <- df %>%
     group_by(Group) %>%
     summarise(
@@ -60,7 +68,7 @@ names(results_list) <- c('DE_rho03', 'SM_rho03', 'DE_rho099', 'SM_rho099')
   
   # Create the customized boxplot
   ggplot(df, aes(x = Group, y = Values)) +
-    # Use geom_segment() for whiskers (instead of geom_errorbar)
+    # Use geom_segment() for whiskers
     geom_segment(data = df_summary, aes(x = Group, xend = Group, y = lowest, yend = highest), color = "black") +
     # Use geom_crossbar() to create the box
     geom_crossbar(data = df_summary, aes(x = Group, ymin = lower, y = middle, ymax = upper), fill = "white", color = "black") +
@@ -68,11 +76,12 @@ names(results_list) <- c('DE_rho03', 'SM_rho03', 'DE_rho099', 'SM_rho099')
     geom_hline(yintercept = 1/6, linetype = "dashed", color = "red") +
     # Clean theme
     theme_minimal() +
-    labs(x = NULL, y = "u-rank within simulation run", title = "Boxplot of u-rank-scores (5%-95% Quantiles)") +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1),
+    labs(x = NULL, y = "u-rank within simulation run", title = NULL) +
+    scale_x_discrete(labels = group_labels) +  # Apply LaTeX-style labels
+    theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 12),
           legend.position = "none")  # Remove legend
   
-  #ggsave(filename = '../../Figures/03172025_urank_boxplot.png', height = 5, width = 7)
+  ggsave(filename = '../../Figures/03172025_urank_boxplot.png', height = 5, width = 7)
 }
 
 ### Making the table metrics 
@@ -96,7 +105,8 @@ names(results_list) <- c('DE_rho03', 'SM_rho03', 'DE_rho099', 'SM_rho099')
     MAPE_CV <- sapply(metrics_list, function(x) x$MAPE_CV)
     MAE_train <- sapply(metrics_list, function(x) x$MAE_train)
     MAE_CV <- sapply(metrics_list, function(x) x$MAE_CV)
-    median_int_width <- sapply(metrics_list, function(x) x$median_int_width)
+    median_int_width_train <- sapply(metrics_list, function(x) x$median_int_width_train)
+    median_int_width_CV <- sapply(metrics_list, function(x) x$median_int_width_CV)
     
     # Compute proportion of TRUE values for Boolean vectors
     CP_95_train <- sapply(metrics_list, function(x) mean(x$CP_95_train, na.rm = TRUE))
@@ -110,7 +120,8 @@ names(results_list) <- c('DE_rho03', 'SM_rho03', 'DE_rho099', 'SM_rho099')
       MAPE_CV = summary_stats(MAPE_CV),
       MAE_train = summary_stats(MAE_train),
       MAE_CV = summary_stats(MAE_CV),
-      median_int_width = summary_stats(median_int_width),
+      median_int_width_train = summary_stats(median_int_width_train),
+      median_int_width_CV = summary_stats(median_int_width_CV),
       CP_95_train = summary_stats(CP_95_train),
       CP_90_train = summary_stats(CP_90_train),
       CP_95_CV = summary_stats(CP_95_CV),
@@ -133,6 +144,11 @@ names(results_list) <- c('DE_rho03', 'SM_rho03', 'DE_rho099', 'SM_rho099')
     # Initialize a list to store row data before sorting
     rows_list <- list()
     
+    # Check for names.
+    if(is.null(names(data_list))){
+      stop('data list inputted needs to be named.')
+    }
+    
     # Iterate through each simulation run
     for (sim_name in names(data_list)) {
       sim_data <- data_list[[sim_name]]
@@ -140,7 +156,8 @@ names(results_list) <- c('DE_rho03', 'SM_rho03', 'DE_rho099', 'SM_rho099')
       # Extract the prefix (e.g., "DE" or "SM") and rho value
       split_name <- strsplit(sim_name, "_rho")[[1]]
       model_name <- split_name[1]  # "DE" or "SM"
-      rho_value <- as.numeric(split_name[2])  # Convert rho to numeric for sorting
+      rho_value <- ifelse(split_name[2] == '03', 0.3,
+                          ifelse(split_name[2] == '099', 0.99, NA))  # Convert rho to numeric for sorting
       
       # Format the first column for LaTeX: "DE, $\rho=0.3$"
       latex_name <- paste0(model_name, ", $\\rho=", rho_value, "$")
@@ -151,7 +168,7 @@ names(results_list) <- c('DE_rho03', 'SM_rho03', 'DE_rho099', 'SM_rho099')
         MAPE_var <- paste0("MAPE_", type)
         MAE_var <- paste0("MAE_", type)
         CP_var <- paste0("CP_", coverage, "_", type)
-        width_var <- "median_int_width"
+        width_var <- paste0("median_int_width_", type)
         
         # Extract and round values
         MAPE <- round(sim_data[[MAPE_var]], digits)
@@ -191,8 +208,6 @@ names(results_list) <- c('DE_rho03', 'SM_rho03', 'DE_rho099', 'SM_rho099')
   
   latex_rows <- generate_latex_values(data_list = all_sim_results, coverage = 95, digits = 2)
   cat(paste(latex_rows, collapse = " \\\\\n"))
-  
-  
 }
 #
 #### 1/21/2025: Make chloropleth plots of the results ####
