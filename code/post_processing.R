@@ -54,14 +54,14 @@ names(results_list) <- c('DE_rho03', 'SM_rho03', 'DE_rho099', 'SM_rho099')
     unnest(Values)
   df$Group <- factor(df$Group, levels = names(group_labels))  # Ensure correct ordering
   
-  # Compute the 5%, 50% (median), and 95% quantiles for each group
+  # Compute the 2.5%, 50% (median), and 97.5% quantiles for each group
   df_summary <- df %>%
     group_by(Group) %>%
     summarise(
       lowest = min(Values),
-      lower = quantile(Values, 0.05),   # 5th percentile
+      lower = quantile(Values, 0.025),   # 2.5th percentile
       middle = quantile(Values, 0.50),  # Median (50th percentile)
-      upper = quantile(Values, 0.95),   # 95th percentile
+      upper = quantile(Values, 0.975),   # 97.5th percentile
       highest = max(Values),
       .groups = "drop"
     )
