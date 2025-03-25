@@ -21,22 +21,6 @@ setwd(root_git)
 # load extra functions
 source('code/extra_functions_CAR.R')
 
-#### 3/13/2025: Debugging AIAN SM alpha density results ####
-setwd(root_results)
-setwd('real_data')
-#
-
-# Try running with a higher adapt delta?
-
-# look at the pairs() to see if there are strong correlations between parameters.
-
-mcmc_parcoord(as.array(fit), pars = c("rho", "tau2", "theta"))
-library(bayesplot)
-
-check_hmc_diagnostics(fit)
-
-fit <- res$sim_list$stan_fit
-load('real_data_fit_aian_softmax_alpha_cv10_pepfulldensity_ID17611_2025_01_15.RData')
 #### 3/17/2025: Make simulation results figures and tables ####
 setwd(root_results)
 setwd('simulated_results/')
@@ -226,6 +210,22 @@ names(results_list) <- c('DE_rho03', 'SM_rho03', 'DE_rho099', 'SM_rho099')
   cat(paste(latex_rows, collapse = " \\\\\n"))
 }
 #
+#### 3/13/2025: Debugging AIAN SM alpha density results ####
+setwd(root_results)
+setwd('real_data')
+#
+
+# Try running with a higher adapt delta?
+
+# look at the pairs() to see if there are strong correlations between parameters.
+
+mcmc_parcoord(as.array(fit), pars = c("rho", "tau2", "theta"))
+library(bayesplot)
+
+check_hmc_diagnostics(fit)
+
+fit <- res$sim_list$stan_fit
+load('real_data_fit_aian_softmax_alpha_cv10_pepfulldensity_ID17611_2025_01_15.RData')
 #### 1/21/2025: Make chloropleth plots of the results ####
 setwd(root_results)
 setwd('real_data/')
