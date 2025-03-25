@@ -20,6 +20,22 @@ setwd(root_git)
 # load extra functions
 source('code/extra_functions_CAR.R')
 
+#### 3/13/2025: Debugging AIAN SM alpha density results ####
+setwd(root_results)
+setwd('real_data')
+load('real_data_fit_aian_softmax_alpha_cv10_pepfulldensity_ID17611_2025_01_15.RData')
+fit <- res$sim_list$stan_fit
+
+check_hmc_diagnostics(fit)
+
+library(bayesplot)
+mcmc_parcoord(as.array(fit), pars = c("rho", "tau2", "theta"))
+
+# look at the pairs() to see if there are strong correlations between parameters.
+
+# Try running with a higher adapt delta?
+
+#
 #### 1/21/2025: Make chloropleth plots of the results ####
 setwd(root_results)
 setwd('real_data/')
@@ -94,7 +110,8 @@ if(F){
 #### 1/21/2025: Make weight density plots ####
 setwd(root_results)
 setwd('real_data/')
-load('real_data_fit_directest_cv10_interceptonly_ID81515_2025_01_15.RData')
+#load('real_data_fit_directest_cv10_interceptonly_ID81515_2025_01_15.RData')
+load('real_data_fit_softmax_alpha_cv10_density_ID77695_2025_01_15')
 
 p1 <- plot_real_results(data_list = res$sim_list$data_list,
                         stan_fit = res$sim_list$stan_fit,
@@ -106,8 +123,8 @@ p1 <- plot_real_results(data_list = res$sim_list$data_list,
                         sigma2_estimates = F, theta_estimates = F, phi_estimates = F,
                         pairwise_phi_estimates = F, y_estimates = F, metrics_values = F, beta_estimates = F)
 # inspect plot. How is it?
-ggsave(p1, file = '../../Figures/01152025_u_estimates_directest_cv10_interceptonly.png', width = 6, height = 3)
-
+# ggsave(p1, file = '../../Figures/01152025_u_estimates_directest_cv10_interceptonly.png', width = 6, height = 3)
+ggsave(p1, file = '../../Figures/01152025_u_estimates_softmax_alpha_density_cv10.png', width = 6, height = 3)
 
 #
 #### 1/20/2025: All the recent results! ####
