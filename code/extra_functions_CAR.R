@@ -981,7 +981,8 @@ generate_metrics_list <- function(folder = NULL, root = NULL, debug_mode = F){
       
       # extract the medians.
       medians <- tmp$stan_fit['0.5',]
-      
+      rho_medianX <- median(medians[grep('rho_', names(medians))])
+
       # printing for error checking.
       # print(sprintf('seed start = %s: sum(u) = %s: sum(y) = %s',  res_lst[[i]]$arguments$seed_start, sum(tmp$data_list$u_true), sum(tmp$data_list$data$y)))
       
@@ -1042,7 +1043,8 @@ generate_metrics_list <- function(folder = NULL, root = NULL, debug_mode = F){
                                   MAP_rank_equal = sapply(1:nrow(u_MAP_mat),  function(xx){
                                     res <- all(rank(u_MAP_mat[xx,]) == rank(u_true[xx,-ncol(u_true)]))
                                     res
-                                  }))
+                                  }),
+                                  median_rhoX = rho_medianX)
     }
   }
   

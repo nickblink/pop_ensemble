@@ -21,6 +21,38 @@ setwd(root_git)
 # load extra functions
 source('code/extra_functions_CAR.R')
 
+#### 3/25/2025: Inspecting why higher instability in higher rho simulation ####
+setwd(root_results)
+setwd('simulated_results/')
+files <- grep('2025_03_13', dir(), value = T)
+# I want to look at this hypothesis: The low u-rank results correspond to poor rho estimation. Let's start with SM. Meh. Let's do it all!
+
+# for each file, I want to pull out the median u-rank in each simulation and the median rho estimate in each simulation.
+results_list <- lapply(files, function(f){
+  generate_metrics_list(f)})
+
+tt <- results_list[[1]]$metrics_list
+
+# pull out the u-rank of each file
+u_rank_scores <- lapply(results_list, function(xx){
+  rank <- colMeans(sapply(xx$metrics_list, function(yy) yy[['rank_equal']]))
+  rank
+})
+
+rho_medians <- lapply(results_list, function(xx){
+  rank <- sapply(xx$metrics_list, function(yy) yy[['median_rhoX']])
+  rank
+})
+
+par(mfrow = c(2,2))
+for(i in 1:4){
+  plot(rho_medians[[i]], u_rank_scores[[i]])
+  print(files[i])
+  print(cor(rho_medians[[i]], u_rank_scores[[i]]))
+}
+# so there doesnt appear to be a strong association, does there? Maybe. There is a correlation of 0.4 between u-rank and rho median value for SM rho = 0.99, but virtually none for DE rho = 0.99. Idk what to make of that.
+
+#
 #### 3/17/2025: Make simulation results figures and tables ####
 setwd(root_results)
 setwd('simulated_results/')
