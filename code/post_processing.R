@@ -1,4 +1,5 @@
 library(dplyr)
+library(tidyverse)
 library(rstan)
 library(ggplot2)
 library(cowplot)
@@ -23,18 +24,207 @@ source('code/extra_functions_CAR.R')
 #### 3/13/2025: Debugging AIAN SM alpha density results ####
 setwd(root_results)
 setwd('real_data')
-load('real_data_fit_aian_softmax_alpha_cv10_pepfulldensity_ID17611_2025_01_15.RData')
-fit <- res$sim_list$stan_fit
-
-check_hmc_diagnostics(fit)
-
-library(bayesplot)
-mcmc_parcoord(as.array(fit), pars = c("rho", "tau2", "theta"))
-
-# look at the pairs() to see if there are strong correlations between parameters.
+#
 
 # Try running with a higher adapt delta?
 
+# look at the pairs() to see if there are strong correlations between parameters.
+
+mcmc_parcoord(as.array(fit), pars = c("rho", "tau2", "theta"))
+library(bayesplot)
+
+check_hmc_diagnostics(fit)
+
+fit <- res$sim_list$stan_fit
+load('real_data_fit_aian_softmax_alpha_cv10_pepfulldensity_ID17611_2025_01_15.RData')
+#### 3/17/2025: Make simulation results figures and tables ####
+setwd(root_results)
+setwd('simulated_results/')
+files <- grep('2025_03_13', dir(), value = T)
+
+results_list <- lapply(files, function(f){
+  generate_metrics_list(f)})
+
+warning('Hardcoding names of results - make sure they match')
+names(results_list) <- c('DE_rho03', 'SM_rho03', 'DE_rho099', 'SM_rho099')
+
+### Getting u-rank scores 
+{
+  # pull out the u-rank of each file
+  u_rank_scores <- lapply(results_list, function(xx){
+    rank <- colMeans(sapply(xx$metrics_list, function(yy) yy[['rank_equal']]))
+    rank
+  })
+  
+  # Define LaTeX-style expressions for x-axis labels
+  group_labels <- c(
+    "SM_rho03" = expression(SM ~ rho == 0.3),
+    "SM_rho099" = expression(SM ~ rho == 0.99),
+    "DE_rho03" = expression(DE ~ rho == 0.3),
+    "DE_rho099" = expression(DE ~ rho == 0.99)
+  )
+  
+  # Convert list to a tidy data frame
+  df <- u_rank_scores %>%
+    enframe(name = "Group", value = "Values") %>%
+    unnest(Values)
+  df$Group <- factor(df$Group, levels = names(group_labels))  # Ensure correct ordering
+  
+  # Compute the 2.5%, 50% (median), and 97.5% quantiles for each group
+  df_summary <- df %>%
+    group_by(Group) %>%
+    summarise(
+      lowest = min(Values),
+      lower = quantile(Values, 0.025),   # 2.5th percentile
+      middle = quantile(Values, 0.50),  # Median (50th percentile)
+      upper = quantile(Values, 0.975),   # 97.5th percentile
+      highest = max(Values),
+      .groups = "drop"
+    )
+  
+  # Create the customized boxplot
+  ggplot(df, aes(x = Group, y = Values)) +
+    # Use geom_segment() for whiskers
+    geom_segment(data = df_summary, aes(x = Group, xend = Group, y = lowest, yend = highest), color = "black") +
+    # Use geom_crossbar() to create the box
+    geom_crossbar(data = df_summary, aes(x = Group, ymin = lower, y = middle, ymax = upper), fill = "white", color = "black") +
+    # Add a horizontal reference line at y = 1/6
+    geom_hline(yintercept = 1/6, linetype = "dashed", color = "red") +
+    # Clean theme
+    theme_minimal() +
+    labs(x = NULL, y = "u-rank within simulation run", title = NULL) +
+    scale_x_discrete(labels = group_labels) +  # Apply LaTeX-style labels
+    theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 12),
+          legend.position = "none")  # Remove legend
+  
+  ggsave(filename = '../../Figures/03172025_urank_boxplot.png', height = 5, width = 7)
+}
+
+### Making the table metrics 
+{
+  # Function to compute median and 95% quantiles
+  summary_stats <- function(vec) {
+    q_values <- quantile(vec, probs = c(0.025, 0.975), na.rm = TRUE)
+    
+    return(c(
+      median = median(vec, na.rm = TRUE),
+      Q2.5 = unname(q_values[1]),  # Ensure it doesn't inherit unwanted names
+      Q97.5 = unname(q_values[2])
+    ))
+  }
+  
+  all_sim_results <- lapply(results_list, function(xx){
+    metrics_list <- xx$metrics_list
+    
+    # Extract numeric metrics
+    MAPE_train <- sapply(metrics_list, function(x) x$MAPE_train)
+    MAPE_CV <- sapply(metrics_list, function(x) x$MAPE_CV)
+    MAE_train <- sapply(metrics_list, function(x) x$MAE_train)
+    MAE_CV <- sapply(metrics_list, function(x) x$MAE_CV)
+    median_int_width_train <- sapply(metrics_list, function(x) x$median_int_width_train)
+    median_int_width_CV <- sapply(metrics_list, function(x) x$median_int_width_CV)
+    
+    # Compute proportion of TRUE values for Boolean vectors
+    CP_95_train <- sapply(metrics_list, function(x) mean(x$CP_95_train, na.rm = TRUE))
+    CP_90_train <- sapply(metrics_list, function(x) mean(x$CP_90_train, na.rm = TRUE))
+    CP_95_CV <- sapply(metrics_list, function(x) mean(x$CP_95_CV, na.rm = TRUE))
+    CP_90_CV <- sapply(metrics_list, function(x) mean(x$CP_90_CV, na.rm = TRUE))
+    
+    # Compute summary statistics for all extracted values
+    final_results <- list(
+      MAPE_train = summary_stats(MAPE_train),
+      MAPE_CV = summary_stats(MAPE_CV),
+      MAE_train = summary_stats(MAE_train),
+      MAE_CV = summary_stats(MAE_CV),
+      median_int_width_train = summary_stats(median_int_width_train),
+      median_int_width_CV = summary_stats(median_int_width_CV),
+      CP_95_train = summary_stats(CP_95_train),
+      CP_90_train = summary_stats(CP_90_train),
+      CP_95_CV = summary_stats(CP_95_CV),
+      CP_90_CV = summary_stats(CP_90_CV)
+    )
+    
+    final_results
+  })
+  
+  generate_latex_values <- function(data_list, coverage = 95, digits = 2) {
+    # Validate input
+    if (!coverage %in% c(90, 95)) stop("Coverage must be 90 or 95.")
+    
+    # Define custom order for models: SM should come before DE
+    model_order <- c("SM", "DE")
+    
+    # Define custom order for dataset type: Train should come before CV
+    dataset_order <- c("train", "CV")
+    
+    # Initialize a list to store row data before sorting
+    rows_list <- list()
+    
+    # Check for names.
+    if(is.null(names(data_list))){
+      stop('data list inputted needs to be named.')
+    }
+    
+    # Iterate through each simulation run
+    for (sim_name in names(data_list)) {
+      sim_data <- data_list[[sim_name]]
+      
+      # Extract the prefix (e.g., "DE" or "SM") and rho value
+      split_name <- strsplit(sim_name, "_rho")[[1]]
+      model_name <- split_name[1]  # "DE" or "SM"
+      rho_value <- ifelse(split_name[2] == '03', 0.3,
+                          ifelse(split_name[2] == '099', 0.99, NA))  # Convert rho to numeric for sorting
+      
+      # Format the first column for LaTeX: "DE, $\rho=0.3$"
+      latex_name <- paste0(model_name, ", $\\rho=", rho_value, "$")
+      
+      # Iterate over Train and CV
+      for (type in c("train", "CV")) {
+        # Determine variable names
+        MAPE_var <- paste0("MAPE_", type)
+        MAE_var <- paste0("MAE_", type)
+        CP_var <- paste0("CP_", coverage, "_", type)
+        width_var <- paste0("median_int_width_", type)
+        
+        # Extract and round values
+        MAPE <- round(sim_data[[MAPE_var]], digits)
+        MAE <- round(sim_data[[MAE_var]], digits)
+        CP <- round(sim_data[[CP_var]], digits)
+        width <- round(sim_data[[width_var]], digits)
+        
+        # Format as "median (Q2.5, Q97.5)"
+        MAPE_str <- paste0(MAPE["median"], " (", MAPE["Q2.5"], ", ", MAPE["Q97.5"], ")")
+        MAE_str <- paste0(MAE["median"], " (", MAE["Q2.5"], ", ", MAE["Q97.5"], ")")
+        CP_str <- paste0(CP["median"], " (", CP["Q2.5"], ", ", CP["Q97.5"], ")")
+        width_str <- paste0(width["median"], " (", width["Q2.5"], ", ", width["Q97.5"], ")")
+        
+        # Store row data in a list for sorting
+        rows_list <- append(rows_list, list(
+          data.frame(model_name = model_name, rho = rho_value, type = type, 
+                     row_text = paste(latex_name, type, MAPE_str, MAE_str, CP_str, width_str, sep = " & "))
+        ))
+      }
+    }
+    
+    # Convert list to data frame
+    rows_df <- do.call(rbind, rows_list)
+    
+    # Convert factors to enforce sorting order
+    rows_df$model_name <- factor(rows_df$model_name, levels = model_order)  # SM first, then DE
+    rows_df$type <- factor(rows_df$type, levels = dataset_order)  # Train first, then CV
+    
+    # Order rows: SM first, then ascending rho, then Train before CV
+    rows_df <- rows_df[order(rows_df$model_name, rows_df$rho, rows_df$type), ]
+    
+    # Extract ordered LaTeX rows
+    output_lines <- rows_df$row_text
+    
+    return(output_lines)
+  }
+  
+  latex_rows <- generate_latex_values(data_list = all_sim_results, coverage = 95, digits = 2)
+  cat(paste(latex_rows, collapse = " \\\\\n"))
+}
 #
 #### 1/21/2025: Make chloropleth plots of the results ####
 setwd(root_results)

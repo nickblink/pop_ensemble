@@ -988,8 +988,11 @@ generate_metrics_list <- function(folder = NULL, root = NULL, debug_mode = F){
       # pull out the y predictions
       ind_y_pred <- grep('y_pred', names(medians))
       median_y_pred <- medians[ind_y_pred]
+      y_pred_025 <- tmp$stan_fit['0.025',ind_y_pred]
       y_pred_05 <- tmp$stan_fit['0.05',ind_y_pred]
       y_pred_95 <- tmp$stan_fit['0.95',ind_y_pred]
+      y_pred_975 <- tmp$stan_fit['0.975',ind_y_pred]
+      int_widths_95 <- y_pred_975 - y_pred_025
       
       # pull out the y values
       y <- tmp$data_list$data$y
@@ -1015,15 +1018,23 @@ generate_metrics_list <- function(folder = NULL, root = NULL, debug_mode = F){
         vec_to_mat(., n_models = 3)
 
       metrics_lst[[iter]] <- list(mean_y = mean(y),
-                                  mdeian_y = median(y),
+                                  median_y = median(y),
                                   RMSE_train = sqrt(mean((median_y_pred - y)^2)),
                                   RMSE_general = sqrt(mean((median_y_pred - y2)^2)),
                                   RMSE_CV = sqrt(mean((tmp$CV_pred['0.5',] - y)^2)),
+                                  MAE_train = mean(abs(y - median_y_pred)),
+                                  MAE_CV = mean(abs(y - tmp$CV_pred['0.5',])),
+                                  MAPE_train = 100*mean(abs(median_y_pred - y)/y),
+                                  MAPE_CV = 100*mean(abs(tmp$CV_pred['0.5',] - y)/y),
                                   CP_90_train = (y >= y_pred_05 & y <= y_pred_95),
+                                  CP_95_train = (y >= y_pred_025 & y <= y_pred_975),
                                   CP_90_general = (y2 >= y_pred_05 & y2 <= y_pred_95),
                                   CP_90_CV = (y >= tmp$CV_pred['0.05',] & y <= tmp$CV_pred['0.95',]),
+                                  CP_95_CV = (y >= tmp$CV_pred['0.025',] & y <= tmp$CV_pred['0.975',]),
                                   CP_90_phi = (phi_true_flat >= phi_est_05 & phi_true_flat <= phi_est_95),
                                   CP_90_u = (u_true_flat >= u_est_05 & u_true_flat <= u_est_95),
+                                  median_int_width_train = median(int_widths_95),
+                                  median_int_width_CV = median(tmp$CV_pred['0.975',] - tmp$CV_pred['0.025',]),
                                   rank_equal = sapply(1:nrow(median_u_mat), function(xx){
                                     res <- all(rank(median_u_mat[xx,]) == rank(u_true[xx,-ncol(u_true)]))
                                     res
