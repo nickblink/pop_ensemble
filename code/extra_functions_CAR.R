@@ -2087,3 +2087,36 @@ make_chloropleth_plot <- function(df, val, counties = NULL, states = NULL){
   
   return(p1)
 }
+
+
+### Plot the posterior parameter correlation from a stan fit and input parameters.
+plot_param_correlation <- function(fit, pars = c('rho_estimated','tau2_estimated','theta')) {
+  # Convert to draws_matrix
+  draws <- as_draws_matrix(fit)
+  
+  # Match parameter names
+  param_names <- colnames(draws)
+  matching_pars <- grep(paste0("^(", paste(pars, collapse = "|"), ")"), param_names, value = TRUE)
+  
+  if (length(matching_pars) == 0) stop("No matching parameters found in fit.")
+  
+  # Subset to selected parameters
+  draws_subset <- draws[, matching_pars]
+  
+  # Compute correlation matrix
+  cor_mat <- cor(draws_subset)
+  
+  # Melt to long format
+  cor_df <- melt(cor_mat)
+  cor_df$value_label <- sprintf("%.2f", cor_df$value)  # format to 2 decimal places
+  
+  # Plot
+  ggplot(cor_df, aes(x = Var1, y = Var2, fill = value)) +
+    geom_tile(color = "white") +
+    geom_text(aes(label = value_label), size = 3) +
+    scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0,
+                         limit = c(-1, 1), name = "Correlation") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    labs(title = "Posterior Correlation Matrix", x = NULL, y = NULL)
+}
