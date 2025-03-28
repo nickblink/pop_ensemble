@@ -243,21 +243,65 @@ names(results_list) <- c('DE_rho03', 'SM_rho03', 'DE_rho099', 'SM_rho099')
 }
 #
 #### 3/13/2025: Debugging AIAN SM alpha density results ####
+library(bayesplot)
+library(posterior)
 setwd(root_results)
 setwd('real_data')
 #
+load('real_data_fit_aian_softmax_alpha_cv10_pepfulldensity_ID17611_2025_01_15.RData')
+fit_AIAN <- res$sim_list$stan_fit
+load('real_data_fit_softmax_alpha_cv10_density_ID77695_2025_01_15.RData')
+fit_full <- res$sim_list$stan_fit
+
+plot_param_correlation <- function(fit, pars = c('rho_estimated','tau2_estimated','theta')) {
+  # Convert to draws_matrix
+  draws <- as_draws_matrix(fit)
+  
+  # Subset to the desired parameters
+  param_names <- colnames(draws)
+  matching_pars <- grep(paste0("^(", paste(pars, collapse = "|"), ")"), param_names, value = TRUE)
+  
+  if (length(matching_pars) == 0) stop("No matching parameters found in fit.")
+  
+  # Extract draws for selected parameters
+  draws_subset <- draws[, matching_pars]
+  
+  # Compute correlation matrix
+  cor_mat <- cor(draws_subset)
+  
+  # Melt for ggplot
+  cor_df <- melt(cor_mat)
+  
+  # Plot
+  ggplot(cor_df, aes(x = Var1, y = Var2, fill = value)) +
+    geom_tile(color = "white") +
+    scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0,
+                         limit = c(-1, 1), name = "Correlation") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    labs(title = "Posterior Correlation Matrix")
+}
+
+# posterior::variables(as_draws_array(fit_AIAN))
+pars_vec <- c("rho[1]", "rho[2]", "rho[3]",
+              "tau2[1]", "tau2[2]", "tau2[3]")
+
+
+## look at the parameter pairings to see if there are strong correlations between parameters.
+AIAN_array <- as.array(fit_AIAN)
+AIAN_thinned <- AIAN_array[seq(1, dim(AIAN_array)[1], by = 5), , ]
+mcmc_parcoord(AIAN_thinned, pars = pars_vec, transformations = function(x) {(max(x) - x)/(max(x) - min(x))})
+
+full_array <- as.array(fit_full)
+full_thinned <- full_array[seq(1, dim(full_array)[1], by = 5), , ]
+mcmc_parcoord(full_thinned, pars = pars_vec, transformations = function(x) {(max(x) - x)/(max(x) - min(x))})
+
+## Look at the diagnostics of the model fit.
+check_hmc_diagnostics(fit)
 
 # Try running with a higher adapt delta?
 
-# look at the pairs() to see if there are strong correlations between parameters.
 
-mcmc_parcoord(as.array(fit), pars = c("rho", "tau2", "theta"))
-library(bayesplot)
-
-check_hmc_diagnostics(fit)
-
-fit <- res$sim_list$stan_fit
-load('real_data_fit_aian_softmax_alpha_cv10_pepfulldensity_ID17611_2025_01_15.RData')
 #### 1/21/2025: Make chloropleth plots of the results ####
 setwd(root_results)
 setwd('real_data/')
