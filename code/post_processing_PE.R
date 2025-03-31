@@ -4,6 +4,7 @@ library(rstan)
 library(ggplot2)
 library(cowplot)
 library(reshape2)
+library(GGally)
 
 # set working directory
 if(file.exists('C:/Users/Admin-Dell')){
@@ -23,9 +24,35 @@ setwd(root_git)
 source('code/extra_functions_CAR.R')
 
 #### 3/28/2025: Inspecting simulation runs parameter correlations ####
+setwd(root_results)
+setwd('simulated_results/')
+files <- grep('2025_03_13', dir(), value = T)
+file <- files[4]
 
-DO IT
+## Start with SM rho = 0.99
+# Find simulation runs with low, medium, and high u-rank.
+{
+  results <- generate_metrics_list(file)
+  u_rank_scores <- colMeans(sapply(results$metrics_list, function(yy) yy[['rank_equal']]))
+  
+  which.min(u_rank_scores)  # 125
+  which(u_rank_scores == median(u_rank_scores)) # 19
+  which.max(u_rank_scores) # 37
+  
+  setwd(file)
+  load('sim_results_1.RData')
+  good <- res_lst[[37]]
+  mid <- res_lst[[19]]  
+  
+  load('sim_results_4.RData')
+  bad <- res_lst[[5]]
+  
+  fit_good <- good$sim_list[[1]]$stan_fit
+  fit_mid <- mid$sim_list[[1]]$stan_fit
+  fit_bad <- bad$sim_list[[1]]$stan_fit
+}
 
+# hm these are in quantiles. That's not helpful. Damn.
 
 #
 #### 3/28/2025: Debugging AIAN SM alpha density results ####
@@ -58,9 +85,43 @@ plot_param_correlation(fit_full, pars = c('rho_estimated','tau2_estimated','thet
 check_hmc_diagnostics(fit_full)
 check_hmc_diagnostics(fit_AIAN)
 
-# Try running with a higher adapt delta?
+# Now for divergent values.
+draws_df <- as_draws_df(fit_AIAN) 
 
+# Extract sampler parameters per chain
+sampler_params <- get_sampler_params(fit_AIAN, inc_warmup = FALSE)
 
+# Combine all chains into one long vector
+divergent_vec <- unlist(lapply(sampler_params, function(x) x[, "divergent__"]))
+
+draws_df$divergent <- as.logical(divergent_vec)
+
+# Step 3: Choose your 10 parameters
+# target_pars <- c("theta", 
+#                  "tau2_estimated[1]", "tau2_estimated[2]", "tau2_estimated[3]",
+#                  "rho_estimated[1]", "rho_estimated[2]", "rho_estimated[3]",
+#                  "alpha[1]", "alpha[2]", "alpha[3]")
+target_pars <- c("theta", 
+                 "tau2_estimated[1]", "tau2_estimated[2]", "tau2_estimated[3]")
+
+# Step 4: Subset and rename for plotting
+plot_df <- draws_df[, c(target_pars, "divergent")]
+
+# Optional: rename columns to make them more readable
+colnames(plot_df) <- gsub("_estimated", "", colnames(plot_df))
+colnames(plot_df) <- gsub("\\[", "_", gsub("\\]", "", colnames(plot_df)))
+
+# Step 5: Plot
+ggpairs(plot_df, 
+        columns = 1:length(target_pars), 
+        aes(color = divergent, alpha = 0.3),
+        upper = list(continuous = wrap("points", size = 0.5)),
+        lower = list(continuous = wrap("points", size = 0.5))) +
+  scale_color_manual(values = c("black", "green"))
+
+#shinystan::launch_shinystan(fit_AIAN)
+
+#
 #### 3/25/2025: Inspecting why higher instability in higher rho simulation ####
 setwd(root_results)
 setwd('simulated_results/')
