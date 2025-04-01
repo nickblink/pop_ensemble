@@ -97,12 +97,12 @@ divergent_vec <- unlist(lapply(sampler_params, function(x) x[, "divergent__"]))
 draws_df$divergent <- as.logical(divergent_vec)
 
 # Step 3: Choose your 10 parameters
+target_pars <- c("theta",
+                 "tau2_estimated[1]", "tau2_estimated[2]", "tau2_estimated[3]",
+                 "rho_estimated[1]", "rho_estimated[2]", "rho_estimated[3]",
+                 "alpha[1]", "alpha[2]", "alpha[3]")
 # target_pars <- c("theta", 
-#                  "tau2_estimated[1]", "tau2_estimated[2]", "tau2_estimated[3]",
-#                  "rho_estimated[1]", "rho_estimated[2]", "rho_estimated[3]",
-#                  "alpha[1]", "alpha[2]", "alpha[3]")
-target_pars <- c("theta", 
-                 "tau2_estimated[1]", "tau2_estimated[2]", "tau2_estimated[3]")
+#                  "tau2_estimated[1]", "tau2_estimated[2]", "tau2_estimated[3]")
 
 # Step 4: Subset and rename for plotting
 plot_df <- draws_df[, c(target_pars, "divergent")]

@@ -279,7 +279,7 @@ sample_MVN_from_precision <- function(n = 1, mu=rep(0, nrow(Q)), Q){
 # sigma2: variance of the normal distribution.
 # theta: Overdispersion parameter for the negative binomial distribution.
 # use_softmax: If true, softmax is used. If false, the phi values are directly used as weights (centered at 1/M).
-simulate_phi_u_y <- function(data, adjacency, models = c('M1','M2','M3'), scale_down = 1, pivot = -1, precision_type = 'Leroux', tau2 = 1, rho = 0.3, seed = 10, cholesky = T, family = 'poisson', sigma2 = NULL, theta = NULL, use_softmax = NULL, num_y_samples = 1, use_pivot = F, resample_phi = T, ...){
+simulate_phi_u_y <- function(data, adjacency, models = c('M1','M2','M3'), scale_down = 1, pivot = -1, precision_type = 'Leroux', tau2 = 1, rho = 0.3, seed = 10, cholesky = T, family = 'poisson', sigma2 = NULL, theta_true = NULL, use_softmax = NULL, num_y_samples = 1, use_pivot = F, resample_phi = T, ...){
   # set seed for reproducability 
   # set.seed(seed)
   
@@ -373,11 +373,11 @@ simulate_phi_u_y <- function(data, adjacency, models = c('M1','M2','M3'), scale_
         data[,paste0('y',i)] <- rnorm(n = nrow(data), mean = data$y_expected, sd = sqrt(sigma2))
       }
     }else if(tolower(family) %in% c('nb','negbin','negative_binomial')){
-      data$y <- MASS::rnegbin(n = nrow(data), mu = data$y_expected, theta = theta)
+      data$y <- MASS::rnegbin(n = nrow(data), mu = data$y_expected, theta = theta_true)
       
       # sample repeated y instances
       if(i >= 2){
-        data[,paste0('y',i)] <- MASS::rnegbin(n = nrow(data), mu = data$y_expected, theta = theta)
+        data[,paste0('y',i)] <- MASS::rnegbin(n = nrow(data), mu = data$y_expected, theta = theta_true)
       }
     }else{
       stop('please input a proper family')
@@ -395,8 +395,8 @@ simulate_phi_u_y <- function(data, adjacency, models = c('M1','M2','M3'), scale_
   res_list = list(data = data, adjacency = adjacency, phi_true = phi_true, u_true = u_true, tau2 = tau2, rho = rho)
   if(!is.null(sigma2)){
     res_list[['sigma2']] <- sigma2
-  }else if(!is.null(theta)){
-    res_list[['theta']] <- theta
+  }else if(!is.null(theta_true)){
+    res_list[['theta_true']] <- theta_true
   }
   
   return(res_list)
@@ -438,7 +438,7 @@ get_stan_MAP <- function(stan_fit, inc_warmup = T){
 # models: a vector of the models to use in the ensemble.
 # sigma2_prior_shape: Shape of the gamma distribution prior.
 # sigma2_prior_rate: rate of the gamma distribution prior.
-prep_stan_data_leroux_sparse <- function(data, W, models, outcome = 'y', use_softmax = F, use_pivot = F, use_normal = T, sigma2_prior_shape = 1, sigma2_prior_rate = 10, theta_prior_shape = .001, theta_prior_rate = .001, tau2_prior_shape = 1, tau2_prior_rate = 1, fixed_rho = - 1, fixed_tau2 = -1, alpha_variance_prior = NULL, family = NULL, rho = NULL, tau2 = NULL, Z = NULL, theta_multiplier = NULL, ...){
+prep_stan_data_leroux_sparse <- function(data, W, models, outcome = 'y', use_softmax = F, use_pivot = F, use_normal = T, sigma2_prior_shape = 1, sigma2_prior_rate = 10, theta_prior_shape = NULL, theta_prior_rate = NULL, tau2_prior_shape = 1, tau2_prior_rate = 1, fixed_rho = - 1, fixed_tau2 = -1, alpha_variance_prior = NULL, family = NULL, rho = NULL, tau2 = NULL, Z = NULL, ...){
   # checking columns
   if(!(outcome %in% colnames(data))){
     stop(sprintf('need outcome %s as a column in data', outcome))
@@ -500,9 +500,14 @@ prep_stan_data_leroux_sparse <- function(data, W, models, outcome = 'y', use_sof
                    list(sigma2_prior_shape = sigma2_prior_shape,
                         sigma2_prior_rate = sigma2_prior_rate))
   }else if(tolower(family) == 'negbin'){
-    stan_data <- c(stan_data,
-                   list(theta_prior_shape = theta_prior_shape,
-                        theta_prior_rate = theta_prior_rate))
+    if(!is.null(theta_prior_shape)){
+      if(!is.na(theta_prior_shape)){
+        stan_data <- c(stan_data,
+                       list(theta_prior_shape = theta_prior_shape,
+                            theta_prior_rate = theta_prior_rate))
+      }
+    }
+    
   }else{
     stop('please input a proper family')
   }
@@ -513,10 +518,6 @@ prep_stan_data_leroux_sparse <- function(data, W, models, outcome = 'y', use_sof
   
   if(!is.null(Z)){
     stan_data <- c(stan_data, list(num_vars = ncol(Z), Z = Z))
-  }
-  
-  if(!is.null(theta_multiplier)){
-    stan_data <- c(stan_data, list(theta_multiplier = theta_multiplier))
   }
   
   return(stan_data)
@@ -659,7 +660,7 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
                        rho = data_lst$rho,
                        tau2 = data_lst$tau2,
                        sigma2 = data_lst$sigma2,
-                       theta = data_lst$theta)
+                       theta = data_lst$theta_true)
       init_vals <- function(){init_list}
     }
     

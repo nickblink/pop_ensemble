@@ -18,13 +18,8 @@ if(file.exists('C:/Users/Admin-Dell')){
 # load extra functions
 source('code/extra_functions_CAR.R')
 
-inputs = c('R=2:dataset=NY:N_models=3:n.sample=100:burnin=50:family=negbin:use_softmax=F:variances=100,100,100:means=100,100,100:rho=0.99:fixed_rho=-1:tau2=0.01:fixed_tau2=-1:tau2_prior_shape=1:tau2_prior_rate=1:theta=100:theta_prior_shape=0.001:theta_prior_rate=0.001:num_y_samples=3:stan_path=code/CAR_leroux_sparse_negbin.stan:CV_blocks=10:return_quantiles=F:parallel=F:output_path=simulation_200GBmem_TEST_rho_1_theta_100_direct_est_negbin_3models_CV5_ID32183_2024_08_16','3')
-#sigma2=100:sigma2_prior_shape=50:sigma2_prior_rate=0.5
-
-# Local inputs
-# inputs = c('R=2:dataset=NY:N_models=3:n.sample=5000:burnin=2500:family=negbin:use_softmax=F:variances=100,100,100:means=100,100,100:rho=0.3:tau2=0.01:theta=10:theta_prior_shape=0.001:theta_prior_rate=0.001:tau2_prior_shape=1:tau2_prior_rate=1:num_y_samples=3:stan_path=code/CAR_leroux_sparse_negbin.stan:return_quantiles=T:parallel=F:output_path=simTEST_today-not\r','3')
-
-#inputs = c('R=2:dataset=NY:N_models=3:n.sample=5000:burnin=2500:family=normal:family_name_check=F:use_softmax=F:variances=100,100,100:means=100,100,100:fixed_rho=0.99:rho=0.3:tau2=0.01:sigma2=100:sigma2_prior_shape=50:sigma2_prior_rate=0.5:tau2_prior_shape=1:tau2_prior_rate=1:num_y_samples=3:stan_path=code/CAR_leroux_sparse_normal.stan:return_quantiles=T:parallel=F:output_path=simTEST_today-not\r','3')
+inputs = c('R=2:dataset=NY:N_models=3:n.sample=100:burnin=50:family=negbin:use_softmax=F:variances=100,100,100:means=100,100,100:rho=0.99:fixed_rho=-1:tau2=0.01:fixed_tau2=-1:tau2_prior_shape=1:tau2_prior_rate=1:theta_true=100:num_y_samples=3:stan_path=code/CAR_leroux_sparse_negbin_test.stan:CV_blocks=10:return_quantiles=F:parallel=F:output_path=simulation_200GBmem_TEST_rho_1_theta_100_direct_est_negbin_3models_CV5_ID32183_2024_08_16','3')
+inputs = c('R=40:dataset=NY:N_models=3:n.sample=2000:burnin=1000:family=negbin:use_softmax=T:variances=100,100,100:means=100,100,100:rho=0.99:fixed_rho=-1:tau2=1:fixed_tau2=-1:tau2_prior_shape=1:tau2_prior_rate=1:theta_true=100:num_y_samples=3:stan_path=code/CAR_leroux_sparse_negbin_test.stan:CV_blocks=-1:return_quantiles=F:parallel=T:output_path=simulation_rho_099_theta_100_softmax_invchi_prior_2025_04_01','1')
 
 # cluster inputs
 inputs <- commandArgs(trailingOnly = TRUE)
@@ -43,7 +38,7 @@ for(str in strsplit(inputs[[1]],':')[[1]]){
     val = tolower(tmp[2])
   }
   
-  if(nn %in% c('R', 'n.sample', 'burnin', 'rho', 'fixed_rho', 'tau2', 'fixed_tau2', 'sigma2', 'sigma2_prior_shape', 'sigma2_prior_rate', 'theta', 'tau2_prior_shape', 'tau2_prior_rate', 'num_y_samples', 'CV_blocks','theta_prior_shape','theta_prior_rate')){
+  if(nn %in% c('R', 'n.sample', 'burnin', 'rho', 'fixed_rho', 'tau2', 'fixed_tau2', 'sigma2', 'sigma2_prior_shape', 'sigma2_prior_rate', 'theta_true', 'tau2_prior_shape', 'tau2_prior_rate', 'num_y_samples', 'CV_blocks','theta_prior_shape','theta_prior_rate')){
     val = as.numeric(val)
   }else if(nn == 'N_models'){
     models <- paste0('X', 1:as.numeric(val))
@@ -104,7 +99,7 @@ if(params[['dataset']] == 'ny'){
 
 print('set up the output folder')
 
-# run the code!
+# run the model
 if(params[['parallel']]){
   # register the cores
   registerDoParallel(cores = params[['R']])

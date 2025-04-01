@@ -6,6 +6,7 @@ library(dplyr)
 # Set seed for reproducibility
 set.seed(123)
 
+#### SM and DE priors ####
 # Function to generate softmax-transformed weights
 softmax <- function(x) {
   exp_x <- exp(x)
@@ -53,3 +54,33 @@ df_long %>%
   summarize(var(Value))
 }
 
+
+#### Theta Prior Distribution ####
+set.seed(123)
+
+n <- 100000
+
+# Simulate samples
+gamma_samples <- rgamma(n, shape = 0.001, rate = 0.001)
+Z <- rnorm(n)
+inv_Z2_samples <- 1 / Z[Z != 0]^2
+
+# Compute density estimates
+dens_gamma <- density(gamma_samples, from = 0, to = 10000, n = 1024)
+dens_invZ2 <- density(inv_Z2_samples, from = 0, to = 10000, n = 1024)
+
+# Plot with log y-axis
+plot(dens_gamma$x, dens_gamma$y, type = "l", lwd = 2, col = "blue",
+     xlim = c(0, 20), log = "y",
+     xlab = "Value", ylab = "Density (log scale)",
+     main = "Density: Gamma(0.001, 0.001) vs 1/Z^2")
+
+lines(dens_invZ2$x, dens_invZ2$y, col = "red", lwd = 2)
+
+# Add legend
+legend("topright", legend = c("Gamma(0.001, 0.001)", "1/Z^2"),
+       col = c("blue", "red"), lwd = 2)
+
+
+ratio <- dens_gamma$y/dens_invZ2$y
+plot(ratio, log = 'y')

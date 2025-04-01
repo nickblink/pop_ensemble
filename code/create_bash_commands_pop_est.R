@@ -2,6 +2,7 @@ library(dplyr)
 
 ## This script makes bash commands for given simulations
 bash_command <- function(R=40, dataset='NY', N_models=3, n.sample=10000, burnin=5000, family='normal',use_softmax=F,variances=c(100,100,100), means=c(100,100,100), rho = 0.3,  fixed_rho = -1, tau2 = .01, fixed_tau2 = -1, sigma2 = 100, sigma2_prior_shape = 50, sigma2_prior_rate = 0.5, tau2_prior_shape = 1, tau2_prior_rate=1, num_y_samples=3, theta = 10, theta_prior_shape = 0.001, theta_prior_rate = 0.001, stan_path='code/CAR_leroux_sparse_normal.stan', CV_blocks = 5, return_quantiles = T,parallel = T, output_path_addition = NULL, array_length = 5, alpha_variance_prior=-1, chains_cores=1){
+  warning('MAKE SURE IF YOU ARE DOING THE INV CHI PRIOR THAT THERE ARE NO THETA_PRIOR VALS.')
   
   if(!grepl(family, stan_path)){
     warning('family not in stan path - is that correct?')
@@ -42,6 +43,7 @@ bash_command <- function(R=40, dataset='NY', N_models=3, n.sample=10000, burnin=
 
 ## This script makes bash commands for given simulations
 bash_command_real <- function(dataset='all', models='acs,pep,wp', n.sample=2000, burnin=1000, outcome = 'census', family='negbin', use_softmax=F, fixed_rho = -1, fixed_tau2 = -1, sigma2_prior_shape = 50, sigma2_prior_rate = 0.5, tau2_prior_shape = 1, tau2_prior_rate=1, theta_multiplier = 1, theta_prior_shape = 0.001, theta_prior_rate = 0.001, stan_path='code/CAR_leroux_sparse_negbin_alpha_FE.stan', CV_blocks = 5, return_quantiles = F, output_path_addition = NULL, alpha_variance_prior=-1, chains_cores=10, preprocess_scale = F, fixed_effects = NULL){
+  warning('MAKE SURE IF YOU ARE DOING THE INV CHI PRIOR THAT THERE ARE NO THETA_PRIOR VALS.')
   
   ## Parameter error checking.
   if(!grepl(family, stan_path)){
@@ -154,6 +156,8 @@ bash_wrapper_real <- function(bash_file = NULL, ...){
   
   return(cmds)
 }
+
+MAKE SURE IF YOU ARE DOING THE INV CHI PRIOR THAT THERE ARE NO THETA_PRIOR VALS.
 
 #### 3/12/2025: Simulation bash again! Creating round 1 sim commands for paper ####
 bash_wrapper(use_softmax = T, tau2 = 1, CV_blocks = 10, theta_vec = c(100), rho_vec = c(0.3, 0.99), family = 'negbin', stan_path = 'code/CAR_leroux_sparse_negbin.stan', bash_file = 'code/bash_commands/simulation_bash_03122025.txt')
