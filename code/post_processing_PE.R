@@ -5,6 +5,7 @@ library(ggplot2)
 library(cowplot)
 library(reshape2)
 library(GGally)
+library(posterior)
 
 # set working directory
 if(file.exists('C:/Users/Admin-Dell')){
@@ -23,23 +24,97 @@ setwd(root_git)
 # load extra functions
 source('code/extra_functions_CAR.R')
 
-#### 3/28/2025: Inspecting simulation runs parameter correlations ####
+#### 4/4/2025: Getting HMC diagnostics from previous real data runs ####
+setwd(root_results)
+
+# get the results files.
+files <- grep('11_12|11_18|11_19', dir('real_data', full.names = T), value = T)
+
+# Initialize a data frame to hold diagnostics
+diag_summary <- tibble(
+  file = character(),
+  dataset = character(),
+  softmax = logical(),
+  preprocess = logical(),
+  alpha = logical(),
+  effects = character(),
+  n_divergent = integer(),
+  max_treedepth_hit = logical(),
+  bfmi_low = logical()
+)
+
+for (f in files) {
+  load(f)
+  fit <- res$sim_list$stan_fit
+  
+  if (!is.null(fit)) {
+    sampler_params <- tryCatch(get_sampler_params(fit, inc_warmup = FALSE), error = function(e) NULL)
+    
+    if (!is.null(sampler_params) && length(sampler_params) > 0) {
+      n_divergent <- sum(sapply(sampler_params, function(chain) sum(chain[, "divergent__"])))
+      max_treedepth_hit <- any(sapply(sampler_params, function(chain) any(chain[, "treedepth__"] >= 10)))
+      bfmi_low <- any(sapply(sampler_params, function(chain) {
+        mean_energy <- mean(chain[, "energy__"])
+        var_energy <- var(chain[, "energy__"])
+        bfmi <- mean_energy^2 / var_energy
+        bfmi < 0.3
+      }))
+      
+      diag_summary <- add_row(diag_summary,
+                              file = basename(f),
+                              dataset = ifelse(params$dataset == 'all', 'fullpop', 'AIAN'), 
+                              softmax = ifelse(params$use_softmax, T, F),
+                              preprocess = ifelse(params$preprocess_scale, T, F),
+                              alpha = ifelse(params$alpha_variance_prior == -1, F,T),
+                              effects = params$fixed_effects,
+                              n_divergent = n_divergent,
+                              max_treedepth_hit = max_treedepth_hit,
+                              bfmi_low = bfmi_low
+      )
+    } else {
+      diag_summary <- add_row(diag_summary,
+                              file = basename(f),
+                              dataset = NA,
+                              softmax = NA,
+                              preprocess = NA,
+                              alpha = NA,
+                              effects = NA,
+                              n_divergent = NA_integer_,
+                              max_treedepth_hit = NA,
+                              bfmi_low = NA
+      )
+      warning(paste("No sampler params in", f, "- likely due to 0 samples"))
+    }
+  } else {
+    warning(paste("Failed to load stan_fit in", f))
+  }
+}
+
+#
+#### 4/4/2025: Getting simulation run metrics AND HMC diagnostics ####
 setwd(root_results)
 setwd('simulated_results/')
-files <- grep('2025_03_13', dir(), value = T)
-file <- files[4]
 
-## Start with SM rho = 0.99
+res_gamma <- generate_metrics_list(folder = 'simulation_rho_099_theta_100_softmax_negbin_3models_CV10_ID29995_2025_04_01', hmc_diag = T)
+
+res_invqui <- generate_metrics_list(folder = 'simulation_rho_099_theta_100_softmax_negbin_3models_CV10_invchi_2025_04_01', hmc_diag = T)
+
+sapply(res_gamma$metrics_list, function(xx) xx$bfmi_low) %>% sum()
+
+sapply(res_invqui$metrics_list, function(xx) xx$bfmi_low) %>% sum()
+# ok so not much of the three hmc diagnostic parameters. 
+
+## Look at parameter correlations for three runs. Start with SM rho = 0.99 and gamma prior 
 # Find simulation runs with low, medium, and high u-rank.
 {
-  results <- generate_metrics_list(file)
+  results <- res_gamma
   u_rank_scores <- colMeans(sapply(results$metrics_list, function(yy) yy[['rank_equal']]))
   
   which.min(u_rank_scores)  # 125
   which(u_rank_scores == median(u_rank_scores)) # 19
   which.max(u_rank_scores) # 37
   
-  setwd(file)
+  setwd('simulation_rho_099_theta_100_softmax_negbin_3models_CV10_ID29995_2025_04_01')
   load('sim_results_1.RData')
   good <- res_lst[[37]]
   mid <- res_lst[[19]]  
@@ -52,9 +127,43 @@ file <- files[4]
   fit_bad <- bad$sim_list[[1]]$stan_fit
 }
 
-# hm these are in quantiles. That's not helpful. Damn.
 
-#
+target_pars <- c("theta",
+                 "tau2_estimated[1]", "tau2_estimated[2]", "tau2_estimated[3]", 'rho[1]', 'rho[2]', 'rho[3]')
+
+plot_divergent_pairs(fit_good, target_pars)
+plot_divergent_pairs(fit_mid, target_pars)
+plot_divergent_pairs(fit_bad, target_pars)
+
+## Now for invchi
+{
+  results <- res_invqui
+  u_rank_scores <- colMeans(sapply(results$metrics_list, function(yy) yy[['rank_equal']]))
+  
+  which.min(u_rank_scores)  # 125
+  which(u_rank_scores == median(u_rank_scores)) # 20
+  which.max(u_rank_scores) # 37
+  
+  setwd('simulation_rho_099_theta_100_softmax_negbin_3models_CV10_invchi_2025_04_01')
+  load('sim_results_1.RData')
+  good <- res_lst[[37]]
+  mid <- res_lst[[20]]  
+  
+  load('sim_results_4.RData')
+  bad <- res_lst[[5]]
+  
+  fit_good <- good$sim_list[[1]]$stan_fit
+  fit_mid <- mid$sim_list[[1]]$stan_fit
+  fit_bad <- bad$sim_list[[1]]$stan_fit
+}
+
+plot_divergent_pairs(fit_good, target_pars)
+plot_divergent_pairs(fit_mid, target_pars)
+plot_divergent_pairs(fit_bad, target_pars)
+
+
+
+##
 #### 3/28/2025: Debugging AIAN SM alpha density results ####
 library(bayesplot)
 library(posterior)
@@ -65,9 +174,11 @@ load('real_data_fit_aian_softmax_alpha_cv10_pepfulldensity_ID17611_2025_01_15.RD
 fit_AIAN <- res$sim_list$stan_fit
 load('real_data_fit_softmax_alpha_cv10_density_ID77695_2025_01_15.RData')
 fit_full <- res$sim_list$stan_fit
+load('real_data_fit_softmax_alpha_density_invchi_ID90998_2025_04_03.RData')
+fit_full_invchi <- res$sim_list$stan_fit
 
 # posterior::variables(as_draws_array(fit_AIAN))
-pars_vec <- c("rho[1]", "rho[2]", "rho[3]",
+pars_vec <- c('theta',"rho[1]", "rho[2]", "rho[3]",
               "tau2[1]", "tau2[2]", "tau2[3]")
 
 ## look at the parameter pairings to see if there are strong correlations between parameters.
@@ -81,9 +192,20 @@ full_thinned <- full_array[seq(1, dim(full_array)[1], by = 5), , ]
 mcmc_parcoord(full_thinned, pars = pars_vec, transformations = function(x) {(max(x) - x)/(max(x) - min(x))})
 plot_param_correlation(fit_full, pars = c('rho_estimated','tau2_estimated','theta', 'beta'))
 
+full_array_invchi <- as.array(fit_full_invchi)
+full_thinned_invchi <- full_array_invchi[seq(1, dim(full_array_invchi)[1], by = 5), , ]
+mcmc_parcoord(full_thinned_invchi, pars = pars_vec, transformations = function(x) {(max(x) - x)/(max(x) - min(x))})
+plot_param_correlation(fit_full_invchi, pars = c('alpha','theta', 'beta'))
+
 ## Look at the diagnostics of the model fit.
 check_hmc_diagnostics(fit_full)
 check_hmc_diagnostics(fit_AIAN)
+check_hmc_diagnostics(fit_full_invchi)
+
+pars_vec <- c('theta', 'alpha[1]', 'alpha[2]', 'alpha[3]')
+plot_divergent_pairs(fit_full, pars_vec)
+plot_divergent_pairs(fit_AIAN, pars_vec)
+plot_divergent_pairs(fit_full_invchi, pars_vec)
 
 # Now for divergent values.
 draws_df <- as_draws_df(fit_AIAN) 

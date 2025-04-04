@@ -46,7 +46,7 @@ functions {
   vector[N] lambda; // the eigenvalues of the D - W - I matrix
   int<lower=0, upper=1> use_softmax; // 0 - no softmax, 1 - use softmax on phi.
   int<lower=0, upper=1> use_pivot; // 0 - no direct pivot, 1 - use pivot in last X value.
-  real<lower=0> theta_multiplier; // How much to multiply theta value by.
+  //real<lower=0> theta_multiplier; // How much to multiply theta value by.
   real<lower=0> theta_prior_shape; // prior shape for theta.
   real<lower=0> theta_prior_rate; // prior rate for theta.
   real<lower=0> tau2_prior_shape; // prior shape for tau2.
@@ -197,7 +197,7 @@ transformed parameters {
 }
 model {
   // likelihood.
-  y_obs ~ neg_binomial_2(observed_est, theta*theta_multiplier);
+  y_obs ~ neg_binomial_2(observed_est, theta);//*theta_multiplier);
   
   // hyperparameter priors.
   theta ~ gamma(theta_prior_shape, theta_prior_rate); // prior on theta

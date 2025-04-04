@@ -546,7 +546,7 @@ run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_
   
   # prep the data.
   stan_data <- prep_stan_data_leroux_sparse(data, adjacency, models, use_softmax = use_softmax, use_normal = use_normal, use_pivot = use_pivot, family = family, Z = Z, ...)
-
+  
   # create the stan model if not done already.
   if(is.null(stan_m)){
     stan_m <- rstan::stan_model(stan_path)
@@ -566,7 +566,7 @@ run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_
                    verbose = F)
 
   # return the results!
-  return(stan_fit)
+  return(list(stan_fit, stan_data))
 }
 
 
@@ -689,7 +689,8 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
         
         print('check 5')
         # run the model!
-        tmp_stan_fit <- run_stan_CAR(block_data, data_lst$adjacency, models = models, seed = seed_val, stan_m = m, use_softmax = use_softmax, init_vals = init_vals, family = family, ...)
+        tmp_lst <- run_stan_CAR(block_data, data_lst$adjacency, models = models, seed = seed_val, stan_m = m, use_softmax = use_softmax, init_vals = init_vals, family = family, ...)
+        tmp_stan_fit <- tmp_lst[[1]]
         print('check 6')
         
         # store the outcome values:
@@ -703,7 +704,8 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
     }
    
     # fit the Bayesian model on the full data
-    stan_fit <- run_stan_CAR(data_lst$data, data_lst$adjacency, models = models, seed = seed_val, stan_m = m, use_softmax = use_softmax, init_vals = init_vals, family = family, ...)
+    stan_fit_lst <- run_stan_CAR(data_lst$data, data_lst$adjacency, models = models, seed = seed_val, stan_m = m, use_softmax = use_softmax, init_vals = init_vals, family = family, ...)
+    stan_fit <- stan_fit_lst[[1]]
 
     # get the MAP posterior values.    
     stan_MAP <- get_stan_MAP(stan_fit)
@@ -711,10 +713,10 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
     # store results
     if(return_quantiles){
       stan_quants <- get_stan_quantiles(stan_fit)
-      tmp_lst <- list(data_list = data_lst, stan_fit = stan_quants, stan_MAP = stan_MAP)
+      tmp_lst <- list(data_list = data_lst, stan_fit = stan_quants, stan_MAP = stan_MAP, stan_data = stan_fit_lst[[2]])
     }else{
       stan_quants <- get_stan_quantiles(stan_fit)
-      tmp_lst <- list(data_list = data_lst, stan_fit = stan_fit, stan_quants = stan_quants, stan_MAP = stan_MAP)
+      tmp_lst <- list(data_list = data_lst, stan_fit = stan_fit, stan_quants = stan_quants, stan_MAP = stan_MAP, stan_data = stan_fit_lst[[2]])
     }
     
     
@@ -865,7 +867,7 @@ fit_model_real <- function(raw_data, models=c('acs','pep','wp'), family = 'poiss
       print('check 5')
       # run the model!
       print(sprintf('use softmax = %s', use_softmax))
-      tmp_stan_fit <- run_stan_CAR(block_data,
+      tmp_lst <- run_stan_CAR(block_data,
                                    raw_data$adjacency,
                                    models = models,
                                    stan_m = m,
@@ -874,6 +876,7 @@ fit_model_real <- function(raw_data, models=c('acs','pep','wp'), family = 'poiss
                                    family = family,
                                    alpha_variance_prior = alpha_variance_prior, 
                                    Z = Z, ...)
+      tmp_stan_fit <- tmp_lst[[1]]
       print('check 6')
       
       # store the outcome values:
@@ -887,7 +890,7 @@ fit_model_real <- function(raw_data, models=c('acs','pep','wp'), family = 'poiss
   }
   
   # fit the Bayesian model on the full data
-  stan_fit <- run_stan_CAR(raw_data$data,
+  stan_lst <- run_stan_CAR(raw_data$data,
                            raw_data$adjacency, 
                            models = models, 
                            stan_m = m, 
@@ -896,12 +899,18 @@ fit_model_real <- function(raw_data, models=c('acs','pep','wp'), family = 'poiss
                            family = family,
                            alpha_variance_prior = alpha_variance_prior, 
                            Z = Z, ...)
+  stan_fit <- stan_lst[[1]]
   
   # get the MAP posterior values.    
   stan_MAP <- get_stan_MAP(stan_fit)
   
   # store results
-  tmp_lst <- list(data_list = raw_data, stan_fit = stan_fit,  stan_MAP = stan_MAP, stan_summary = summary(stan_fit), stan_out = extract(stan_fit))
+  tmp_lst <- list(data_list = raw_data, 
+                  stan_fit = stan_fit,  
+                  stan_MAP = stan_MAP, 
+                  stan_summary = summary(stan_fit), 
+                  stan_out = extract(stan_fit), 
+                  stan_data = stan_lst[[2]])
   
   if(return_quantiles){
     tmp_lst[['stan_quants']] <- stan_quants
@@ -929,7 +938,7 @@ fit_model_real <- function(raw_data, models=c('acs','pep','wp'), family = 'poiss
 # folder: name of folder containing results files.
 # root: directory where this folder is located.
 # debug_mode: pauses the code right after loading results.
-generate_metrics_list <- function(folder = NULL, root = NULL, debug_mode = F){
+generate_metrics_list <- function(folder = NULL, root = NULL, hmc_diag = F, debug_mode = F){
   
   # get the root if necessary
   if(is.null(root)){
@@ -981,8 +990,15 @@ generate_metrics_list <- function(folder = NULL, root = NULL, debug_mode = F){
         tmp <- res_lst[[i]]$sim_list[[1]]  
       }
       
+      # extract the quantiles
+      if('stan_quants' %in% names(tmp)){
+        stan_quants <- tmp$stan_quants
+      }else{
+        stan_quants <- tmp$stan_fit
+      }
+      
       # extract the medians.
-      medians <- tmp$stan_fit['0.5',]
+      medians <- stan_quants['0.5',]
       rho_medianX <- median(medians[grep('rho_', names(medians))])
 
       # printing for error checking.
@@ -991,10 +1007,10 @@ generate_metrics_list <- function(folder = NULL, root = NULL, debug_mode = F){
       # pull out the y predictions
       ind_y_pred <- grep('y_pred', names(medians))
       median_y_pred <- medians[ind_y_pred]
-      y_pred_025 <- tmp$stan_fit['0.025',ind_y_pred]
-      y_pred_05 <- tmp$stan_fit['0.05',ind_y_pred]
-      y_pred_95 <- tmp$stan_fit['0.95',ind_y_pred]
-      y_pred_975 <- tmp$stan_fit['0.975',ind_y_pred]
+      y_pred_025 <- stan_quants['0.025',ind_y_pred]
+      y_pred_05 <- stan_quants['0.05',ind_y_pred]
+      y_pred_95 <- stan_quants['0.95',ind_y_pred]
+      y_pred_975 <- stan_quants['0.975',ind_y_pred]
       int_widths_95 <- y_pred_975 - y_pred_025
       
       # pull out the y values
@@ -1010,13 +1026,13 @@ generate_metrics_list <- function(folder = NULL, root = NULL, debug_mode = F){
       u_MAP_mat <- matrix(u_MAP_vec, ncol = 3, byrow = F)
 
       # get estimates u and phi values
-      ind_phi <- grep('^phi\\[', colnames(tmp$stan_fit))
-      ind_u <- grep('^u\\[', colnames(tmp$stan_fit))
-      phi_est_05 <- tmp$stan_fit['0.05', ind_phi] 
-      phi_est_95 <- tmp$stan_fit['0.95', ind_phi]
+      ind_phi <- grep('^phi\\[', colnames(stan_quants))
+      ind_u <- grep('^u\\[', colnames(stan_quants))
+      phi_est_05 <- stan_quants['0.05', ind_phi] 
+      phi_est_95 <- stan_quants['0.95', ind_phi]
       median_phi <- medians[ind_phi]
-      u_est_05 <- tmp$stan_fit['0.05', ind_u]
-      u_est_95 <- tmp$stan_fit['0.95', ind_u]
+      u_est_05 <- stan_quants['0.05', ind_u]
+      u_est_95 <- stan_quants['0.95', ind_u]
       median_u_mat <- medians[ind_u] %>% 
         vec_to_mat(., n_models = 3)
 
@@ -1047,6 +1063,37 @@ generate_metrics_list <- function(folder = NULL, root = NULL, debug_mode = F){
                                     res
                                   }),
                                   median_rhoX = rho_medianX)
+      
+      if(hmc_diag){
+        fit <- tmp$stan_fit
+        
+        if (!is.null(fit)) {
+          sampler_params <- tryCatch(get_sampler_params(fit, inc_warmup = FALSE), error = function(e) NULL)
+          
+          if (!is.null(sampler_params) && length(sampler_params) > 0) {
+            n_divergent <- sum(sapply(sampler_params, function(chain) sum(chain[, "divergent__"])))
+            max_treedepth_hit <- any(sapply(sampler_params, function(chain) any(chain[, "treedepth__"] >= 10)))
+            bfmi_low <- any(sapply(sampler_params, function(chain) {
+              mean_energy <- mean(chain[, "energy__"])
+              var_energy <- var(chain[, "energy__"])
+              bfmi <- mean_energy^2 / var_energy
+              bfmi < 0.3
+            }))
+            
+            metrics_lst[[iter]] <- c(metrics_lst[[iter]],
+                                     n_divergent = n_divergent,
+                                     max_treedepth_hit = max_treedepth_hit,
+                                     bfmi_low = bfmi_low)
+          } else {
+            metrics_lst[[iter]] <- c(metrics_lst[[iter]],
+                                     n_divergent = NA_integer_,
+                                     max_treedepth_hit = NA,
+                                     bfmi_low = NA)
+            
+            warning(paste("No sampler params in", f, "- likely due to 0 samples"))
+          }
+        }
+      }
     }
   }
   
@@ -2122,3 +2169,50 @@ plot_param_correlation <- function(fit, pars = c('rho_estimated','tau2_estimated
     theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
     labs(title = "Posterior Correlation Matrix", x = NULL, y = NULL)
 }
+
+
+### Plot divergent pairs in results for a given set of parameters.
+plot_divergent_pairs <- function(stan_fit, parameter_names) {
+  library(posterior)
+  library(GGally)
+  library(ggplot2)
+  library(rstan)
+  
+  # Convert to posterior draws
+  draws_df <- as_draws_df(stan_fit)
+  
+  # Extract sampler diagnostics
+  sampler_params <- get_sampler_params(stan_fit, inc_warmup = FALSE)
+  divergent_vec <- unlist(lapply(sampler_params, function(x) x[, "divergent__"]))
+  
+  # Safely create a factor with correct labels
+  if (all(divergent_vec == 0)) {
+    draws_df$divergent <- factor(divergent_vec, levels = 0, labels = "No Divergence")
+  } else if (all(divergent_vec == 1)) {
+    draws_df$divergent <- factor(divergent_vec, levels = 1, labels = "Divergence")
+  } else {
+    draws_df$divergent <- factor(divergent_vec, levels = c(0, 1), labels = c("No Divergence", "Divergence"))
+  }
+  
+  # Subset to selected parameters + divergence
+  plot_df <- draws_df[, c(parameter_names, "divergent")]
+  
+  # Clean column names for ggplot
+  colnames(plot_df) <- gsub("_estimated", "", colnames(plot_df))
+  colnames(plot_df) <- gsub("\\[", "_", gsub("\\]", "", colnames(plot_df)))
+  
+  # Make plot
+  p <- ggpairs(
+    plot_df,
+    columns = 1:length(parameter_names),
+    aes(color = divergent, alpha = 0.4),
+    upper = list(continuous = wrap("points", size = 0.5)),
+    lower = list(continuous = wrap("points", size = 0.5)),
+    diag = list(continuous = wrap("densityDiag", alpha = 0.6))
+  ) +
+    scale_color_manual(values = c("black", "green")) +
+    theme_minimal()
+  
+  return(p)
+}
+
