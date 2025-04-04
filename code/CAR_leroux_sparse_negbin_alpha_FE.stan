@@ -107,8 +107,7 @@ transformed data {
 
 parameters {
   real<lower=0> theta; // y dispersion parameter.
-  //real<lower=0> tau2[M]; // CAR variance parameter for each model.
-  real<lower=0> tau2_estimated[estimate_tau2 ? M : 0]; // 
+  real<lower=0> tau2_estimated[estimate_tau2 ? M : 0]; // CAR variance parameter for each model (set to size 0 if tau2 is fixed).
   real<lower=0, upper=1> rho_estimated[estimate_rho ? M : 0]; // spatial correlation for each model (set to size 0 if rho is fixed).
   real alpha[use_alpha ? M : 0]; // parameter for scaling models.
   matrix[N, M_phi] phi; // CAR parameter: number of observations x number of models.
