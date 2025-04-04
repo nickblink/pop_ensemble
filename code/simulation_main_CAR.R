@@ -18,8 +18,8 @@ if(file.exists('C:/Users/Admin-Dell')){
 # load extra functions
 source('code/extra_functions_CAR.R')
 
-inputs = c('R=2:dataset=NY:N_models=3:n.sample=100:burnin=50:family=negbin:use_softmax=F:variances=100,100,100:means=100,100,100:rho=0.99:fixed_rho=-1:tau2=0.01:fixed_tau2=-1:tau2_prior_shape=1:tau2_prior_rate=1:theta_true=100:num_y_samples=3:stan_path=code/CAR_leroux_sparse_negbin_test.stan:CV_blocks=10:return_quantiles=F:parallel=F:output_path=simulation_200GBmem_TEST_rho_1_theta_100_direct_est_negbin_3models_CV5_ID32183_2024_08_16','3')
-inputs = c('R=40:dataset=NY:N_models=3:n.sample=2000:burnin=1000:family=negbin:use_softmax=T:variances=100,100,100:means=100,100,100:rho=0.99:fixed_rho=-1:tau2=1:fixed_tau2=-1:tau2_prior_shape=1:tau2_prior_rate=1:theta_true=100:num_y_samples=3:stan_path=code/CAR_leroux_sparse_negbin_test.stan:CV_blocks=-1:return_quantiles=F:parallel=T:output_path=simulation_rho_099_theta_100_softmax_invchi_prior_2025_04_01','1')
+inputs = c('R=2:dataset=NY:N_models=3:n.sample=100:burnin=50:family=negbin:use_softmax=F:variances=100,100,100:means=100,100,100:rho=0.99:fixed_rho=-1:tau2=0.01:fixed_tau2=-1:tau2_prior_shape=1:tau2_prior_rate=1:theta_true=100:num_y_samples=3:stan_path=code/CAR_leroux_sparse_negbin_test.stan:CV_blocks=-1:return_quantiles=F:parallel=F:output_path=simulation_200GBmem_TEST_rho_1_theta_100_direct_est_negbin_3models_CV5_ID32183_2024_08_16','3')
+#inputs = c('R=40:dataset=NY:N_models=3:n.sample=2000:burnin=1000:family=negbin:use_softmax=T:variances=100,100,100:means=100,100,100:rho=0.99:fixed_rho=-1:tau2=1:fixed_tau2=-1:tau2_prior_shape=1:tau2_prior_rate=1:theta_true=100:num_y_samples=3:stan_path=code/CAR_leroux_sparse_negbin_test.stan:CV_blocks=-1:return_quantiles=F:parallel=T:output_path=simulation_rho_099_theta_100_softmax_invchi_prior_2025_04_01','1')
 
 # cluster inputs
 inputs <- commandArgs(trailingOnly = TRUE)
@@ -121,7 +121,16 @@ if(params[['parallel']]){
 
   print('calling one_run')
   system.time({
-    res_lst <- foreach(i=1:params[['R']]) %dorng% one_run(params, i)
+    res_lst <- foreach(i = 1:params[['R']]) %dorng% {
+      tryCatch({
+        message(paste("Starting iteration", i))
+        one_run(params, i)
+      }, error = function(e) {
+        message(paste("Error in iteration", i, ":", e$message))
+        message(capture.output(traceback(), type = "message"))
+        NULL  # Or use NA, or a named list with error info
+      })
+    }
   })
   
 }else{

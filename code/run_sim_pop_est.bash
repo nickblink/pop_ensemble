@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -p shared
+#SBATCH -p shared,serial_requeue,hsph
 #SBATCH -t 0-10:00
 #SBATCH -c 10
 #SBATCH --mem=184G

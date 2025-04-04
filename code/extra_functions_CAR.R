@@ -577,7 +577,7 @@ run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_
 # means: means of the input models' data creation.
 # variances: variances of the input models' data creation.
 # family: family of y distribution for simulation.
-# CV_blocks: Number of blocks for running cross-validation. If null, only running the full model on the data.
+# CV_blocks: Number of blocks for running cross-validation. If -1, only running the full model on the data.
 # seed_start: Value to shift the seed starting by.
 # return_quantiles: If true, only return quantiles of simulation results. If false, return the full simulation results.
 ## Optional arguments
@@ -587,7 +587,7 @@ run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_
 # n.sample: number of stan chain samples.
 # burnin: length of burnin period for stan.
 # sigma2: sigma2 value of y distribution.
-multiple_sims <- function(raw_data, models, means, variances, family = 'poisson', N_sims = 10, stan_path = "code/CAR_leroux_sparse_poisson.stan", init_vals = '0', family_name_check = T, use_softmax = F, CV_blocks = NULL, seed_start = 0, return_quantiles = T, ...){
+multiple_sims <- function(raw_data, models, means, variances, family = 'poisson', N_sims = 10, stan_path = "code/CAR_leroux_sparse_poisson.stan", init_vals = '0', family_name_check = T, use_softmax = F, CV_blocks = -1, seed_start = 0, return_quantiles = T, ...){
   print(getwd())
   rstan_options(auto_write = F)
   
@@ -654,6 +654,7 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
     # simulate y values from input models
     data_lst <- simulate_phi_u_y(data, raw_data$adjacency, models = models, seed = seed_val, family = family, use_softmax = use_softmax, ...)
     
+    print('check 3.5')
     # update the initialization to start at the true values.
     if(tolower(init_vals) == 't' | tolower(init_vals) == 'truth' | tolower(init_vals) == 'true'){
       init_list = list(phi = as.matrix(data_lst$phi_true[,-ncol(data_lst$phi_true)]),
@@ -666,7 +667,7 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
     
     print('check 4')
     # run cross-validation.
-    if(!is.null(CV_blocks)){
+    if(CV_blocks >= 0){
       # make the folds
       folds = make_data_folds(data_lst$adjacency, K = CV_blocks)
       
@@ -717,7 +718,7 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
     }
     
     
-    if(!is.null(CV_blocks)){
+    if(CV_blocks >= 0){
       if(return_quantiles){
         CV_quants <- apply(CV_pred, 1, function(x) {quantile(x, probs = c(0.025, 0.05, 0.25, 0.5, 0.75, 0.95, 0.975))})
         rownames(CV_quants) <- as.numeric(gsub('\\%','',rownames(CV_quants)))/100
