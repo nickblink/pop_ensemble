@@ -24,6 +24,64 @@ setwd(root_git)
 # load extra functions
 source('code/extra_functions_CAR.R')
 
+#### 4/4/2025: Exploring AIAN real data ####
+load('data/census_ACS_PEP_WP_AIAN_wDensity_11152024.RData')
+
+{library(ggplot2)
+  library(patchwork)
+  
+  # PEP log-log
+  pep_log <- ggplot(df |> filter(census > 0, pep > 0), aes(x = census, y = pep)) +
+    geom_point() +
+    scale_x_log10() +
+    scale_y_log10() +
+    labs(x = "Census (log scale)", y = "PEP (log scale)", title = "Census vs PEP") +
+    theme_minimal()
+  
+  # ACS log-log
+  acs_log <- ggplot(df |> filter(census > 0, acs > 0), aes(x = census, y = acs)) +
+    geom_point() +
+    scale_x_log10() +
+    scale_y_log10() +
+    labs(x = "Census (log scale)", y = "ACS (log scale)", title = "Census vs ACS") +
+    theme_minimal()
+  
+  # WP log-log
+  wp_log <- ggplot(df |> filter(census > 0, wp > 0), aes(x = census, y = wp)) +
+    geom_point() +
+    scale_x_log10() +
+    scale_y_log10() +
+    labs(x = "Census (log scale)", y = "WP (log scale)", title = "Census vs WP") +
+    theme_minimal()
+  
+  # PEP zoomed (linear)
+  pep_zoom <- ggplot(df, aes(x = census, y = pep)) +
+    geom_point() +
+    coord_cartesian(xlim = c(0, 10), ylim = c(0, 10)) +
+    labs(x = "Census", y = "PEP", title = "Census vs PEP (Zoomed In)") +
+    theme_minimal()
+  
+  # ACS zoomed
+  acs_zoom <- ggplot(df, aes(x = census, y = acs)) +
+    geom_point() +
+    coord_cartesian(xlim = c(0, 10), ylim = c(0, 10)) +
+    labs(x = "Census", y = "ACS", title = "Census vs ACS (Zoomed In)") +
+    theme_minimal()
+  
+  # WP zoomed
+  wp_zoom <- ggplot(df, aes(x = census, y = wp)) +
+    geom_point() +
+    coord_cartesian(xlim = c(0, 10), ylim = c(0, 10)) +
+    labs(x = "Census", y = "WP", title = "Census vs WP (Zoomed In)") +
+    theme_minimal()
+  
+  # Combine plots into a 2x3 grid
+  (pep_log | acs_log | wp_log) /
+    (pep_zoom | acs_zoom | wp_zoom)
+}
+
+
+#
 #### 4/4/2025: Getting HMC diagnostics from previous real data runs ####
 setwd(root_results)
 
