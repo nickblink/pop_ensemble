@@ -23,7 +23,7 @@ if(file.exists('C:/Users/Admin-Dell')){
 source('code/extra_functions_CAR.R')
 
 if(home_dir){
-  inputs = 'dataset=all:models=PC1,PC2,PC3,PC4,PC5:n.sample=100:burnin=50:outcome=census:family=negbin:use_softmax=T:fixed_rho=-1:fixed_tau2=-1:sigma2_prior_shape=50:sigma2_prior_rate=0.5:tau2_prior_shape=1:tau2_prior_rate=1:theta_prior_shape=0.001:theta_prior_rate=0.001:theta_multiplier=1:stan_path=code/CAR_leroux_sparse_negbin_alpha_FE.stan:CV_blocks=5:return_quantiles=F:output_path_addition=softmax_interceptonly_5modelsPCA:chains_cores=10:alpha_variance_prior=0.01:preprocess_scale=F:fixed_effects=intercept'
+  inputs = 'dataset=all:models=PC1,PC2,PC3,PC4,PC5:n.sample=100:burnin=50:outcome=census:family=negbin:use_softmax=T:fixed_rho=-1:fixed_tau2=-1:sigma2_prior_shape=50:sigma2_prior_rate=0.5:tau2_prior_shape=1:tau2_prior_rate=1:theta_gamma_prior=1:stan_path=code/CAR_leroux_sparse_negbin_alpha_FE_test.stan:CV_blocks=5:return_quantiles=F:output_path_addition=softmax_interceptonly_5modelsPCA:chains_cores=10:alpha_variance_prior=0.01:preprocess_scale=F:fixed_effects=intercept'
 }else{
   # cluster inputs
   inputs <- commandArgs(trailingOnly = TRUE)
@@ -46,7 +46,7 @@ for(str in strsplit(inputs,':')[[1]]){
 
   if(val %in% c('NULL', 'null')){
     val <- NULL
-  }else if(nn %in% c('n.sample', 'burnin', 'fixed_rho',  'fixed_tau2', 'sigma2_prior_shape', 'sigma2_prior_rate', 'tau2_prior_shape', 'tau2_prior_rate', 'CV_blocks','theta_prior_shape','theta_prior_rate', 'alpha_variance_prior', 'chains_cores', 'theta_multiplier')){
+  }else if(nn %in% c('n.sample', 'burnin', 'fixed_rho',  'fixed_tau2', 'sigma2_prior_shape', 'sigma2_prior_rate', 'tau2_prior_shape', 'tau2_prior_rate', 'CV_blocks','theta_prior_shape','theta_prior_rate', 'theta_gamma_prior', 'alpha_variance_prior', 'chains_cores', 'theta_multiplier')){
     val = as.numeric(val)
   }else if(nn == 'N_models'){
     models <- paste0('X', 1:as.numeric(val))
@@ -93,11 +93,11 @@ print(params)
 ## pull in the data
 # American Indian Alaska Native data
 if(params[['dataset']] == 'aian'){
-  load('data/census_ACS_PEP_WP_AIAN_wDensity_and2017_01022024.RData')
+  load('data/census_ACS_PEP_WP_AIAN_wDensity_and2017_01022025.RData')
   params[['raw_data']] <- list(data = df, adjacency = adjacency)
 # full data
 }else{
-  load('data/census_ACS_PEP_WP_wDensity_and2017_01022024.RData')
+  load('data/census_ACS_PEP_WP_wDensity_and2017_01022025.RData')
   # subset data by state
   if(params[['dataset']] == 'all'){
     # params[['raw_data']]

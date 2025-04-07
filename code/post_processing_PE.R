@@ -98,6 +98,7 @@ fit <- res$sim_list$stan_fit
 # Cross plots of parameters
 target_pars <- c('theta','alpha[1]','alpha[2]','alpha[3]')
 plot_divergent_pairs(fit, target_pars)
+plot_divergent_pairs(fit, c("tau2_estimated[1]", "tau2_estimated[2]", "tau2_estimated[3]", 'rho[1]', 'rho[2]', 'rho[3]'))
 
 
 # 

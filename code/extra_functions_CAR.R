@@ -438,7 +438,7 @@ get_stan_MAP <- function(stan_fit, inc_warmup = T){
 # models: a vector of the models to use in the ensemble.
 # sigma2_prior_shape: Shape of the gamma distribution prior.
 # sigma2_prior_rate: rate of the gamma distribution prior.
-prep_stan_data_leroux_sparse <- function(data, W, models, outcome = 'y', use_softmax = F, use_pivot = F, use_normal = T, sigma2_prior_shape = 1, sigma2_prior_rate = 10, theta_prior_shape = NULL, theta_prior_rate = NULL, tau2_prior_shape = 1, tau2_prior_rate = 1, fixed_rho = - 1, fixed_tau2 = -1, alpha_variance_prior = NULL, family = NULL, rho = NULL, tau2 = NULL, Z = NULL, ...){
+prep_stan_data_leroux_sparse <- function(data, W, models, outcome = 'y', use_softmax = F, use_pivot = F, use_normal = T, sigma2_prior_shape = 1, sigma2_prior_rate = 10, theta_prior_shape = NULL, theta_prior_rate = NULL, tau2_prior_shape = 1, tau2_prior_rate = 1, fixed_rho = - 1, fixed_tau2 = -1, theta_gamma_prior = 0, alpha_variance_prior = NULL, family = NULL, rho = NULL, tau2 = NULL, Z = NULL, ...){
   # checking columns
   if(!(outcome %in% colnames(data))){
     stop(sprintf('need outcome %s as a column in data', outcome))
@@ -489,7 +489,7 @@ prep_stan_data_leroux_sparse <- function(data, W, models, outcome = 'y', use_sof
     lambda = lambda,
     use_softmax = as.integer(use_softmax),
     use_pivot = as.integer(use_pivot),
-    # use_normal = as.integer(use_normal),
+    theta_gamma_prior = theta_gamma_prior,
     tau2_prior_shape = tau2_prior_shape,
     tau2_prior_rate = tau2_prior_rate,
     fixed_rho = fixed_rho,
