@@ -1,4 +1,3 @@
-// This code uses the alpha parameter to scale each model and also includes fixed effects for the ensemble weights.
 functions {
   /**
   * Return the log probability of a proper conditional autoregressive (CAR) prior 
@@ -36,36 +35,33 @@ functions {
   int<lower=0> N_obs; // number of observed y points
   int<lower=0, upper=N> ind_miss[N_miss]; // indices of missing y points
   int<lower=0, upper=N> ind_obs[N_obs]; // indices of observed y points
-  int<lower=0> num_vars; // number of covariates in teh model.
   matrix[N,M] X; // design matrix of ensemble models
-  int<lower=0> y_obs[N_obs];  // output.
-  matrix[N, num_vars] Z; // design matrix for fixed effects.
+  int<lower=0> y_obs[N_obs];  // output
   matrix<lower=0, upper = 1>[N, N] W; //adjacency matrix
   int W_n; // Number of adjacency pairs
   matrix[N,N] I; // Identity matrix
   vector[N] lambda; // the eigenvalues of the D - W - I matrix
   int<lower=0, upper=1> use_softmax; // 0 - no softmax, 1 - use softmax on phi.
   int<lower=0, upper=1> use_pivot; // 0 - no direct pivot, 1 - use pivot in last X value.
-  int<lower=0, upper=1> theta_gamma_prior; // 0 = inv-chi prior. 1 = gamma prior.
-  real<lower=0> tau2_prior_shape; // prior shape for tau2.
-  real<lower=0> tau2_prior_rate; // prior rate for tau2.
+  real<lower=0> theta_prior_shape; // prior shape for theta
+  real<lower=0> theta_prior_rate; // prior rate for theta
+  real<lower=0> tau2_prior_shape; // prior shape for tau2
+  real<lower=0> tau2_prior_rate; // prior rate for tau2
   real<upper=1> fixed_rho; // the fixed rho value. If < 0, then rho is estimated.
   real fixed_tau2; // the fixed tau2 value. If < 0, then tau2 is estimated
-  real alpha_variance_prior; // the prior variance for alpha. If < 0, then alpha is not used.
 }
 transformed data {
-  int W_sparse[W_n, 2];   // adjacency pairs.
-  int<lower=0, upper=1> estimate_rho; // whether to estimate rho.
-  int<lower=0, upper=1> estimate_tau2; // whether to estimate tau2.
-  int<lower=0, upper=1> use_alpha; // whether to use alpha.
-  vector[N] D_sparse;     // diagonal of D (number of neigbors for each site).
-  vector[M] v_ones = rep_vector(1, M); // vector for computing row sums.
+  int W_sparse[W_n, 2];   // adjacency pairs
+  int<lower=0, upper=1> estimate_rho; // whether to estimate rho
+  int<lower=0, upper=1> estimate_tau2; // whether to estimate tau2
+  vector[N] D_sparse;     // diagonal of D (number of neigbors for each site)
+  vector[M] v_ones = rep_vector(1, M); // vector for computing row sums
   int M_phi; // num models estimated for (can be differenty if using pivot.
   
-  { // generate sparse representation for W.
+  { // generate sparse representation for W
   int counter;
   counter = 1;
-  // loop over upper triangular part of W to identify neighbor pairs.
+  // loop over upper triangular part of W to identify neighbor pairs
     for (i in 1:(N - 1)) {
       for (j in (i + 1):N) {
         if (W[i, j] == 1) {
@@ -76,7 +72,7 @@ transformed data {
       }
     }
   }
-  for (i in 1:N) D_sparse[i] = sum(W[i]); // Compute the sparse representation of D.
+  for (i in 1:N) D_sparse[i] = sum(W[i]); // Compute the sparse representation of D
   
   if(fixed_rho >= 0){
     estimate_rho = 0;
@@ -90,27 +86,18 @@ transformed data {
     estimate_tau2 = 1;
   }
   
-  if(alpha_variance_prior > 0){
-    use_alpha = 1;
-  }else{
-    use_alpha = 0;
-  }
-  
   if(use_pivot == 1){
     M_phi = M - 1;
   }else{
     M_phi = M;
   }
 }
-
 parameters {
-  real<lower=0> theta; // y dispersion parameter.
-  //real<lower=0> tau2[M]; // CAR variance parameter for each model.
+  real<lower=0> theta; // y dispersion parameter
+  //real<lower=0> tau2[M]; // CAR variance parameter for each model
   real<lower=0> tau2_estimated[estimate_tau2 ? M : 0]; // 
-  real<lower=0, upper=1> rho_estimated[estimate_rho ? M : 0]; // spatial correlation for each model (set to size 0 if rho is fixed).
-  real alpha[use_alpha ? M : 0]; // parameter for scaling models.
-  matrix[N, M_phi] phi; // CAR parameter: number of observations x number of models.
-  matrix[num_vars, M_phi] beta; // fixed effects parameters.
+  real<lower=0, upper=1> rho_estimated[estimate_rho ? M : 0]; // spatial correlation for each model (set to size 0 if rho is fixed)
+  matrix[N, M_phi] phi; // CAR parameter: number of observations x number of models
 }
 transformed parameters {
   // variable declarations
@@ -124,14 +111,10 @@ transformed parameters {
   matrix[N + 1, M] ldet_vec;
   real rho[M];
   real tau2[M];
-  matrix[N, M_phi] zeta; // mean estimates Z*beta + phi.
-  
-  // update phi values by the fixed effects to get zeta estimates.
-  zeta = Z*beta + phi;
   
   // variable calculations
   if(use_softmax == 1){
-    exp_phi = exp(zeta);
+    exp_phi = exp(phi);
     for(m in 1:M){
       exp_phi_sum[1:N,m] = (exp_phi * v_ones);
     }
@@ -141,31 +124,11 @@ transformed parameters {
 	  u[1:N,1:(M-1)] = 1.0/M + phi;
 	  u[1:N,M] = 1.0 - u[1:N,1:(M-1)] * rep_vector(1, M-1);
 	}else{
-	  u = 1.0/M + zeta;
+	  u = 1.0/M + phi;
 	}
   }
-  
-  // scale the model weights.
-  if(use_alpha == 1){
-    for(m in 1:M){
-	  u[1:N,m] = u[1:N,m]*alpha[m];
-	}
-  }
-  
-  // calculate mu.
   mu = (X .* u)*v_ones;
-  
-  // bound mu by 0.
-  for (n in 1:N){
-    if(mu[n] <= 0){
-	  mu_bounded[n] = 0.01;
-	}else{
-	  mu_bounded[n] = mu[n];
-	}
-  }
-  
-  // get the observed predictions.
-  observed_est = mu_bounded[ind_obs];
+  observed_est = mu[ind_obs];
   
   // store the rho used
   if(estimate_rho == 0){
@@ -193,32 +156,27 @@ transformed parameters {
 	}
 	log_detQ[m] = sum(ldet_vec[1:N+1,m]);
   }
+  
+  // calculate mu_bounded for predictions
+  for (n in 1:N){
+    if(mu[n] <= 0){
+	  mu_bounded[n] = 0.01;
+	}else{
+	  mu_bounded[n] = mu[n];
+	}
+  }
 }
 model {
-  // likelihood.
+  theta ~ gamma(theta_prior_shape, theta_prior_rate); // prior on theta
+  // likelihood
   y_obs ~ neg_binomial_2(observed_est, theta);
-  
-  // theta prior.
-  if(theta_gamma_prior){
-    theta ~ gamma(0.001, 0.001);
-  }else{
-    theta ~ inv_chi_square(1);
-  }
-
-  // prior on beta.
-  to_vector(beta) ~ normal(0, 1); 
-  
-  // gamma prior on tau2.
-  if(estimate_tau2 == 1){
-    tau2_estimated ~ gamma(tau2_prior_shape, tau2_prior_rate);
-  }
-  // alpha prior.
-  if(use_alpha == 1){
-	alpha ~ normal(1, sqrt(alpha_variance_prior));
-  }
-  // CAR prior.
+  // CAR prior
   for(m in 1:M_phi){
 	phi[1:N, m] ~ sparse_car(tau2[m], rho[m], W_sparse, D_sparse, log_detQ[m], N, W_n);
+  }
+  // gamma prior on tau2 
+  if(estimate_tau2 == 1){
+    tau2_estimated ~ gamma(tau2_prior_shape, tau2_prior_rate);
   }
 }
 generated quantities {

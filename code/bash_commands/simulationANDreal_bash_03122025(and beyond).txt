@@ -31,3 +31,6 @@ sbatch -J AIAN_alpha run_real_data_pop_est.bash dataset=all:models=acs,pep,wp:n.
 
 # fixing the one above:
 sbatch -J AIAN_alpha run_real_data_pop_est.bash dataset=AIAN:models=acs,pep,wp:n.sample=2000:burnin=1000:outcome=census:family=negbin:use_softmax=T:fixed_rho=-1:fixed_tau2=-1:tau2_prior_shape=1:tau2_prior_rate=1:theta_prior_shape=0.001:theta_prior_rate=0.001:stan_path=code/CAR_leroux_sparse_negbin_alpha_FE.stan:CV_blocks=5:return_quantiles=F:output_path_addition=softmax_full_alphaprior0001:chains_cores=10:alpha_variance_prior=0.0001:preprocess_scale=F:fixed_effects=pep_density
+
+## Interactive simulation test 4/8 - testing for theta prior option
+Rscript code/simulation_main_CAR.R R=2:dataset=NY:N_models=3:n.sample=100:burnin=50:family=negbin:use_softmax=T:variances=100,100,100:means=100,100,100:rho=0.99:fixed_rho=-1:tau2=1:fixed_tau2=-1:tau2_prior_shape=1:tau2_prior_rate=1:theta_true=100:num_y_samples=3:stan_path=code/CAR_leroux_sparse_negbin_test.stan:CV_blocks=-1:return_quantiles=F:parallel=T:output_path=TEST:theta_gamma_prior=0 3

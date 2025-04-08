@@ -38,7 +38,7 @@ for(str in strsplit(inputs[[1]],':')[[1]]){
     val = tolower(tmp[2])
   }
   
-  if(nn %in% c('R', 'n.sample', 'burnin', 'rho', 'fixed_rho', 'tau2', 'fixed_tau2', 'sigma2', 'sigma2_prior_shape', 'sigma2_prior_rate', 'theta_true', 'tau2_prior_shape', 'tau2_prior_rate', 'num_y_samples', 'CV_blocks','theta_prior_shape','theta_prior_rate')){
+  if(nn %in% c('R', 'n.sample', 'burnin', 'rho', 'fixed_rho', 'tau2', 'fixed_tau2', 'sigma2', 'sigma2_prior_shape', 'sigma2_prior_rate', 'theta_true', 'tau2_prior_shape', 'tau2_prior_rate', 'num_y_samples', 'CV_blocks','theta_prior_shape','theta_prior_rate', 'theta_gamma_prior')){
     val = as.numeric(val)
   }else if(nn == 'N_models'){
     models <- paste0('X', 1:as.numeric(val))

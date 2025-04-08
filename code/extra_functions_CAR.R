@@ -547,6 +547,9 @@ run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_
   # prep the data.
   stan_data <- prep_stan_data_leroux_sparse(data, adjacency, models, use_softmax = use_softmax, use_normal = use_normal, use_pivot = use_pivot, family = family, Z = Z, ...)
   
+  print(names(stan_data))
+  print(stan_data$theta_gamma_prior)
+  
   # create the stan model if not done already.
   if(is.null(stan_m)){
     stan_m <- rstan::stan_model(stan_path)
@@ -668,6 +671,7 @@ multiple_sims <- function(raw_data, models, means, variances, family = 'poisson'
     print('check 4')
     # run cross-validation.
     if(CV_blocks >= 0){
+      print('check 4.5 - within CV blocks.')
       # make the folds
       folds = make_data_folds(data_lst$adjacency, K = CV_blocks)
       

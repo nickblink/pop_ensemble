@@ -43,8 +43,7 @@ functions {
   vector[N] lambda; // the eigenvalues of the D - W - I matrix
   int<lower=0, upper=1> use_softmax; // 0 - no softmax, 1 - use softmax on phi.
   int<lower=0, upper=1> use_pivot; // 0 - no direct pivot, 1 - use pivot in last X value.
-  real<lower=0> theta_prior_shape; // prior shape for theta
-  real<lower=0> theta_prior_rate; // prior rate for theta
+  int<lower=0, upper=1> theta_gamma_prior; // 0 = inv-chi prior. 1 = gamma prior.
   real<lower=0> tau2_prior_shape; // prior shape for tau2
   real<lower=0> tau2_prior_rate; // prior rate for tau2
   real<upper=1> fixed_rho; // the fixed rho value. If < 0, then rho is estimated.
@@ -167,7 +166,13 @@ transformed parameters {
   }
 }
 model {
-  theta ~ gamma(theta_prior_shape, theta_prior_rate); // prior on theta
+  // theta prior.
+  if(theta_gamma_prior){
+    theta ~ gamma(0.001, 0.001);
+  }else{
+    theta ~ inv_chi_square(1);
+  }
+  
   // likelihood
   y_obs ~ neg_binomial_2(observed_est, theta);
   // CAR prior
