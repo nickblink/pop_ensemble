@@ -551,8 +551,9 @@ run_stan_CAR <- function(data, adjacency, models = c('M1','M2','M3'), precision_
   # prep the data.
   stan_data <- prep_stan_data_leroux_sparse(data, adjacency, models, use_softmax = use_softmax, use_normal = use_normal, use_pivot = use_pivot, family = family, Z = Z, ...)
   
+  print('stan data inputs are...')
   print(names(stan_data))
-  print(stan_data$theta_gamma_prior)
+  print('...')
   
   # create the stan model if not done already.
   if(is.null(stan_m)){

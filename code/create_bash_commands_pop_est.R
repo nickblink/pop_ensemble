@@ -1,7 +1,7 @@
 library(dplyr)
 
 ## This script makes bash commands for given simulations
-bash_command <- function(R=40, dataset='NY', N_models=3, n.sample=10000, burnin=5000, family='normal',use_softmax=F,variances=c(100,100,100), means=c(100,100,100), rho = 0.3,  fixed_rho = -1, tau2 = .01, fixed_tau2 = -1, sigma2 = 100, sigma2_prior_shape = 50, sigma2_prior_rate = 0.5, tau2_prior_shape = 1, tau2_prior_rate=1, num_y_samples=3, theta = 10, theta_prior_shape = 0.001, theta_prior_rate = 0.001, stan_path='code/CAR_leroux_sparse_normal.stan', CV_blocks = 5, return_quantiles = T,parallel = T, output_path_addition = NULL, array_length = 5, alpha_variance_prior=-1, chains_cores=1){
+bash_command <- function(R=40, dataset='NY', N_models=3, n.sample=10000, burnin=5000, family='negbin',use_softmax=T,variances=c(100,100,100), means=c(100,100,100), rho = 0.3,  fixed_rho = -1, tau2 = 1, fixed_tau2 = -1, tau2_prior_shape = 1, tau2_prior_rate=1, theta_true = 10, theta_gamma_prior = 0, num_y_samples=3,  stan_path='code/CAR_leroux_sparse_negbin.stan', CV_blocks = 5, return_quantiles = F,parallel = T, output_path_addition = NULL, array_length = 5, alpha_variance_prior=-1, chains_cores=1, phi_noncentered = NULL){
 
   if(!grepl(family, stan_path)){
     warning('family not in stan path - is that correct?')
@@ -9,6 +9,14 @@ bash_command <- function(R=40, dataset='NY', N_models=3, n.sample=10000, burnin=
   
   if(!use_softmax & tau2 > 0.1){
     print('Are you sure you want tau2 so high?')
+  }
+  
+  if(use_softmax & alpha_variance_prior > 0.0001){
+    print('Are you sure you want the alpha prior variance so high?')
+  }
+  
+  if(!use_softmax & alpha_variance_prior > 0){
+    stop('dont use alpha variance prior with direct estimate.')
   }
   
   # make the output path
@@ -22,7 +30,7 @@ bash_command <- function(R=40, dataset='NY', N_models=3, n.sample=10000, burnin=
   
   job_name = sprintf('%s_%s_%s_%smodels_CV%s', round(runif(1)*1000), ifelse(use_softmax, 'softmax', 'directest'), family, N_models, CV_blocks)
   
-  params <- list(R=R, dataset=dataset, N_models=N_models, n.sample=n.sample, burnin=burnin, family=family,use_softmax=use_softmax,variances=variances, means=means, rho = rho, fixed_rho = fixed_rho, tau2 = tau2, fixed_tau2 = fixed_tau2, sigma2 = sigma2, sigma2_prior_shape = sigma2_prior_shape, sigma2_prior_rate = sigma2_prior_rate, tau2_prior_shape = tau2_prior_shape, tau2_prior_rate=tau2_prior_rate, theta = theta, theta_prior_shape = theta_prior_shape, theta_prior_rate = theta_prior_rate, num_y_samples=num_y_samples, stan_path=stan_path, CV_blocks = CV_blocks, return_quantiles = return_quantiles, parallel = parallel, output_path = output_path, chains_cores = chains_cores, alpha_variance_prior = alpha_variance_prior)
+  params <- list(R=R, dataset=dataset, N_models=N_models, n.sample=n.sample, burnin=burnin, family=family,use_softmax=use_softmax,variances=variances, means=means, rho = rho, fixed_rho = fixed_rho, tau2 = tau2, fixed_tau2 = fixed_tau2, tau2_prior_shape = tau2_prior_shape, tau2_prior_rate=tau2_prior_rate, theta_true = theta_true, theta_gamma_prior = theta_gamma_prior, num_y_samples=num_y_samples, stan_path=stan_path, CV_blocks = CV_blocks, return_quantiles = return_quantiles, parallel = parallel, output_path = output_path, chains_cores = chains_cores, alpha_variance_prior = alpha_variance_prior, phi_noncentered = phi_noncentered)
   
   param_str = paste(paste(names(params), params, sep = '='), collapse=':') %>%
     gsub(' |c\\(|\\)','',.) %>%
@@ -80,20 +88,22 @@ bash_wrapper <- function(bash_file = NULL, theta_vec = NULL, rho_vec = NULL, out
   
   # get the bash commands
   if(!is.null(theta_vec) | !is.null(rho_vec)){
-    params <- expand.grid(if(is.null(theta_vec)) theta else theta_vec,
+    params <- expand.grid(if(is.null(theta_vec)) theta_true else theta_vec,
                           if(is.null(rho_vec)) rho else rho_vec)
 
     if(is.null(output_path_addition)){
       cmds <- lapply(1:nrow(params), function(ii) {
-        bash_command(theta = params[ii,1], 
+        bash_command(theta_true = params[ii,1], 
                      rho = params[ii,2], 
                      output_path_addition = sprintf('rho_%s_theta_%s',as.character(params[ii,2]), as.character(params[ii,1])), ...)})
     }else{
       cmds <- lapply(1:nrow(params), function(ii) {
-        bash_command(theta = params[ii,1], 
+        bash_command(theta_true = params[ii,1], 
                      rho = params[ii,2], 
                      output_path_addition = sprintf('%s_rho_%s_theta_%s', output_path_addition, as.character(params[ii,2]), as.character(params[ii,1])), ...)})
     }
+  }else{
+    cmds <- bash_command(...)
   }
   
   # write the commands
@@ -173,6 +183,47 @@ bash_wrapper_real(dataset = 'all',
                   stan_path = 'code/CAR_leroux_sparse_negbin_alpha_FE_NC.stan',
                   output_path_addition = 'full_softmax_pepdensity_alpha0001_noncentered', 
                   bash_file = 'code/bash_commands/real_data_noncentering_04092025.txt')
+
+bash_wrapper_real(dataset = 'AIAN', 
+                  use_softmax = T, 
+                  alpha_variance_prior = .0001, 
+                  fixed_effects = 'pep_density', 
+                  phi_noncentered = 0, 
+                  stan_path = 'code/CAR_leroux_sparse_negbin_alpha_FE_NC.stan',
+                  output_path_addition = 'full_softmax_pepdensity_alpha0001_centered', 
+                  bash_file = 'code/bash_commands/real_data_noncentering_04092025.txt')
+
+bash_wrapper_real(dataset = 'AIAN', 
+                  use_softmax = T, 
+                  alpha_variance_prior = .0001, 
+                  fixed_effects = 'pep_density', 
+                  phi_noncentered = 1, 
+                  stan_path = 'code/CAR_leroux_sparse_negbin_alpha_FE_NC.stan',
+                  output_path_addition = 'full_softmax_pepdensity_alpha0001_noncentered', 
+                  bash_file = 'code/bash_commands/real_data_noncentering_04092025.txt')
+
+
+
+## Simulation commands
+bash_wrapper(use_softmax = T,
+             alpha_variance_prior = .0001, 
+             theta_vec = 100, 
+             rho_vec = c(0.3, 0.99),
+             CV_blocks = 10, 
+             stan_path = 'code/CAR_leroux_sparse_negbin_NC.stan',
+             phi_noncentered = 0, 
+             output_path_addition = 'centered',
+             bash_file = 'code/bash_commands/simulation_noncentering_04092025.txt')
+
+bash_wrapper(use_softmax = T,
+             alpha_variance_prior = .0001, 
+             theta_vec = 100, 
+             rho_vec = c(0.3, 0.99),
+             CV_blocks = 10, 
+             stan_path = 'code/CAR_leroux_sparse_negbin_NC.stan',
+             phi_noncentered = 1, 
+             output_path_addition = 'noncentered', 
+             bash_file = 'code/bash_commands/simulation_noncentering_04092025.txt')
 
 #
 #### 3/12/2025: Simulation bash again! Creating round 1 sim commands for paper ####
