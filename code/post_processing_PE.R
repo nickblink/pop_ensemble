@@ -24,6 +24,83 @@ setwd(root_git)
 # load extra functions
 source('code/extra_functions_CAR.R')
 
+#### 4/9/2025: Getting real non-centered metrics and HMC diagnostics ####
+setwd(root_results)
+files <- grep('04_09', dir('real_data', full.names = T), value = T)
+
+# Initialize a data frame to hold diagnostics
+diag_summary <- tibble(
+  file = character(),
+  dataset = character(),
+  softmax = logical(),
+  preprocess = logical(),
+  alpha = logical(),
+  effects = character(),
+  n_divergent = integer(),
+  max_treedepth_hit = logical(),
+  bfmi_low = logical()
+)
+
+for (f in files) {
+  load(f)
+  fit <- res$sim_list$stan_fit
+  
+  if (!is.null(fit)) {
+    sampler_params <- tryCatch(get_sampler_params(fit, inc_warmup = FALSE), error = function(e) NULL)
+    
+    if (!is.null(sampler_params) && length(sampler_params) > 0) {
+      n_divergent <- sum(sapply(sampler_params, function(chain) sum(chain[, "divergent__"])))
+      #max_treedepth_hit <- any(sapply(sampler_params, function(chain) any(chain[, "treedepth__"] >= 10)))
+      mean_treedepth_hit <- mean(sapply(sampler_params, function(chain) mean(chain[, "treedepth__"] >= 10)))
+      bfmi_low <- any(sapply(sampler_params, function(chain) {
+        mean_energy <- mean(chain[, "energy__"])
+        var_energy <- var(chain[, "energy__"])
+        bfmi <- mean_energy^2 / var_energy
+        bfmi < 0.3
+      }))
+      
+      diag_summary <- add_row(diag_summary,
+                              file = basename(f),
+                              dataset = ifelse(params$dataset == 'all', 'fullpop', 'AIAN'), 
+                              softmax = ifelse(params$use_softmax, T, F),
+                              preprocess = ifelse(params$preprocess_scale, T, F),
+                              alpha = ifelse(params$alpha_variance_prior == -1, F,T),
+                              effects = params$fixed_effects,
+                              n_divergent = n_divergent,
+                              max_treedepth_hit = mean_treedepth_hit,
+                              bfmi_low = bfmi_low
+      )
+    } else {
+      diag_summary <- add_row(diag_summary,
+                              file = basename(f),
+                              dataset = NA,
+                              softmax = NA,
+                              preprocess = NA,
+                              alpha = NA,
+                              effects = NA,
+                              n_divergent = NA_integer_,
+                              max_treedepth_hit = NA,
+                              bfmi_low = NA
+      )
+      warning(paste("No sampler params in", f, "- likely due to 0 samples"))
+    }
+  } else {
+    warning(paste("Failed to load stan_fit in", f))
+  }
+}
+
+# inspecting full fit noncentered.
+load("real_data/real_data_fit_full_softmax_pepdensity_alpha0001_noncentered_ID74220_2025_04_09.RData")
+fit <- res$sim_list$stan_fit
+check_hmc_diagnostics(fit)
+# ok so something is very, very off here. Why? How could we have 1000 divergences and no E-BFMI?
+
+# Cross plots of parameters
+target_pars <- c('theta','alpha[1]','alpha[2]','alpha[3]')
+plot_divergent_pairs(fit, target_pars)
+plot_divergent_pairs(fit, c("tau2_estimated[1]", "tau2_estimated[2]", "tau2_estimated[3]", 'rho[1]', 'rho[2]', 'rho[3]'))
+
+#
 #### 4/7/2025: Getting real data metrics and HMC diagnostics ####
 setwd(root_results)
 

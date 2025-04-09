@@ -159,7 +159,11 @@ transformed parameters {
   
   // calculate the log determinants
   for (m in 1:M){
-	ldet_vec[N + 1,m] = -N*log(tau2[m]);
+    if(phi_noncentered == 0){
+	  ldet_vec[N + 1,m] = -N*log(tau2[m]);
+	}else{
+	  ldet_vec[N + 1,m] = 0; //because the tau2 used in the phi_estimated distribution is 1, and log(1) = 0.
+	}
 	for (i in 1:N){
 		ldet_vec[i,m] = log1p(rho[m]*lambda[i]);
 	}

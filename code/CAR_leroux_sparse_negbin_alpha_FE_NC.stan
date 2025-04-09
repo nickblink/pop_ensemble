@@ -106,7 +106,6 @@ transformed data {
 
 parameters {
   real<lower=0> theta; // y dispersion parameter.
-  //real<lower=0> tau2[M]; // CAR variance parameter for each model.
   real<lower=0> tau2_estimated[estimate_tau2 ? M : 0]; // 
   real<lower=0, upper=1> rho_estimated[estimate_rho ? M : 0]; // spatial correlation for each model (set to size 0 if rho is fixed).
   real alpha[use_alpha ? M : 0]; // parameter for scaling models.
@@ -197,7 +196,11 @@ transformed parameters {
   
   // calculate the log determinants
   for (m in 1:M){
-	ldet_vec[N + 1,m] = -N*log(tau2[m]);
+    if(phi_noncentered == 0){
+	  ldet_vec[N + 1,m] = -N*log(tau2[m]);
+	}else{
+	  ldet_vec[N + 1,m] = 0; //because the tau2 used in the phi_estimated distribution is 1, and log(1) = 0.
+	}
 	for (i in 1:N){
 		ldet_vec[i,m] = log1p(rho[m]*lambda[i]);
 	}
