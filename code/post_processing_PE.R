@@ -24,6 +24,11 @@ setwd(root_git)
 # load extra functions
 source('code/extra_functions_CAR.R')
 
+# To do here:
+# 1) Run real results again.
+# 2) Extract the actual parameters used for each run and whats different.
+# 3) Set up extraction for simulated data.
+
 #### 4/9/2025: Getting real non-centered metrics and HMC diagnostics ####
 setwd(root_results)
 files <- grep('04_09', dir('real_data', full.names = T), value = T)
