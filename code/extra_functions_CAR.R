@@ -1082,12 +1082,15 @@ generate_metrics_list <- function(folder = NULL, root = NULL, hmc_diag = F, debu
           if (!is.null(sampler_params) && length(sampler_params) > 0) {
             n_divergent <- sum(sapply(sampler_params, function(chain) sum(chain[, "divergent__"])))
             max_treedepth_hit <- any(sapply(sampler_params, function(chain) any(chain[, "treedepth__"] >= 10)))
-            bfmi_low <- any(sapply(sampler_params, function(chain) {
-              mean_energy <- mean(chain[, "energy__"])
-              var_energy <- var(chain[, "energy__"])
-              bfmi <- mean_energy^2 / var_energy
-              bfmi < 0.3
-            }))
+            bfmi_by_chain <- sapply(sampler_params, function(chain) {
+              energy <- chain[, "energy__"]
+              numer <- sum(diff(energy)^2) / (length(energy) - 1)
+              denom <- var(energy)
+              bfmi <- numer / denom
+              bfmi
+            })
+            
+            bfmi_low <- mean(bfmi_by_chain < 0.3)
             
             metrics_lst[[iter]] <- c(metrics_lst[[iter]],
                                      n_divergent = n_divergent,

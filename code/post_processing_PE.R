@@ -24,12 +24,20 @@ setwd(root_git)
 # load extra functions
 source('code/extra_functions_CAR.R')
 
-# To do here:
-# 1) Run real results again.
-# 2) Extract the actual parameters used for each run and whats different.
-# 3) Set up extraction for simulated data.
+#### 4/18/2025: Getting simulated metrics and diagnostics ####
+setwd(root_results)
+setwd('simulated_results/')
 
-#### 4/9/2025: Getting real non-centered metrics and HMC diagnostics ####
+res_C_rho03 <- generate_metrics_list(folder = 'simulation_centered_rho_03_theta_100_softmax_negbin_3models_CV10_ID777773_2025_04_09/', hmc_diag = T)
+
+res_C_rho099 <- generate_metrics_list(folder = 'simulation_centered_rho_099_theta_100_softmax_negbin_3models_CV10_ID855930_2025_04_09/', hmc_diag = T)
+
+res_NC_rho03 <- generate_metrics_list(folder = 'simulation_noncentered_rho_03_theta_100_softmax_negbin_3models_CV10_ID329578_2025_04_09/', hmc_diag = T)
+
+res_NC_rho099 <- generate_metrics_list(folder = 'simulation_noncentered_rho_099_theta_100_softmax_negbin_3models_CV10_ID609610_2025_04_09/', hmc_diag = T)
+
+#
+#### 4/18/2025: Getting real non-centered metrics and HMC diagnostics ####
 setwd(root_results)
 files <- grep('04_09', dir('real_data', full.names = T), value = T)
 
