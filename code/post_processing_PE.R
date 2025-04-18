@@ -33,77 +33,146 @@ source('code/extra_functions_CAR.R')
 setwd(root_results)
 files <- grep('04_09', dir('real_data', full.names = T), value = T)
 
-# Initialize a data frame to hold diagnostics
-diag_summary <- tibble(
-  file = character(),
-  dataset = character(),
-  softmax = logical(),
-  preprocess = logical(),
-  alpha = logical(),
-  effects = character(),
-  n_divergent = integer(),
-  max_treedepth_hit = logical(),
-  bfmi_low = logical()
-)
-
-for (f in files) {
-  load(f)
-  fit <- res$sim_list$stan_fit
+## Inspecting the convergence diagnostics
+{
+  # Initialize a data frame to hold diagnostics
+  diag_summary <- tibble(
+    file = character(),
+    dataset = character(),
+    softmax = logical(),
+    preprocess = logical(),
+    alpha = logical(),
+    effects = character(),
+    n_divergent = integer(),
+    max_treedepth_hit = logical(),
+    bfmi_low = numeric(),
+    phi_noncentered = logical()
+  )
   
-  if (!is.null(fit)) {
-    sampler_params <- tryCatch(get_sampler_params(fit, inc_warmup = FALSE), error = function(e) NULL)
+  for (f in files) {
+    load(f)
+    fit <- res$sim_list$stan_fit
     
-    if (!is.null(sampler_params) && length(sampler_params) > 0) {
-      n_divergent <- sum(sapply(sampler_params, function(chain) sum(chain[, "divergent__"])))
-      #max_treedepth_hit <- any(sapply(sampler_params, function(chain) any(chain[, "treedepth__"] >= 10)))
-      mean_treedepth_hit <- mean(sapply(sampler_params, function(chain) mean(chain[, "treedepth__"] >= 10)))
-      bfmi_low <- any(sapply(sampler_params, function(chain) {
-        mean_energy <- mean(chain[, "energy__"])
-        var_energy <- var(chain[, "energy__"])
-        bfmi <- mean_energy^2 / var_energy
-        bfmi < 0.3
-      }))
+    if (!is.null(fit)) {
+      sampler_params <- tryCatch(get_sampler_params(fit, inc_warmup = FALSE), error = function(e) NULL)
       
-      diag_summary <- add_row(diag_summary,
-                              file = basename(f),
-                              dataset = ifelse(params$dataset == 'all', 'fullpop', 'AIAN'), 
-                              softmax = ifelse(params$use_softmax, T, F),
-                              preprocess = ifelse(params$preprocess_scale, T, F),
-                              alpha = ifelse(params$alpha_variance_prior == -1, F,T),
-                              effects = params$fixed_effects,
-                              n_divergent = n_divergent,
-                              max_treedepth_hit = mean_treedepth_hit,
-                              bfmi_low = bfmi_low
-      )
+      if (!is.null(sampler_params) && length(sampler_params) > 0) {
+        n_divergent <- sum(sapply(sampler_params, function(chain) sum(chain[, "divergent__"])))
+        #max_treedepth_hit <- any(sapply(sampler_params, function(chain) any(chain[, "treedepth__"] >= 10)))
+        mean_treedepth_hit <- mean(sapply(sampler_params, function(chain) mean(chain[, "treedepth__"] >= 10)))
+        bfmi_by_chain <- sapply(sampler_params, function(chain) {
+          energy <- chain[, "energy__"]
+          numer <- sum(diff(energy)^2) / (length(energy) - 1)
+          denom <- var(energy)
+          bfmi <- numer / denom
+          bfmi
+        })
+        
+        bfmi_low <- mean(bfmi_by_chain < 0.3)
+        
+        diag_summary <- add_row(diag_summary,
+                                file = basename(f),
+                                dataset = ifelse(params$dataset == 'all', 'fullpop', 'AIAN'), 
+                                softmax = ifelse(params$use_softmax, T, F),
+                                preprocess = ifelse(params$preprocess_scale, T, F),
+                                alpha = ifelse(params$alpha_variance_prior == -1, F,T),
+                                effects = params$fixed_effects,
+                                n_divergent = n_divergent,
+                                max_treedepth_hit = mean_treedepth_hit,
+                                bfmi_low = bfmi_low,
+                                phi_noncentered = (params$phi_noncentered == 1)
+        )
+      } else {
+        diag_summary <- add_row(diag_summary,
+                                file = basename(f),
+                                dataset = NA,
+                                softmax = NA,
+                                preprocess = NA,
+                                alpha = NA,
+                                effects = NA,
+                                n_divergent = NA_integer_,
+                                max_treedepth_hit = NA,
+                                bfmi_low = NA,
+                                phi_noncentere = NA
+        )
+        warning(paste("No sampler params in", f, "- likely due to 0 samples"))
+      }
     } else {
-      diag_summary <- add_row(diag_summary,
-                              file = basename(f),
-                              dataset = NA,
-                              softmax = NA,
-                              preprocess = NA,
-                              alpha = NA,
-                              effects = NA,
-                              n_divergent = NA_integer_,
-                              max_treedepth_hit = NA,
-                              bfmi_low = NA
-      )
-      warning(paste("No sampler params in", f, "- likely due to 0 samples"))
+      warning(paste("Failed to load stan_fit in", f))
     }
-  } else {
-    warning(paste("Failed to load stan_fit in", f))
   }
+  
+  # save(diag_summary, file = 'processed_results/real_data_softmax_noncentering.RData')
+  
+  tt <- diag_summary[,c(2, 10, 7, 8, 9)]
 }
 
-# inspecting full fit noncentered.
-load("real_data/real_data_fit_full_softmax_pepdensity_alpha0001_noncentered_ID74220_2025_04_09.RData")
-fit <- res$sim_list$stan_fit
-check_hmc_diagnostics(fit)
-# ok so something is very, very off here. Why? How could we have 1000 divergences and no E-BFMI?
+## inspecting an example correlation of phi and tau2.
+{
+  load("real_data/real_data_fit_full_softmax_pepdensity_alpha0001_noncentered_ID94010_2025_04_09.RData")
+  fit1 <- res$sim_list$stan_fit
+  
+  samples <- rstan::extract(fit1)
+  phi_1 <- samples$phi_estimated[, , 1]
+  tau2_1 <- samples$tau2[, 1] 
+  correlations1 <- apply(abs(phi_1), 2, function(x) cor(x, tau2_1))
+  plot(density(correlations1), xlim = c(-0.5,1))
+  
+  load("real_data/real_data_fit_full_softmax_pepdensity_alpha0001_centered_ID60768_2025_04_09.RData")
+  fit2 <- res$sim_list$stan_fit
+  
+  samples <- rstan::extract(fit2)
+  phi_1 <- samples$phi_estimated[, , 1]
+  tau2_1 <- samples$tau2[, 1] 
+  correlations2 <- apply(abs(phi_1), 2, function(x) cor(x, tau2_1))
+  lines(density(correlations2), col = 'red')
+}
 
-# Cross plots of parameters
-target_pars <- c('theta','alpha[1]','alpha[2]','alpha[3]')
-plot_divergent_pairs(fit, target_pars)
-plot_divergent_pairs(fit, c("tau2_estimated[1]", "tau2_estimated[2]", "tau2_estimated[3]", 'rho[1]', 'rho[2]', 'rho[3]'))
+## inspecting parameter correlation plots 
+{
+  #load("real_data/real_data_fit_full_softmax_pepdensity_alpha0001_noncentered_ID94010_2025_04_09.RData")
+  #load("real_data/real_data_fit_full_softmax_pepdensity_alpha0001_centered_ID60768_2025_04_09.RData")
+  #load("real_data/real_data_fit_aian_softmax_pepdensity_alpha0001_noncentered_ID37322_2025_04_09.RData")
+  load('real_data/real_data_fit_aian_softmax_pepdensity_alpha0001_centered_ID74511_2025_04_09.RData')
+  fit <- res$sim_list$stan_fit
+  check_hmc_diagnostics(fit)
+  # ok so something is very, very off here. Why? How could we have 1000 divergences and no E-BFMI?
+  
+  # Cross plots of parameters
+  target_pars <- c('theta','alpha[1]','alpha[2]','alpha[3]')
+  plot_divergent_pairs(fit, target_pars)
+  plot_divergent_pairs(fit, c("tau2_estimated[1]", "tau2_estimated[2]", "tau2_estimated[3]", 'rho[1]', 'rho[2]', 'rho[3]'))
+}
+
+## Plotting the results for example fits:
+{
+  load('real_data/real_data_fit_full_softmax_pepdensity_alpha0001_centered_ID60768_2025_04_09.RData')
+  p1 <- plot_real_results(data_list = res$sim_list$data_list,
+                          stan_fit = res$sim_list$stan_fit,
+                          stan_summary = res$sim_list$stan_summary$summary,
+                          models = params$models,
+                          CV_pred = NULL,
+                          alpha_estimates = T,
+                          ESS = T, rho_estimates = T, tau2_estimates = T, 
+                          sigma2_estimates = F, theta_estimates = T, phi_estimates = F,
+                          pairwise_phi_estimates = T, y_estimates = F, metrics_values = T, beta_estimates = T)
+  
+  ggsave(p1, file = '../Figures/04182025_real_data_fit_full_centered_softmax.png', height = 12, width = 7)
+  
+  load('real_data/real_data_fit_full_softmax_pepdensity_alpha0001_noncentered_ID94010_2025_04_09.RData')
+  p1 <- plot_real_results(data_list = res$sim_list$data_list,
+                          stan_fit = res$sim_list$stan_fit,
+                          stan_summary = res$sim_list$stan_summary$summary,
+                          models = params$models,
+                          CV_pred = NULL,
+                          alpha_estimates = T,
+                          ESS = T, rho_estimates = T, tau2_estimates = T, 
+                          sigma2_estimates = F, theta_estimates = T, phi_estimates = F,
+                          pairwise_phi_estimates = T, y_estimates = F, metrics_values = T, beta_estimates = T)
+  
+  ggsave(p1, file = '../Figures/04182025_real_data_fit_full_noncentered_softmax.png', height = 12, width = 7)
+}
+
 
 #
 #### 4/7/2025: Getting real data metrics and HMC diagnostics ####
