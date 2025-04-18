@@ -28,13 +28,83 @@ source('code/extra_functions_CAR.R')
 setwd(root_results)
 setwd('simulated_results/')
 
-res_C_rho03 <- generate_metrics_list(folder = 'simulation_centered_rho_03_theta_100_softmax_negbin_3models_CV10_ID777773_2025_04_09/', hmc_diag = T)
+res_C_rho03 <- generate_metrics_list(folder = 'simulation_centered_rho_03_theta_100_softmax_negbin_3models_CV10_ID777773_2025_04_18/', hmc_diag = T)
 
-res_C_rho099 <- generate_metrics_list(folder = 'simulation_centered_rho_099_theta_100_softmax_negbin_3models_CV10_ID855930_2025_04_09/', hmc_diag = T)
+res_C_rho099 <- generate_metrics_list(folder = 'simulation_centered_rho_099_theta_100_softmax_negbin_3models_CV10_ID855930_2025_04_18/', hmc_diag = T)
 
-res_NC_rho03 <- generate_metrics_list(folder = 'simulation_noncentered_rho_03_theta_100_softmax_negbin_3models_CV10_ID329578_2025_04_09/', hmc_diag = T)
+res_NC_rho03 <- generate_metrics_list(folder = 'simulation_noncentered_rho_03_theta_100_softmax_negbin_3models_CV10_ID329578_2025_04_18/', hmc_diag = T)
 
-res_NC_rho099 <- generate_metrics_list(folder = 'simulation_noncentered_rho_099_theta_100_softmax_negbin_3models_CV10_ID609610_2025_04_09/', hmc_diag = T)
+res_NC_rho099 <- generate_metrics_list(folder = 'simulation_noncentered_rho_099_theta_100_softmax_negbin_3models_CV10_ID609610_2025_04_18/', hmc_diag = T)
+
+res_all <- list(center_03 = res_C_rho03, 
+                center_099 = res_C_rho099, 
+                noncenter_03 =res_NC_rho03, 
+                noncenter_099 = res_NC_rho099)
+
+for(i in 1:length(res_all)){
+  tmp <- res_all[[i]]
+  print(sprintf('---%s---', names(res_all)[[i]]))
+  bfmi <- sapply(tmp$metrics_list, function(xx) xx$bfmi_low) %>% sum()
+  trees <- sapply(tmp$metrics_list, function(xx) xx$max_treedepth_hit) %>% sum()
+  divs <- sapply(tmp$metrics_list, function(xx) xx$n_divergent) %>% sum()
+  print(sprintf('low bfmis: %s, tree depths hit: %s, number divergences:%s', bfmi, trees, divs))
+}
+
+## I didn't do any cross-validation but I can still get u-rank:
+
+### Getting u-rank scores 
+{
+  # pull out the u-rank of each file
+  u_rank_scores <- lapply(res_all, function(xx){
+    rank <- colMeans(sapply(xx$metrics_list, function(yy) yy[['rank_equal']]))
+    rank
+  })
+  
+  # Define LaTeX-style expressions for x-axis labels
+  group_labels <- c(
+    "center_03" = expression(C ~ rho == 0.3),
+    "center_099" = expression(C ~ rho == 0.99),
+    "noncenter_03" = expression(NC ~ rho == 0.3),
+    "noncenter_099" = expression(NC ~ rho == 0.99)
+  )
+  
+  # Convert list to a tidy data frame
+  df <- u_rank_scores %>%
+    enframe(name = "Group", value = "Values") %>%
+    unnest(Values)
+  df$Group <- factor(df$Group, levels = names(group_labels))  # Ensure correct ordering
+  
+  # Compute the 2.5%, 50% (median), and 97.5% quantiles for each group
+  df_summary <- df %>%
+    group_by(Group) %>%
+    summarise(
+      lowest = min(Values),
+      lower = quantile(Values, 0.025),   # 2.5th percentile
+      middle = quantile(Values, 0.50),  # Median (50th percentile)
+      upper = quantile(Values, 0.975),   # 97.5th percentile
+      highest = max(Values),
+      .groups = "drop"
+    )
+  
+  # Create the customized boxplot
+  ggplot(df, aes(x = Group, y = Values)) +
+    # Use geom_segment() for whiskers
+    geom_segment(data = df_summary, aes(x = Group, xend = Group, y = lowest, yend = highest), color = "black") +
+    # Use geom_crossbar() to create the box
+    geom_crossbar(data = df_summary, aes(x = Group, ymin = lower, y = middle, ymax = upper), fill = "white", color = "black") +
+    # Add a horizontal reference line at y = 1/6
+    geom_hline(yintercept = 1/6, linetype = "dashed", color = "red") +
+    # Clean theme
+    theme_minimal() +
+    labs(x = NULL, y = "u-rank within simulation run", title = NULL) +
+    scale_x_discrete(labels = group_labels) +  # Apply LaTeX-style labels
+    theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 12),
+          legend.position = "none")  # Remove legend
+  
+  ggsave(filename = '../../Figures/03172025_urank_boxplot.png', height = 5, width = 7)
+}
+
+
 
 #
 #### 4/18/2025: Getting real non-centered metrics and HMC diagnostics ####

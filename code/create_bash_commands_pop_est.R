@@ -165,6 +165,61 @@ bash_wrapper_real <- function(bash_file = NULL, ...){
   return(cmds)
 }
 
+
+#### 4/18/2025: Running simulations with noncentering ####
+bash_wrapper(use_softmax = T, tau2 = 1, CV_blocks = 10, n.sample = 10000, burnin = 1000, theta_vec = c(100), rho_vec = c(0.3, 0.99), family = 'negbin', phi_noncentered = 1,  stan_path = 'code/CAR_leroux_sparse_negbin_NC.stan', bash_file = 'code/bash_commands/simulation_bash_04182025.txt')
+
+bash_wrapper(use_softmax = F, tau2 = .01, CV_blocks = 10, n.sample = 10000, burnin = 1000, theta_vec = c(100), rho_vec = c(0.3, 0.99), family = 'negbin', phi_noncentered = 1, stan_path = 'code/CAR_leroux_sparse_negbin_NC.stan', bash_file = 'code/bash_commands/simulation_bash_04182025.txt')
+
+#
+#### 4/18/2025: Running noncentering with CV for real ####
+bash_wrapper_real(dataset = 'all', 
+                  use_softmax = T, 
+                  alpha_variance_prior = .0001, 
+                  fixed_effects = 'pep_density', 
+                  phi_noncentered = 1, 
+                  stan_path = 'code/CAR_leroux_sparse_negbin_alpha_FE_NC.stan',
+                  CV_blocks = 10,
+                  n.sample = 10000,
+                  output_path_addition = 'full_softmax_pepdensity_alpha0001_noncentered', 
+                  bash_file = 'code/bash_commands/real_data_noncentering_04182025.txt')
+
+bash_wrapper_real(dataset = 'all', 
+                  use_softmax = F, 
+                  alpha_variance_prior = .0001, 
+                  fixed_effects = 'intercept', 
+                  phi_noncentered = 1, 
+                  stan_path = 'code/CAR_leroux_sparse_negbin_alpha_FE_NC.stan',
+                  CV_blocks = 10,
+                  n.sample = 10000,
+                  output_path_addition = 'full_directest_pepdensity_alpha0001_noncentered', 
+                  bash_file = 'code/bash_commands/real_data_noncentering_04182025.txt')
+
+bash_wrapper_real(dataset = 'all', 
+                  use_softmax = T, 
+                  alpha_variance_prior = .0001, 
+                  fixed_effects = 'pep_density', 
+                  phi_noncentered = 1, 
+                  fixed_rho = 0.99,
+                  stan_path = 'code/CAR_leroux_sparse_negbin_alpha_FE_NC.stan',
+                  CV_blocks = 10,
+                  n.sample = 10000,
+                  output_path_addition = 'full_softmax_pepdensity_alpha0001_fixrho099_noncentered', 
+                  bash_file = 'code/bash_commands/real_data_noncentering_04182025.txt')
+
+bash_wrapper_real(dataset = 'all', 
+                  use_softmax = F, 
+                  alpha_variance_prior = .0001, 
+                  fixed_effects = 'intercept', 
+                  phi_noncentered = 1, 
+                  fixed_rho = 0.99,
+                  stan_path = 'code/CAR_leroux_sparse_negbin_alpha_FE_NC.stan',
+                  CV_blocks = 10,
+                  n.sample = 10000,
+                  output_path_addition = 'full_directest_pepdensity_alpha0001_fixrho099_noncentered', 
+                  bash_file = 'code/bash_commands/real_data_noncentering_04182025.txt')
+
+#
 #### 4/9/2025: Updated bash commands real - testing noncentering ####
 bash_wrapper_real(dataset = 'all', 
                   use_softmax = T, 
