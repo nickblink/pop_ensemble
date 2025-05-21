@@ -62,7 +62,7 @@ bash_command_real <- function(dataset='all', models='acs,pep,wp', n.sample=2000,
     }
   }
   
-  if(!(tolower(dataset) %in% c('all','aian'))){
+  if(!(tolower(dataset) %in% c('all','aian', 'aiansubset'))){
     stop('Incorrect dataset')
   }
   
@@ -166,6 +166,52 @@ bash_wrapper_real <- function(bash_file = NULL, ...){
 }
 
 
+#### 5/21/2025: Running AIAN subset analysis. ####
+bash_wrapper_real(dataset = 'aiansubset', 
+                  use_softmax = T, 
+                  alpha_variance_prior = .0001, 
+                  fixed_effects = 'pep_density', 
+                  phi_noncentered = 1, 
+                  stan_path = 'code/CAR_leroux_sparse_negbin_alpha_FE_NC.stan',
+                  CV_blocks = 10,
+                  n.sample = 5000,
+                  output_path_addition = 'full_softmax_pepdensity_alpha0001_noncentered', 
+                  bash_file = 'code/bash_commands/real_data_aiansubset_05212025.txt')
+
+bash_wrapper_real(dataset = 'aiansubset', 
+                  use_softmax = F, 
+                  fixed_effects = 'intercept', 
+                  phi_noncentered = 1, 
+                  stan_path = 'code/CAR_leroux_sparse_negbin_alpha_FE_NC.stan',
+                  CV_blocks = 10,
+                  n.sample = 5000,
+                  output_path_addition = 'full_directest_pepdensity_alpha0001_noncentered', 
+                  bash_file = 'code/bash_commands/real_data_aiansubset_05212025.txt')
+
+bash_wrapper_real(dataset = 'aiansubset', 
+                  use_softmax = T, 
+                  alpha_variance_prior = .0001, 
+                  fixed_effects = 'pep_density', 
+                  phi_noncentered = 1, 
+                  fixed_rho = 0.99,
+                  stan_path = 'code/CAR_leroux_sparse_negbin_alpha_FE_NC.stan',
+                  CV_blocks = 10,
+                  n.sample = 5000,
+                  output_path_addition = 'full_softmax_pepdensity_alpha0001_fixrho099_noncentered', 
+                  bash_file = 'code/bash_commands/real_data_aiansubset_05212025.txt')
+
+bash_wrapper_real(dataset = 'aiansubset', 
+                  use_softmax = F, 
+                  fixed_effects = 'intercept', 
+                  phi_noncentered = 1, 
+                  fixed_rho = 0.99,
+                  stan_path = 'code/CAR_leroux_sparse_negbin_alpha_FE_NC.stan',
+                  CV_blocks = 10,
+                  n.sample = 5000,
+                  output_path_addition = 'full_directest_pepdensity_alpha0001_fixrho099_noncentered', 
+                  bash_file = 'code/bash_commands/real_data_aiansubset_05212025.txt')
+
+#
 #### 4/22/2025: Re-running noncentering with CV for real ####
 bash_wrapper_real(dataset = 'all', 
                   use_softmax = T, 

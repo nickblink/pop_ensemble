@@ -567,3 +567,255 @@ summary(lm.fit.3)
 lm.fit.5 <- lm(census ~ acs + wp, data = df_AIAN)
 summary(lm.fit.5)
 # interesting. WP could be negative?
+
+#### 05/21/2025: AIAN plotting for deciding cutoffs and location. ####
+# Load packages
+library(tidyverse)
+library(sf)
+library(tigris)
+library(ggplot2)
+
+# Get all counties in the US
+options(tigris_use_cache = TRUE)
+counties_sf <- counties(cb = TRUE, class = "sf")
+states_sf <- states(cb = TRUE, class = "sf")
+
+contig_us <- counties_sf %>%
+  filter(!STATEFP %in% c("02", "15", "72"))  # FIPS codes for AK, HI, PR
+
+contig_states <- states_sf %>%
+  filter(!STATEFP %in% c("02", "15", "72"))
+
+# Join shapefile with your data
+map_data <- contig_us %>%
+  #counties_sf %>%
+  #left_join(df, by = "GEOID")
+  merge(df, by = "GEOID")
+
+map_data$log_census <- log1p(map_data$census)
+
+# Define approximate bounding box for contiguous US
+contig_bbox <- st_bbox(c(xmin = -125, xmax = -66.5, ymin = 24, ymax = 50), crs = st_crs(map_data))
+
+# Crop counties and states
+map_data_cropped <- st_crop(map_data, contig_bbox)
+states_cropped <- st_crop(contig_states, contig_bbox)
+
+ggplot() +
+  geom_sf(data = map_data, aes(fill = log_census), color = NA) +  # no borders between counties
+  geom_sf(data = contig_states, fill = NA, color = "black", size = 0.4) +  # state borders
+  scale_fill_gradient(
+    low = "white", high = "black", na.value = "grey90",
+    name = "Log₁₀(Census)"
+  ) +
+  theme_minimal() +
+  labs(
+    title = "AIAN Census Values by County"
+  ) +
+  theme(
+    legend.position = "right",
+    axis.text = element_blank(),
+    axis.ticks = element_blank(),
+    panel.grid = element_blank()
+  )
+
+
+# plot 1
+ggplot() +
+  geom_sf(data = map_data_cropped, aes(fill = log_census), color = NA) +
+  geom_sf(data = states_cropped, fill = NA, color = "black", size = 0.4) +
+  scale_fill_gradient(
+    low = "white", high = "blue", na.value = "grey90",
+    name = "Log₁₀(Census)"
+  ) +
+  theme_minimal() +
+  labs(
+    title = "Log-Scaled Census Values by County (Contiguous US)"
+  ) +
+  theme(
+    legend.position = "right",
+    axis.text = element_blank(),
+    axis.ticks = element_blank(),
+    panel.grid = element_blank()
+  )
+
+# plot 2
+# Create a binned variable with updated labels
+# Create a new binned variable with four bins
+map_data_binned <- map_data_cropped %>%
+  mutate(
+    census_bin = case_when(
+      census <= 20 ~ "(0–20]",
+      census <= 100 ~ "(20–100]",
+      census <= 500 ~ "(100–500]",
+      census > 500 ~ "(500+)",
+      TRUE ~ NA_character_
+    ),
+    census_bin = factor(census_bin, levels = c("(0–20]", "(20–100]", "(100–500]", "(500+)"))
+  )
+
+# Compute label positions using state centroids
+state_labels <- states_cropped %>%
+  mutate(centroid = st_centroid(geometry)) %>%
+  mutate(
+    lon = st_coordinates(centroid)[, 1],
+    lat = st_coordinates(centroid)[, 2]
+  )
+
+# Plot
+ggplot() +
+  geom_sf(data = map_data_binned, aes(fill = census_bin), color = NA) +
+  geom_sf(data = states_cropped, fill = NA, color = "black", size = 0.4) +
+  geom_text(
+    data = state_labels,
+    aes(x = lon, y = lat, label = STUSPS),
+    size = 3, fontface = "bold", color = "black"
+  ) +
+  scale_fill_manual(
+    values = c(
+      "(0–20]" = "white",
+      "(20–100]" = "blue",
+      "(100–500]" = "red",
+      "(500+)" = "green"
+    ),
+    na.value = "grey90",
+    name = "Census Bin"
+  ) +
+  theme_minimal() +
+  labs(
+    title = "Census Value Categories by County (Contiguous US)"
+  ) +
+  theme(
+    legend.position = "right",
+    axis.text = element_blank(),
+    axis.ticks = element_blank(),
+    panel.grid = element_blank()
+  )
+
+#
+#### 5/21/2025: Create new set of AIAN subsetted ####
+load('../../data/census_ACS_PEP_WP_AIAN_wDensity_and2018_01022025.RData')
+
+southwest_data <- df %>% 
+  filter(state %in% c('California','Nevada','Arizona','New Mexico'),
+         census >= 100)
+
+southwest_map <- counties_sf %>%
+  filter(STATEFP %in% c("04", "06", "32", "35")) %>%  # AZ, CA, NV, NM
+  left_join(southwest_data, by = "GEOID")
+
+state_abbrev_lookup <- tibble::tibble(
+  state_name = state.name,
+  state_abbrev = state.abb
+)
+
+# Process the names
+southwest_data2 <- southwest_data %>%
+  mutate(
+    county = str_remove(NAME, ",.*"),
+    state_name = str_trim(str_extract(NAME, "[^,]+$"))
+  ) %>%
+  left_join(state_abbrev_lookup, by = "state_name") %>%
+  mutate(
+    formatted_name = paste0(str_replace_all(county, " ", "."), ".", state_abbrev)
+  )
+
+southwest_adjacency <- adjacency[southwest_data2$NAME, southwest_data2$formatted_name]
+
+df <- southwest_data2
+adjacency <- southwest_adjacency
+
+# save(df, adjacency, file = '../../data/census_ACS_PEP_WP_AIANsubset_wDensity_and2018_05212025.RData')
+
+#### 5/21/2025: Plot southwest map ####
+library(tidyverse)
+library(sf)
+library(tigris)
+library(ggplot2)
+
+options(tigris_use_cache = TRUE)
+
+# Get county and state geometries
+counties_sf <- counties(cb = TRUE, class = "sf")
+states_sf <- states(cb = TRUE, class = "sf")
+
+# Filter to contiguous US
+contig_counties <- counties_sf %>%
+  filter(!STATEFP %in% c("02", "15", "72"))
+contig_states <- states_sf %>%
+  filter(!STATEFP %in% c("02", "15", "72"))
+
+# Define southwest states
+southwest_abbr <- c("CA", "NV", "AZ", "NM")
+southwest_names <- c('California','Nevada','Arizona','New Mexico')
+southwest_fips <- c("06", "32", "04", "35")  # CA, NV, AZ, NM
+
+# Subset of counties in SW with census >= 100
+southwest_data <- df %>%
+  filter(state %in% southwest_names, census >= 100)
+
+# Create full map dataset and flag southwest target counties
+map_data <- contig_counties %>%
+  mutate(
+    in_southwest = STATEFP %in% southwest_fips,
+    highlight = ifelse(GEOID %in% southwest_data$GEOID, "highlight", "other")
+  )
+
+# Create state labels for just SW
+sw_labels <- contig_states %>%
+  filter(STUSPS %in% southwest_abbr) %>%
+  mutate(centroid = st_centroid(geometry)) %>%
+  mutate(
+    lon = st_coordinates(centroid)[, 1],
+    lat = st_coordinates(centroid)[, 2]
+  )
+
+# Define bounding box for the contiguous US (adjust if needed)
+contig_bbox <- st_bbox(c(xmin = -125, xmax = -66.5, ymin = 24, ymax = 50), crs = st_crs(map_data))
+
+# Crop all spatial data used in the plot
+map_data_cropped <- st_crop(map_data, contig_bbox)
+contig_states_cropped <- st_crop(contig_states, contig_bbox)
+sw_labels_cropped <- sw_labels %>%
+  filter(lon >= -125, lon <= -66.5, lat >= 24, lat <= 50)
+
+ggplot() +
+  # All counties (white base)
+  geom_sf(data = map_data_cropped, fill = "white", color = NA) +
+  
+  # Southwest counties with outlines and highlight fills
+  geom_sf(
+    data = filter(map_data_cropped, in_southwest),
+    aes(fill = highlight),
+    color = "black", size = 0.2
+  ) +
+  
+  # State boundaries
+  geom_sf(data = contig_states_cropped, fill = NA, color = "black", size = 0.4) +
+  
+  # Add labels only for southwest states
+  geom_text(
+    data = sw_labels_cropped,
+    aes(x = lon, y = lat, label = STUSPS),
+    size = 3, fontface = "bold", color = "black"
+  ) +
+  
+  # Custom fill scale
+  scale_fill_manual(
+    values = c("highlight" = "lightblue", "other" = "white"),
+    guide = "none"
+  ) +
+  
+  coord_sf(xlim = c(-125, -66.5), ylim = c(24, 50)) +  # Enforce bounds
+  
+  theme_minimal() +
+  labs(title = "Highlighted Counties in the Southwest (Census ≥ 100)") +
+  theme(
+    legend.position = "none",
+    axis.text = element_blank(),
+    axis.ticks = element_blank(),
+    panel.grid = element_blank()
+  )
+
+
+#
