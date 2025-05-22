@@ -1,6 +1,6 @@
 #!/bin/bash
-#SBATCH -p shared,hsph
-#SBATCH -t 0-72:00
+#SBATCH -p shared,hsph,serial_requeue
+#SBATCH -t 0-5:00
 #SBATCH -c 10
 #SBATCH --mem=184G
 #SBATCH --mail-type=END
