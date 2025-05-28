@@ -13,7 +13,7 @@ recent_files <- function(l = 5){
 }
 
 
-### Compare the parameters between two simulation runs.
+### Compare the parameters used between two simulation runs.
 # folder1: First folder to compare.
 # folder2: Second folder to compare.
 compare_parameters <- function(folder1, folder2){
@@ -31,6 +31,9 @@ compare_parameters <- function(folder1, folder2){
   }
   if(length(sd_21) > 0){
     print(sprintf('%s is in folder 2 parameters but not folder 1', sd_21))
+  }
+  if(length(sd12) == 0 & length(sd_21) == 0){
+    print('same sets of parameters')
   }
   
   params_to_compare <- setdiff(intersect(names(params1), names(params2)), c('raw_data', 'output_path'))
@@ -1044,25 +1047,41 @@ generate_metrics_list <- function(folder = NULL, root = NULL, hmc_diag = F, debu
       u_est_95 <- stan_quants['0.95', ind_u]
       median_u_mat <- medians[ind_u] %>% 
         vec_to_mat(., n_models = 3)
+      
+      if(is.null(colnames(tmp$CV_pred))){
+        # compute the quantiles.
+        if(ncol(tmp$CV_pred) < 20){
+          stop('check the dimensions of CV_pred. Is it quantiles or samples? It\'s unclear')
+        }
+        quantile_levels <- c(0.025, 0.05, 0.25, 0.5, 0.75, 0.95, 0.975)
+        CV_pred <- apply(tmp$CV_pred, 1, quantile, probs = quantile_levels, na.rm = TRUE)
+        
+        rownames(CV_pred) <- as.character(quantile_levels)
+        
+      }else{
+        CV_pred <- tmp$CV_pred
+      }
 
       metrics_lst[[iter]] <- list(mean_y = mean(y),
                                   median_y = median(y),
                                   RMSE_train = sqrt(mean((median_y_pred - y)^2)),
                                   RMSE_general = sqrt(mean((median_y_pred - y2)^2)),
-                                  RMSE_CV = sqrt(mean((tmp$CV_pred['0.5',] - y)^2)),
+                                  RMSE_CV = sqrt(mean((CV_pred['0.5',] - y)^2)),
                                   MAE_train = mean(abs(y - median_y_pred)),
-                                  MAE_CV = mean(abs(y - tmp$CV_pred['0.5',])),
+                                  MAE_CV = mean(abs(y - CV_pred['0.5',])),
                                   MAPE_train = 100*mean(abs(median_y_pred - y)/y),
-                                  MAPE_CV = 100*mean(abs(tmp$CV_pred['0.5',] - y)/y),
+                                  MAPE_CV = 100*mean(abs(CV_pred['0.5',] - y)/y),
                                   CP_90_train = (y >= y_pred_05 & y <= y_pred_95),
                                   CP_95_train = (y >= y_pred_025 & y <= y_pred_975),
                                   CP_90_general = (y2 >= y_pred_05 & y2 <= y_pred_95),
-                                  CP_90_CV = (y >= tmp$CV_pred['0.05',] & y <= tmp$CV_pred['0.95',]),
-                                  CP_95_CV = (y >= tmp$CV_pred['0.025',] & y <= tmp$CV_pred['0.975',]),
+                                  CP_90_CV = (y >= CV_pred['0.05',] & y <= CV_pred['0.95',]),
+                                  CP_95_CV = (y >= CV_pred['0.025',] & y <= CV_pred['0.975',]),
                                   CP_90_phi = (phi_true_flat >= phi_est_05 & phi_true_flat <= phi_est_95),
                                   CP_90_u = (u_true_flat >= u_est_05 & u_true_flat <= u_est_95),
                                   median_int_width_train = median(int_widths_95),
-                                  median_int_width_CV = median(tmp$CV_pred['0.975',] - tmp$CV_pred['0.025',]),
+                                  median_int_width_CV = median(CV_pred['0.975',] - CV_pred['0.025',]),
+                                  int_widths_train = int_widths_95,
+                                  int_widths_CV = CV_pred['0.975',] - CV_pred['0.025',],
                                   rank_equal = sapply(1:nrow(median_u_mat), function(xx){
                                     res <- all(rank(median_u_mat[xx,]) == rank(u_true[xx,-ncol(u_true)]))
                                     res
@@ -2226,5 +2245,93 @@ plot_divergent_pairs <- function(stan_fit, parameter_names) {
     theme_minimal()
   
   return(p)
+}
+
+
+### Make results table in latex from prediction metrics. This was created so that I can easily create results from changing simulation runs. 
+# scale_across_all: If true, take the CP and interval width across all simulations and all locations.
+generate_latex_values <- function(data_list, coverage = 95, scale_across_all = F, digits = 2) {
+  # Validate input
+  if (!coverage %in% c(90, 95)) stop("Coverage must be 90 or 95.")
+  
+  # Define custom order for models: SM should come before DE
+  model_order <- c("SM", "DE")
+  
+  # Define custom order for dataset type: Train should come before CV
+  dataset_order <- c("train", "CV")
+  
+  # Initialize a list to store row data before sorting
+  rows_list <- list()
+  
+  # Check for names.
+  if(is.null(names(data_list))){
+    stop('data list inputted needs to be named.')
+  }
+  
+  # Iterate through each simulation run
+  for (sim_name in names(data_list)) {
+    sim_data <- data_list[[sim_name]]
+    
+    # Extract the prefix (e.g., "DE" or "SM") and rho value
+    split_name <- strsplit(sim_name, "_rho")[[1]]
+    model_name <- split_name[1]  # "DE" or "SM"
+    rho_value <- ifelse(split_name[2] == '03', 0.3,
+                        ifelse(split_name[2] == '099', 0.99, NA))  # Convert rho to numeric for sorting
+    
+    # Format the first column for LaTeX: "DE, $\rho=0.3$"
+    latex_name <- paste0(model_name, ", $\\rho=", rho_value, "$")
+    
+    # Iterate over Train and CV
+    for (type in c("train", "CV")) {
+      # Determine variable names
+      MAPE_var <- paste0("MAPE_", type)
+      MAE_var <- paste0("MAE_", type)
+      CP_var <- paste0("CP_", coverage, "_", type)
+      width_var <- paste0("median_int_width_", type)
+      
+      # Extract and round values
+      MAPE <- round(sim_data[[MAPE_var]], digits)
+      MAE <- round(sim_data[[MAE_var]], digits)
+      CP <- round(sim_data[[CP_var]], digits)
+      width <- round(sim_data[[width_var]], digits)
+      
+      # Format as "median (Q2.5, Q97.5)"
+      MAPE_str <- paste0(MAPE["median"], " (", MAPE["Q2.5"], ", ", MAPE["Q97.5"], ")")
+      MAE_str <- paste0(MAE["median"], " (", MAE["Q2.5"], ", ", MAE["Q97.5"], ")")
+      if(scale_across_all){
+        CP_var2 <- paste0(CP_var, '_across_all')
+        CP2 <- round(sim_data[[CP_var2]], digits)
+        CP_str <- as.character(CP2)
+        width_var2 <- paste0(width_var, '_across_all')
+        width2 <- round(sim_data[[width_var2]], digits)
+        width_str <- as.character(width2)
+      }else{
+        CP_str <- paste0(CP["median"], " (", CP["Q2.5"], ", ", CP["Q97.5"], ")")
+        width_str <- paste0(width["median"], " (", width["Q2.5"], ", ", width["Q97.5"], ")")
+      }
+      
+      
+      # Store row data in a list for sorting
+      rows_list <- append(rows_list, list(
+        data.frame(model_name = model_name, rho = rho_value, type = type, 
+                   row_text = paste(latex_name, type, MAPE_str, MAE_str, CP_str, width_str, sep = " & "))
+      ))
+    }
+  }
+  
+  # Convert list to data frame
+  rows_df <- do.call(rbind, rows_list)
+  
+  # Convert factors to enforce sorting order
+  rows_df$model_name <- factor(rows_df$model_name, levels = model_order)  # SM first, then DE
+  rows_df$type <- factor(rows_df$type, levels = dataset_order)  # Train first, then CV
+  
+  # Order rows: SM first, then ascending rho, then Train before CV
+  rows_df <- rows_df[order(rows_df$model_name, rows_df$rho, rows_df$type), ]
+  
+  # Extract ordered LaTeX rows
+  output_lines <- rows_df$row_text
+  
+  return(output_lines)
 }
 

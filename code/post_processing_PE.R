@@ -24,6 +24,186 @@ setwd(root_git)
 # load extra functions
 source('code/extra_functions_CAR.R')
 
+#### 5/28/2025: Update simulation results figures and tables ####
+setwd(root_results)
+setwd('simulated_results/')
+files1 <- grep('2025_05_22', dir(), value = T)
+# because I repeated analysis
+files <- files1[c(1,2,4,5)]
+
+results_list <- lapply(files, function(f){
+  generate_metrics_list(f)})
+
+warning('Hardcoding names of results - make sure they match')
+names(results_list) <- c('DE_rho03', 'SM_rho03', 'DE_rho099', 'SM_rho099')
+
+### Making the table metrics 
+{
+  # Function to compute median and 95% quantiles
+  summary_stats <- function(vec) {
+    q_values <- quantile(vec, probs = c(0.025, 0.975), na.rm = TRUE)
+    
+    return(c(
+      median = median(vec, na.rm = TRUE),
+      Q2.5 = unname(q_values[1]),  # Ensure it doesn't inherit unwanted names
+      Q97.5 = unname(q_values[2])
+    ))
+  }
+  
+  all_sim_results <- lapply(results_list, function(xx){
+    metrics_list <- xx$metrics_list
+    
+    # Extract numeric metrics
+    MAPE_train <- sapply(metrics_list, function(x) x$MAPE_train)
+    MAPE_CV <- sapply(metrics_list, function(x) x$MAPE_CV)
+    MAE_train <- sapply(metrics_list, function(x) x$MAE_train)
+    MAE_CV <- sapply(metrics_list, function(x) x$MAE_CV)
+    median_int_width_train <- sapply(metrics_list, function(x) x$median_int_width_train)
+    median_int_width_CV <- sapply(metrics_list, function(x) x$median_int_width_CV)
+    
+    # Compute interval widths across all.
+    median_int_width_train_across_all <- sapply(metrics_list, function(x) as.integer(x$int_widths_train, na.rm = TRUE)) %>% median()
+    median_int_width_CV_across_all <- sapply(metrics_list, function(x) as.integer(x$int_widths_CV, na.rm = TRUE)) %>% median()
+    
+    # Compute proportion of TRUE values for Boolean vectors
+    CP_95_train <- sapply(metrics_list, function(x) mean(x$CP_95_train, na.rm = TRUE))
+    CP_90_train <- sapply(metrics_list, function(x) mean(x$CP_90_train, na.rm = TRUE))
+    CP_95_CV <- sapply(metrics_list, function(x) mean(x$CP_95_CV, na.rm = TRUE))
+    CP_90_CV <- sapply(metrics_list, function(x) mean(x$CP_90_CV, na.rm = TRUE))
+    
+    # get all CPs to join together
+    CP_95_train_across_all <- sapply(metrics_list, function(x) as.integer(x$CP_95_train, na.rm = TRUE)) %>% mean()
+    CP_90_train_across_all <- sapply(metrics_list, function(x) as.integer(x$CP_90_train, na.rm = TRUE)) %>% mean()
+    CP_95_CV_across_all <- sapply(metrics_list, function(x) as.integer(x$CP_95_CV, na.rm = TRUE)) %>% mean()
+    CP_90_CV_across_all <- sapply(metrics_list, function(x) as.integer(x$CP_90_CV, na.rm = TRUE)) %>% mean()
+    
+    # Compute summary statistics for all extracted values
+    final_results <- list(
+      MAPE_train = summary_stats(MAPE_train),
+      MAPE_CV = summary_stats(MAPE_CV),
+      MAE_train = summary_stats(MAE_train),
+      MAE_CV = summary_stats(MAE_CV),
+      median_int_width_train = summary_stats(median_int_width_train),
+      median_int_width_CV = summary_stats(median_int_width_CV),
+      median_int_width_train_across_all = median_int_width_train_across_all,
+      median_int_width_CV_across_all = median_int_width_CV_across_all,
+      CP_95_train = summary_stats(CP_95_train),
+      CP_90_train = summary_stats(CP_90_train),
+      CP_95_CV = summary_stats(CP_95_CV),
+      CP_90_CV = summary_stats(CP_90_CV),
+      CP_95_train_across_all = CP_95_train_across_all,
+      CP_90_train_across_all = CP_90_train_across_all,
+      CP_95_CV_across_all = CP_95_CV_across_all,
+      CP_90_CV_across_all = CP_90_CV_across_all
+    )
+    
+    final_results
+  })
+  
+  latex_rows <- generate_latex_values(data_list = all_sim_results, coverage = 95, scale_across_all = T, digits = 2)
+  cat(paste(latex_rows, collapse = " \\\\\n"))
+}
+
+
+#
+#### 5/28/2025: Getting simulated metrics and diagnostics (again) ####
+setwd(root_results)
+setwd('simulated_results/')
+
+grep('5_22', dir(), value = T)
+
+# figure out diff in softmax params.
+compare_parameters(folder1 = "simulation_rho_03_theta_100_softmax_negbin_3models_CV10_ID823748_2025_05_22",
+                   folder2 = "simulation_rho_03_theta_100_softmax_negbin_3models_CV10_ID835785_2025_05_22/")
+# ok so these are the same?
+
+# figure out diff in softmax params.
+compare_parameters(folder1 = "simulation_rho_099_theta_100_softmax_negbin_3models_CV10_ID290522_2025_05_22/",
+                   folder2 = "simulation_rho_099_theta_100_softmax_negbin_3models_CV10_ID663244_2025_05_22/")
+# ok so also the same? I guess I just repeated a simulation run.
+
+res_DE_rho03 <- generate_metrics_list(folder = "simulation_rho_03_theta_100_direct_est_negbin_3models_CV10_ID28206_2025_05_22", hmc_diag = T)
+
+res_SM_rho03 <- generate_metrics_list(folder = "simulation_rho_03_theta_100_softmax_negbin_3models_CV10_ID823748_2025_05_22", hmc_diag = T)
+
+res_DE_rho099 <- generate_metrics_list(folder = "simulation_rho_099_theta_100_direct_est_negbin_3models_CV10_ID641351_2025_05_22/", hmc_diag = T)
+
+res_SM_rho099 <- generate_metrics_list(folder = "simulation_rho_099_theta_100_softmax_negbin_3models_CV10_ID290522_2025_05_22/", hmc_diag = T)
+
+res_all <- list(res_DE_rho03 = res_DE_rho03, 
+                res_SM_rho03 = res_SM_rho03, 
+                res_DE_rho099 = res_DE_rho099, 
+                res_SM_rho099 = res_SM_rho099)
+
+# save(res_all, file = '../processed_results/simulation_results_05222025.RData')
+
+for(i in 1:length(res_all)){
+  tmp <- res_all[[i]]
+  print(sprintf('---%s---', names(res_all)[[i]]))
+  bfmi <- sapply(tmp$metrics_list, function(xx) xx$bfmi_low) %>% sum()
+  trees <- sapply(tmp$metrics_list, function(xx) xx$max_treedepth_hit) %>% sum()
+  divs <- sapply(tmp$metrics_list, function(xx) xx$n_divergent) %>% sum()
+  print(sprintf('low bfmis: %s, tree depths hit: %s, number divergences:%s', bfmi, trees, divs))
+}
+# out of 900 samples per sim X 200 sims. = 180000
+21/(900*200)*100
+1981/(900*200) # still just 1.1%
+
+
+### Getting u-rank scores 
+{
+  # pull out the u-rank of each file
+  u_rank_scores <- lapply(res_all, function(xx){
+    rank <- colMeans(sapply(xx$metrics_list, function(yy) yy[['rank_equal']]))
+    rank
+  })
+  
+  # Define LaTeX-style expressions for x-axis labels
+  group_labels <- c(
+    "res_SM_rho03" = expression(SM ~ rho == 0.3),
+    "res_SM_rho099" = expression(SM ~ rho == 0.99),
+    "res_DE_rho03" = expression(DE ~ rho == 0.3),
+    "res_DE_rho099" = expression(DE ~ rho == 0.99)
+  )
+  
+  # Convert list to a tidy data frame
+  df <- u_rank_scores %>%
+    enframe(name = "Group", value = "Values") %>%
+    unnest(Values)
+  df$Group <- factor(df$Group, levels = names(group_labels))  # Ensure correct ordering
+  
+  # Compute the 2.5%, 50% (median), and 97.5% quantiles for each group
+  df_summary <- df %>%
+    group_by(Group) %>%
+    summarise(
+      lowest = min(Values),
+      lower = quantile(Values, 0.025),   # 2.5th percentile
+      middle = quantile(Values, 0.50),  # Median (50th percentile)
+      upper = quantile(Values, 0.975),   # 97.5th percentile
+      highest = max(Values),
+      .groups = "drop"
+    )
+  
+  # Create the customized boxplot
+  ggplot(df, aes(x = Group, y = Values)) +
+    # Use geom_segment() for whiskers
+    geom_segment(data = df_summary, aes(x = Group, xend = Group, y = lowest, yend = highest), color = "black") +
+    # Use geom_crossbar() to create the box
+    geom_crossbar(data = df_summary, aes(x = Group, ymin = lower, y = middle, ymax = upper), fill = "white", color = "black") +
+    # Add a horizontal reference line at y = 1/6
+    geom_hline(yintercept = 1/6, linetype = "dashed", color = "red") +
+    # Clean theme
+    theme_minimal() +
+    labs(x = NULL, y = "u-rank within simulation run", title = NULL) +
+    scale_x_discrete(labels = group_labels) +  # Apply LaTeX-style labels
+    theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 12),
+          legend.position = "none")  # Remove legend
+  
+  ggsave(filename = '../../Figures/05282025_urank_boxplot.png', height = 5, width = 7)
+}
+
+
+#
 #### 4/18/2025: Getting simulated metrics and diagnostics ####
 setwd(root_results)
 setwd('simulated_results/')
