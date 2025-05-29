@@ -42,6 +42,52 @@ make_table_line <- function(metric, cols = c('dataset','MAPE', 'MAE', 'CP.95', '
 }
 
 #
+#### 5/29/2025: Making AIAN u-weight and chloropleth plots ####
+setwd(root_results)
+setwd('real_data/')
+#load('real_data_fit_directest_cv10_interceptonly_ID81515_2025_01_15.RData')
+load('real_data_fit_aiansubset_directest_intercept_noncentered_ID32362_2025_05_22.RData')
+
+### Weights.
+{
+  p1 <- plot_real_results(data_list = res$sim_list$data_list,
+                          stan_fit = res$sim_list$stan_fit,
+                          stan_summary = res$sim_list$stan_summary$summary,
+                          models = params$models,
+                          CV_pred = res$sim_list$CV_pred, rhats = F,
+                          alpha_estimates = F,
+                          ESS = F, rho_estimates = F, tau2_estimates = F, 
+                          sigma2_estimates = F, theta_estimates = F, phi_estimates = F,
+                          pairwise_phi_estimates = F, y_estimates = F, metrics_values = F, beta_estimates = F)
+  # inspect plot. How is it?
+  # ggsave(p1, file = '../../Figures/01152025_u_estimates_directest_cv10_interceptonly.png', width = 6, height = 3)
+  # ggsave(p1, file = '../../Figures/05252025_aiansubset_u_estimates_directest.png', width = 6, height = 3)
+}
+
+### Chloropleth.
+{
+  plot_weights_map(
+    data_list = res$sim_list$data_list,
+    stan_summary = res$sim_list$stan_summary$summary,
+    facet = TRUE,
+    xlim = c(-125, -100),
+    ylim = c(31, 42)
+  )
+}
+
+# temporary testing for weights map function
+setwd(root_results)
+setwd('real_data')
+load('Older fits/real_data_fit_directest_cv10_interceptonly_ID81515_2025_01_15.RData')
+
+plot_weights_map(
+  data_list = res$sim_list$data_list,
+  stan_summary = res$sim_list$stan_summary$summary,
+  facet = TRUE)
+
+
+
+#
 #### 5/29/2025: Getting AIAN subset HMC diagnostics and results ####
 setwd(root_results)
 files <- grep('05_22', dir('real_data', full.names = T), value = T)

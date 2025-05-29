@@ -1768,14 +1768,35 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, stan_
     # convert estimates to long
     u_est_long <- tidyr::gather(u_est, key = model, value = u_median_est, -index)
     
-    # plot 'em
+    # Capitalize entire model names
+    u_est_long <- u_est_long %>%
+      mutate(model = toupper(as.character(model)))
+    
+    # Compute median per model
+    medians_df <- data.frame(
+      model = unique(u_est_long$model),
+      u_median_true = tapply(u_est_long$u_median_est, u_est_long$model, median)
+    )
+    
     p_u <- ggplot(u_est_long, aes(x = u_median_est)) + 
-      geom_density() + 
-      facet_wrap(~model, scales = 'free') + 
-      xlab('estimate') + 
-      ylab('density') + 
-      theme(axis.text.y = element_blank()) +
-      ggtitle('u estimates')
+      geom_density(color = "black", size = 0.7) + 
+      geom_vline(data = medians_df, aes(xintercept = u_median_true), 
+                 color = "red", linetype = "dashed", linewidth = 0.7) + 
+      facet_wrap(~model, scales = "free") + 
+      labs(
+        x = NULL,
+        y = NULL,
+        title = NULL
+      ) + 
+      theme_minimal(base_size = 12) +
+      theme(
+        panel.grid = element_blank(),
+        panel.border = element_blank(),
+        axis.line = element_line(color = "black"),
+        axis.text.x = element_text(),
+        axis.text.y = element_blank(),
+        strip.text = element_text(face = "bold", size = 12)
+      )
     
     plot_list <- append(plot_list, list(p_u))
     rel_heights <- c(rel_heights, 1)
@@ -2246,6 +2267,131 @@ plot_divergent_pairs <- function(stan_fit, parameter_names) {
   
   return(p)
 }
+
+
+### Plot the chloropleth map of weights.
+# models: names of models in results.
+# model_to_plot: Which model to plot. Ignored if facet = TRUE.
+# facet: Whether to facet the model plots.
+# xlim and ylim: Lat/lon dimensions to frame the map.
+plot_weights_map <- function(data_list,
+                             stan_summary,
+                             models = c("acs", "pep", "wp"),
+                             model_to_plot = "pep",
+                             facet = FALSE,
+                             xlim = NULL,
+                             ylim = NULL) {
+  library(ggplot2)
+  library(dplyr)
+  library(sf)
+  library(tigris)
+  library(tidyr)
+  library(patchwork)  # For vertical stacking
+  
+  options(tigris_use_cache = TRUE)
+  
+  N <- nrow(data_list$data)
+  
+  # Extract u estimates (median)
+  u_est <- as.data.frame(matrix(0, nrow = N, ncol = length(models)))
+  colnames(u_est) <- models
+  for (i in seq_along(models)) {
+    ind <- grep(sprintf('^u\\[[0-9]*,%s\\]', i), rownames(stan_summary))
+    u_est[, i] <- stan_summary[ind, '50%']
+  }
+  u_est$index <- 1:N
+  u_est$GEOID <- data_list$data$GEOID
+  
+  # Load counties and states
+  counties <- tigris::counties(cb = TRUE, year = 2020, class = "sf")
+  states_full <- tigris::states(cb = TRUE, year = 2020, class = "sf")
+  
+  # Merge u estimates with counties
+  counties_merged <- merge(counties, u_est, by = "GEOID")
+  
+  # Add state abbreviations
+  states_sf_full <- states_full %>%
+    mutate(STATE_ABB = state.abb[match(NAME, state.name)]) %>%
+    filter(!is.na(STATE_ABB))
+  
+  # Identify states with data
+  states_with_data <- unique(substr(counties_merged$GEOID, 1, 2))
+  state_centroids_with_data <- states_sf_full %>%
+    filter(STATEFP %in% states_with_data) %>%
+    st_centroid()
+  
+  if (facet) {
+    # Reshape data to long format
+    counties_long <- counties_merged %>%
+      pivot_longer(cols = all_of(models), names_to = "model", values_to = "outcome")
+    
+    # Build separate plot for each model
+    model_plots <- lapply(models, function(m) {
+      df_model <- counties_long %>% filter(model == m)
+      
+      ggplot(df_model) +
+        geom_sf(aes(fill = outcome), color = NA) +
+        geom_sf(data = states_sf_full, fill = NA, color = "black", size = 0.4) +
+        geom_sf_text(data = state_centroids_with_data, aes(label = STATE_ABB),
+                     size = 3, fontface = "bold") +
+        scale_fill_gradient(
+          low = "blue",
+          high = "red",
+          na.value = "grey90"
+        ) +
+        coord_sf(
+          xlim = if (!is.null(xlim)) xlim else c(-130, -65),
+          ylim = if (!is.null(ylim)) ylim else c(24, 50)
+        ) +
+        theme_minimal() +
+        labs(fill = NULL, title = toupper(m)) +
+        theme(
+          axis.text = element_blank(),
+          axis.ticks = element_blank(),
+          axis.title = element_blank(),
+          panel.grid = element_blank()
+        )
+    })
+    
+    # Combine vertically
+    return(patchwork::wrap_plots(model_plots, ncol = 1))
+    
+  } else {
+    # Single model check
+    if (!(model_to_plot %in% models)) {
+      stop(sprintf("model_to_plot '%s' not found in models list: %s",
+                   model_to_plot, paste(models, collapse = ", ")))
+    }
+    
+    counties_merged$outcome <- counties_merged[[model_to_plot]]
+    
+    p <- ggplot(counties_merged) +
+      geom_sf(aes(fill = outcome), color = NA) +
+      geom_sf(data = states_sf_full, fill = NA, color = "black", size = 0.4) +
+      geom_sf_text(data = state_centroids_with_data, aes(label = STATE_ABB),
+                   size = 3, fontface = "bold") +
+      scale_fill_gradient(
+        low = "blue",
+        high = "red",
+        na.value = "grey90"
+      ) +
+      coord_sf(
+        xlim = if (!is.null(xlim)) xlim else c(-130, -65),
+        ylim = if (!is.null(ylim)) ylim else c(24, 50)
+      ) +
+      theme_minimal() +
+      labs(fill = NULL, title = toupper(model_to_plot)) +
+      theme(
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        axis.title = element_blank(),
+        panel.grid = element_blank()
+      )
+    
+    return(p)
+  }
+}
+
 
 
 ### Make results table in latex from prediction metrics. This was created so that I can easily create results from changing simulation runs. 
