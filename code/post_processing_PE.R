@@ -24,6 +24,152 @@ setwd(root_git)
 # load extra functions
 source('code/extra_functions_CAR.R')
 
+make_table_line <- function(metric, cols = c('dataset','MAPE', 'MAE', 'CP.95', 'med_int')) {
+  res <- apply(metric, 1, function(xx) {
+    # Make a copy to preserve original values
+    xx_fmt <- xx
+    
+    # Apply rounding
+    if ('MAPE' %in% names(xx_fmt)) xx_fmt['MAPE'] <- formatC(as.numeric(xx['MAPE']), format = 'f', digits = 2)
+    if ('MAE' %in% names(xx_fmt)) xx_fmt['MAE'] <- as.character(round(as.numeric(xx['MAE'])))
+    if ('CP.95' %in% names(xx_fmt)) xx_fmt['CP.95'] <- formatC(as.numeric(xx['CP.95']), format = 'f', digits = 3)
+    if ('med_int' %in% names(xx_fmt)) xx_fmt['med_int'] <- as.character(round(as.numeric(xx['med_int'])))
+    
+    paste(xx_fmt[cols], collapse = ' & ')
+  })
+  
+  return(res)
+}
+
+#
+#### 5/29/2025: Getting AIAN subset HMC diagnostics and results ####
+setwd(root_results)
+files <- grep('05_22', dir('real_data', full.names = T), value = T)
+
+## Inspecting the convergence diagnostics
+{
+  # Initialize a data frame to hold diagnostics
+  diag_summary <- tibble(
+    file = character(),
+    dataset = character(),
+    softmax = logical(),
+    preprocess = logical(),
+    alpha = logical(),
+    effects = character(),
+    n_divergent = integer(),
+    mean_divergent = numeric(),
+    max_treedepth_hit = logical(),
+    bfmi_low = numeric(),
+    phi_noncentered = logical()
+  )
+  
+  for (f in files) {
+    load(f)
+    fit <- res$sim_list$stan_fit
+    
+    if (!is.null(fit)) {
+      sampler_params <- tryCatch(get_sampler_params(fit, inc_warmup = FALSE), error = function(e) NULL)
+      
+      if (!is.null(sampler_params) && length(sampler_params) > 0) {
+        n_divergent <- sum(sapply(sampler_params, function(chain) sum(chain[, "divergent__"])))
+        mean_divergent <- mean(sapply(sampler_params, function(chain) mean(chain[, "divergent__"])))
+        #max_treedepth_hit <- any(sapply(sampler_params, function(chain) any(chain[, "treedepth__"] >= 10)))
+        mean_treedepth_hit <- mean(sapply(sampler_params, function(chain) mean(chain[, "treedepth__"] >= 10)))
+        bfmi_by_chain <- sapply(sampler_params, function(chain) {
+          energy <- chain[, "energy__"]
+          numer <- sum(diff(energy)^2) / (length(energy) - 1)
+          denom <- var(energy)
+          bfmi <- numer / denom
+          bfmi
+        })
+        
+        bfmi_low <- mean(bfmi_by_chain < 0.3)
+        
+        diag_summary <- add_row(diag_summary,
+                                file = basename(f),
+                                dataset = params$dataset, 
+                                softmax = ifelse(params$use_softmax, T, F),
+                                preprocess = ifelse(params$preprocess_scale, T, F),
+                                alpha = ifelse(params$alpha_variance_prior == -1, F,T),
+                                effects = params$fixed_effects,
+                                n_divergent = n_divergent,
+                                mean_divergent = mean_divergent,
+                                max_treedepth_hit = mean_treedepth_hit,
+                                bfmi_low = bfmi_low,
+                                phi_noncentered = (params$phi_noncentered == 1)
+        )
+      } else {
+        diag_summary <- add_row(diag_summary,
+                                file = basename(f),
+                                dataset = NA,
+                                softmax = NA,
+                                preprocess = NA,
+                                alpha = NA,
+                                effects = NA,
+                                n_divergent = NA_integer_,
+                                mean_divergent = NA,
+                                max_treedepth_hit = NA,
+                                bfmi_low = NA,
+                                phi_noncentere = NA
+        )
+        warning(paste("No sampler params in", f, "- likely due to 0 samples"))
+      }
+    } else {
+      warning(paste("Failed to load stan_fit in", f))
+    }
+  }
+  
+  # save(diag_summary, file = 'processed_results/real_data_aiansubset_05222025.RData')
+  
+  # tt <- diag_summary[,c(2, 10, 7, 8, 9)]
+}
+
+### Make a plot
+load('real_data/real_data_fit_aiansubset_softmax_pepdensity_alpha0001_noncentered_ID88451_2025_05_22.RData')
+p1 <- plot_real_results(data_list = res$sim_list$data_list,
+                        stan_fit = res$sim_list$stan_fit,
+                        stan_summary = res$sim_list$stan_summary$summary,
+                        models = params$models,
+                        CV_pred = res$sim_list$CV_pred,
+                        alpha_estimates = T,
+                        ESS = T, rho_estimates = T, tau2_estimates = T, 
+                        sigma2_estimates = F, theta_estimates = T, phi_estimates = F,
+                        pairwise_phi_estimates = T, y_estimates = F, metrics_values = T, beta_estimates = T)
+
+res_SM <- just_metrics(
+  data_list = res$sim_list$data_list,
+  stan_fit = res$sim_list$stan_fit,
+  stan_summary = res$sim_list$stan_summary$summary,
+  models = params$models,
+  CV_pred = res$sim_list$CV_pred
+)
+make_table_line(res_SM$metrics)
+
+# ggsave(p1, file = '../Figures/05292025_real_data_fit_aiansubset_noncentered_softmax.png', height = 12, width = 7)
+
+## Direct est
+load('real_data/real_data_fit_aiansubset_directest_intercept_noncentered_ID32362_2025_05_22.RData')
+p1 <- plot_real_results(data_list = res$sim_list$data_list,
+                        stan_fit = res$sim_list$stan_fit,
+                        stan_summary = res$sim_list$stan_summary$summary,
+                        models = params$models,
+                        CV_pred = res$sim_list$CV_pred,
+                        alpha_estimates = F,
+                        ESS = T, rho_estimates = T, tau2_estimates = T, 
+                        sigma2_estimates = F, theta_estimates = T, phi_estimates = F,
+                        pairwise_phi_estimates = T, y_estimates = F, metrics_values = T, beta_estimates = T)
+
+res_SM <- just_metrics(
+  data_list = res$sim_list$data_list,
+  stan_fit = res$sim_list$stan_fit,
+  stan_summary = res$sim_list$stan_summary$summary,
+  models = params$models,
+  CV_pred = res$sim_list$CV_pred
+)
+make_table_line(res_SM$metrics)
+
+# ggsave(p1, file = '../Figures/05292025_real_data_fit_aiansubset_noncentered_directest.png', height = 12, width = 7)
+#
 #### 5/28/2025: Update simulation results figures and tables ####
 setwd(root_results)
 setwd('simulated_results/')
@@ -287,7 +433,7 @@ for(i in 1:length(res_all)){
 
 
 #
-#### 4/18/2025: Getting real non-centered metrics and HMC diagnostics ####
+#### 4/18/2025: Getting real non-centered HMC diagnostics and plots ####
 setwd(root_results)
 files <- grep('04_09', dir('real_data', full.names = T), value = T)
 
@@ -433,7 +579,7 @@ files <- grep('04_09', dir('real_data', full.names = T), value = T)
 
 
 #
-#### 4/7/2025: Getting real data metrics and HMC diagnostics ####
+#### 4/7/2025: Getting real data HMC diagnostics ####
 setwd(root_results)
 
 # get the results files.
@@ -1104,13 +1250,6 @@ ggsave(p1, file = '../../Figures/01152025_u_estimates_softmax_alpha_density_cv10
 
 #
 #### 1/20/2025: All the recent results! ####
-make_table_line <- function(metric, cols = c('dataset','MAPE', 'MAE', 'CP.95', 'med_int')){
-  res <- apply(metric, 1, function(xx){
-    paste(xx[cols], collapse = ' & ')
-  })
-  return(res)
-}
-
 
 setwd(root_results)
 setwd('real_data/')

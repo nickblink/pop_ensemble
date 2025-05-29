@@ -175,38 +175,48 @@ print_model_metrics <- function(metrics, return_df = FALSE) {
   }
 }
 
-model_formulas <- list(
-  FULL = census ~ acs + pep + wp, 
-  ACS = census ~ acs, 
-  PEP = census ~ pep,
-  WP = census ~ wp,
-  ACS_WP = census ~ acs + wp
-)
+### Create the formulas. 
+{
+  model_formulas <- list(
+    FULL = census ~ acs + pep + wp, 
+    ACS = census ~ acs, 
+    PEP = census ~ pep,
+    WP = census ~ wp,
+    ACS_WP = census ~ acs + wp
+  )
+  
+  model_formulas2 <- list(
+    FULL_2018 = census ~ acs_2018 + pep_2018 + wp, 
+    ACS_2018 = census ~ acs_2018, 
+    PEP_2018 = census ~ pep_2018,
+    ACS_WP_2018 = census ~ acs_2018 + wp,
+    FULL_2018_2019 = census ~ acs_2018 + pep_2018 + acs + pep + wp, 
+    PEP_2018_2019 = census ~ pep_2018 + pep,
+    PCs = census ~ pc1 + pc2 + pc3 + pc4 + pc5
+  )
+  
+  models_all <- c(model_formulas, model_formulas2)
+  models_all_noPC <- models_all[-which(names(models_all) == 'PCs')]
+}
 
-model_formulas2 <- list(
-  FULL_2018 = census ~ acs_2018 + pep_2018 + wp, 
-  ACS_2018 = census ~ acs_2018, 
-  PEP_2018 = census ~ pep_2018,
-  ACS_WP_2018 = census ~ acs_2018 + wp,
-  FULL_2018_2019 = census ~ acs_2018 + pep_2018 + acs + pep + wp, 
-  PEP_2018_2019 = census ~ pep_2018 + pep,
-  PCs = census ~ pc1 + pc2 + pc3 + pc4 + pc5
-)
+### Census data. 
+{
+  load('../data/census_ACS_PEP_WP_wDensity_and2018_01022025.RData')
+  
+  metrics <- compute_regression_metrics(df, models_all, outcome = 'census', family = 'normal')
+  print_model_metrics(metrics, T)
+  
+  metrics_raw <- compute_regression_metrics(df, models_all, outcome = 'census', family = 'none')
+  print_model_metrics(metrics_raw, T)
+}
 
-models_all <- c(model_formulas, model_formulas2)
-models_all_noPC <- models_all[-which(names(models_all) == 'PCs')]
-
-load('../data/census_ACS_PEP_WP_wDensity_and2018_01022024.RData')
-
-metrics <- compute_regression_metrics(df, models_all, outcome = 'census', family = 'normal')
-print_model_metrics(metrics, T)
-
-metrics_raw <- compute_regression_metrics(df, models_all, outcome = 'census', family = 'none')
-print_model_metrics(metrics_raw, T)
-
-load('../data/census_ACS_PEP_WP_AIAN_wDensity_and2018_01022024.RData')
-metrics <- compute_regression_metrics(df, models_all_noPC, outcome = 'census', family = 'normal')
-print_model_metrics(metrics, T)
-
-metrics_raw <- compute_regression_metrics(df, models_all_noPC, outcome = 'census', family = 'none')
-print_model_metrics(metrics_raw, T)
+### AIAN data.
+{
+  #load('../data/census_ACS_PEP_WP_AIAN_wDensity_and2018_01022024.RData')
+  load('../data/census_ACS_PEP_WP_AIANsubset_wDensity_and2018_05212025.RData')
+  metrics <- compute_regression_metrics(df, models_all_noPC, outcome = 'census', family = 'normal')
+  print_model_metrics(metrics, T)
+  
+  metrics_raw <- compute_regression_metrics(df, models_all_noPC, outcome = 'census', family = 'none')
+  print_model_metrics(metrics_raw, T)
+}
