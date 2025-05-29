@@ -42,6 +42,11 @@ make_table_line <- function(metric, cols = c('dataset','MAPE', 'MAE', 'CP.95', '
 }
 
 #
+#### 5/29/2025: Getting full pop HMC diagnostics and results ####
+setwd(root_results)
+files <- grep('04_22', dir('real_data', full.names = T), value = T)
+
+#
 #### 5/29/2025: Making AIAN u-weight and chloropleth plots ####
 setwd(root_results)
 setwd('real_data/')
@@ -73,6 +78,8 @@ load('real_data_fit_aiansubset_directest_intercept_noncentered_ID32362_2025_05_2
     xlim = c(-125, -100),
     ylim = c(31, 42)
   )
+  
+  ggsave('../../Figures/05292025_aiansubset_directest_chloropleth.png', height = 12, width = 7)
 }
 
 # temporary testing for weights map function
@@ -83,7 +90,8 @@ load('Older fits/real_data_fit_directest_cv10_interceptonly_ID81515_2025_01_15.R
 plot_weights_map(
   data_list = res$sim_list$data_list,
   stan_summary = res$sim_list$stan_summary$summary,
-  facet = TRUE)
+  show_state_abbr = F,
+  facet = T)
 
 
 
