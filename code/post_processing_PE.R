@@ -45,6 +45,85 @@ make_table_line <- function(metric, cols = c('dataset','MAPE', 'MAE', 'CP.95', '
 #### 5/29/2025: Getting full pop HMC diagnostics and results ####
 setwd(root_results)
 files <- grep('04_22', dir('real_data', full.names = T), value = T)
+files <- files[c(2,4)]
+
+## Inspecting the convergence diagnostics
+{
+  # Initialize a data frame to hold diagnostics
+  diag_summary <- tibble(
+    file = character(),
+    dataset = character(),
+    softmax = logical(),
+    preprocess = logical(),
+    alpha = logical(),
+    effects = character(),
+    n_divergent = integer(),
+    mean_divergent = numeric(),
+    max_treedepth_hit = logical(),
+    bfmi_low = numeric(),
+    phi_noncentered = logical()
+  )
+  
+  for (f in files) {
+    load(f)
+    fit <- res$sim_list$stan_fit
+    
+    if (!is.null(fit)) {
+      sampler_params <- tryCatch(get_sampler_params(fit, inc_warmup = FALSE), error = function(e) NULL)
+      
+      if (!is.null(sampler_params) && length(sampler_params) > 0) {
+        n_divergent <- sum(sapply(sampler_params, function(chain) sum(chain[, "divergent__"])))
+        mean_divergent <- mean(sapply(sampler_params, function(chain) mean(chain[, "divergent__"])))
+        #max_treedepth_hit <- any(sapply(sampler_params, function(chain) any(chain[, "treedepth__"] >= 10)))
+        mean_treedepth_hit <- mean(sapply(sampler_params, function(chain) mean(chain[, "treedepth__"] >= 10)))
+        bfmi_by_chain <- sapply(sampler_params, function(chain) {
+          energy <- chain[, "energy__"]
+          numer <- sum(diff(energy)^2) / (length(energy) - 1)
+          denom <- var(energy)
+          bfmi <- numer / denom
+          bfmi
+        })
+        
+        bfmi_low <- mean(bfmi_by_chain < 0.3)
+        
+        diag_summary <- add_row(diag_summary,
+                                file = basename(f),
+                                dataset = params$dataset, 
+                                softmax = ifelse(params$use_softmax, T, F),
+                                preprocess = ifelse(params$preprocess_scale, T, F),
+                                alpha = ifelse(params$alpha_variance_prior == -1, F,T),
+                                effects = params$fixed_effects,
+                                n_divergent = n_divergent,
+                                mean_divergent = mean_divergent,
+                                max_treedepth_hit = mean_treedepth_hit,
+                                bfmi_low = bfmi_low,
+                                phi_noncentered = (params$phi_noncentered == 1)
+        )
+      } else {
+        diag_summary <- add_row(diag_summary,
+                                file = basename(f),
+                                dataset = NA,
+                                softmax = NA,
+                                preprocess = NA,
+                                alpha = NA,
+                                effects = NA,
+                                n_divergent = NA_integer_,
+                                mean_divergent = NA,
+                                max_treedepth_hit = NA,
+                                bfmi_low = NA,
+                                phi_noncentere = NA
+        )
+        warning(paste("No sampler params in", f, "- likely due to 0 samples"))
+      }
+    } else {
+      warning(paste("Failed to load stan_fit in", f))
+    }
+  }
+  
+  # save(diag_summary, file = 'processed_results/real_data_fullpop_05222025.RData')
+  
+  # tt <- diag_summary[,c(2, 10, 7, 8, 9)]
+}
 
 #
 #### 5/29/2025: Making AIAN u-weight and chloropleth plots ####
