@@ -2282,6 +2282,8 @@ plot_weights_map <- function(data_list,
                              show_state_abbr = TRUE,
                              xlim = NULL,
                              ylim = NULL) {
+  message('You should angle the legend text')
+  print('look at the message')
   library(ggplot2)
   library(dplyr)
   library(sf)
@@ -2346,11 +2348,13 @@ plot_weights_map <- function(data_list,
         scale_fill_viridis_c(option = "viridis", na.value = "grey90") +
         coord_sf(
           xlim = if (!is.null(xlim)) xlim else c(-130, -65),
-          ylim = if (!is.null(ylim)) ylim else c(24, 50)
+          ylim = if (!is.null(ylim)) ylim else c(24, 50) 
+          # expand = F,
         ) +
         theme_minimal() +
         labs(fill = NULL, title = toupper(m)) +
         theme(
+          legend.position = "bottom",
           axis.text = element_blank(),
           axis.ticks = element_blank(),
           axis.title = element_blank(),

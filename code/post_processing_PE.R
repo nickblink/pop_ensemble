@@ -42,7 +42,7 @@ make_table_line <- function(metric, cols = c('dataset','MAPE', 'MAE', 'CP.95', '
 }
 
 #
-#### 5/29/2025: Getting full pop HMC diagnostics and results ####
+#### 6/10/2025: Getting full pop HMC diagnostics and results AND plotting SM ####
 setwd(root_results)
 files <- grep('04_22', dir('real_data', full.names = T), value = T)
 files <- files[c(2,4)]
@@ -120,9 +120,137 @@ files <- files[c(2,4)]
     }
   }
   
-  # save(diag_summary, file = 'processed_results/real_data_fullpop_05222025.RData')
+  # save(diag_summary, file = 'processed_results/real_data_fullpop_06102025.RData')
   
   # tt <- diag_summary[,c(2, 10, 7, 8, 9)]
+}
+
+load("real_data/real_data_fit_full_softmax_pepdensity_alpha0001_noncentered_ID73323_2025_04_22.RData")
+res_SM <- just_metrics(
+  data_list = res$sim_list$data_list,
+  stan_fit = res$sim_list$stan_fit,
+  stan_summary = res$sim_list$stan_summary$summary,
+  models = params$models,
+  CV_pred = res$sim_list$CV_pred
+)
+make_table_line(res_SM$metrics)
+
+load("real_data/real_data_fit_full_directest_pepdensity_alpha0001_noncentered_ID44508_2025_04_22.RData")
+res_DE <- just_metrics(
+  data_list = res$sim_list$data_list,
+  stan_fit = res$sim_list$stan_fit,
+  stan_summary = res$sim_list$stan_summary$summary,
+  models = params$models,
+  CV_pred = res$sim_list$CV_pred
+)
+make_table_line(res_DE$metrics)
+
+### Plot weights all together. (couldnt get this version to work)
+{
+  load("real_data/real_data_fit_full_softmax_pepdensity_alpha0001_noncentered_ID73323_2025_04_22.RData")
+  SM_summary <- res$sim_list$stan_summary$summary
+  
+  load("real_data/real_data_fit_full_directest_pepdensity_alpha0001_noncentered_ID44508_2025_04_22.RData")
+  DE_summary <- res$sim_list$stan_summary$summary
+  
+  N = nrow(res$sim_list$data_list$data)
+  models = c('acs','pep','wp')
+  
+  u_est_SM <- as.data.frame(matrix(0, nrow = N, ncol = 3))
+  colnames(u_est_SM) <- models
+  for(i in 1:length(models)){
+    ind = grep(sprintf('^u\\[[0-9]*,%s\\]', i), rownames(SM_summary))
+    u_est_SM[,i] <- SM_summary[ind,'50%']
+  }
+  u_est_SM$index = 1:N
+  # convert estimates to long
+  u_est_SM_long <- tidyr::gather(u_est_SM, key = model, value = u_median_est, -index) %>%
+    mutate(model = toupper(as.character(model))) # Capitalize entire model names
+  
+  u_est_DE <- as.data.frame(matrix(0, nrow = N, ncol = 3))
+  colnames(u_est_DE) <- models 
+  for(i in 1:length(models)){
+    ind = grep(sprintf('^u\\[[0-9]*,%s\\]', i), rownames(SM_summary))
+    u_est_DE[,i] <- DE_summary[ind,'50%']
+  }
+  u_est_DE$index = 1:N
+  # convert estimates to long
+  u_est_DE_long <- tidyr::gather(u_est_DE, key = model, value = u_median_est, -index) %>%
+    mutate(model = toupper(as.character(model))) # Capitalize entire model names
+  
+  u_est_long <- bind_rows(
+    u_est_SM_long %>% mutate(set = "SM"),
+    u_est_DE_long %>% mutate(set = "DE")
+  )
+  
+  medians_df <- u_est_long %>%
+    group_by(set, model) %>%
+    summarize(u_median_true = median(u_median_est, na.rm = TRUE), .groups = "drop")
+}
+
+### Plot weights original version
+{
+  load("real_data/real_data_fit_full_softmax_pepdensity_alpha0001_noncentered_ID73323_2025_04_22.RData")
+  pweights_SM <- plot_real_results(data_list = res$sim_list$data_list,
+                          stan_fit = res$sim_list$stan_fit,
+                          stan_summary = res$sim_list$stan_summary$summary,
+                          models = params$models,
+                          CV_pred = res$sim_list$CV_pred, rhats = F,
+                          alpha_estimates = F,
+                          ESS = F, rho_estimates = F, tau2_estimates = F, 
+                          sigma2_estimates = F, theta_estimates = F, phi_estimates = F,
+                          pairwise_phi_estimates = F, y_estimates = F, metrics_values = F, beta_estimates = F)
+  ggsave(pweights_SM, file = '../Figures/06102025_fullpop_u_estimates_softmax.png', width = 6, height = 2)
+  
+  load("real_data/real_data_fit_full_directest_pepdensity_alpha0001_noncentered_ID44508_2025_04_22.RData")
+  pweights_DE <- plot_real_results(data_list = res$sim_list$data_list,
+                                   stan_fit = res$sim_list$stan_fit,
+                                   stan_summary = res$sim_list$stan_summary$summary,
+                                   models = params$models,
+                                   CV_pred = res$sim_list$CV_pred, rhats = F,
+                                   alpha_estimates = F,
+                                   ESS = F, rho_estimates = F, tau2_estimates = F, 
+                                   sigma2_estimates = F, theta_estimates = F, phi_estimates = F,
+                                   pairwise_phi_estimates = F, y_estimates = F, metrics_values = F, beta_estimates = F)
+  
+  ggsave(pweights_DE, file = '../Figures/06102025_fullpop_u_estimates_directest.png', width = 6, height = 2)
+  
+  p1 <- pweights_SM + labs(tag = "Softmax")
+  p2 <- pweights_DE + labs(tag = "Direct Estimate")
+  p1/p2
+  ggsave(file = '../Figures/06102025_fullpop_u_estimates_combined.png', width = 6, height = 4)
+  
+}
+
+### Plot Chloropleth.
+{
+  load("real_data/real_data_fit_full_softmax_pepdensity_alpha0001_noncentered_ID73323_2025_04_22.RData")
+  p_SM <- plot_weights_map(
+    data_list = res$sim_list$data_list,
+    stan_summary = res$sim_list$stan_summary$summary,
+    facet = TRUE,
+    show_state_abbr = F
+  )
+  
+  load("real_data/real_data_fit_full_directest_pepdensity_alpha0001_noncentered_ID44508_2025_04_22.RData")
+  p_DE <- plot_weights_map(
+    data_list = res$sim_list$data_list,
+    stan_summary = res$sim_list$stan_summary$summary,
+    facet = TRUE,
+    show_state_abbr = F
+  )
+  
+  p1 <- p_SM + theme(plot.margin = margin(0, 0, 0, 0)) + labs(tag = "Softmax") + theme(
+    plot.tag.position = c(0.5, 3),  # middle-top
+    plot.tag = element_text(hjust = 0, vjust = -2)
+  )
+  p2 <- p_DE + theme(plot.margin = margin(0, 0, 0, 0)) + labs(tag = "Direct Estimate") + theme(
+    plot.tag.position = c(0.5, 3),  # middle-top
+    plot.tag = element_text(hjust = 0, vjust = -2)
+  )
+  p1 | p2
+  
+  ggsave('../Figures/06102025_fullpop_combined_chloropleth.png', height = 10, width = 8)
 }
 
 #
@@ -134,7 +262,7 @@ load('real_data_fit_aiansubset_directest_intercept_noncentered_ID32362_2025_05_2
 ### Direct est first.
 ### Weights.
 {
-  p1 <- plot_real_results(data_list = res$sim_list$data_list,
+  pweights_DE <- plot_real_results(data_list = res$sim_list$data_list,
                           stan_fit = res$sim_list$stan_fit,
                           stan_summary = res$sim_list$stan_summary$summary,
                           models = params$models,
@@ -144,12 +272,12 @@ load('real_data_fit_aiansubset_directest_intercept_noncentered_ID32362_2025_05_2
                           sigma2_estimates = F, theta_estimates = F, phi_estimates = F,
                           pairwise_phi_estimates = F, y_estimates = F, metrics_values = F, beta_estimates = F)
   # inspect plot. How is it?
-  # ggsave(p1, file = '../../Figures/05252025_aiansubset_u_estimates_directest.png', width = 6, height = 3)
+  # ggsave(pweights_DE, file = '../../Figures/05252025_aiansubset_u_estimates_directest.png', width = 6, height = 3)
 }
 
 ### Chloropleth.
 {
-  plot_weights_map(
+  p_DE <- plot_weights_map(
     data_list = res$sim_list$data_list,
     stan_summary = res$sim_list$stan_summary$summary,
     facet = TRUE,
@@ -157,14 +285,14 @@ load('real_data_fit_aiansubset_directest_intercept_noncentered_ID32362_2025_05_2
     ylim = c(31, 42)
   )
   
-  ggsave('../../Figures/05292025_aiansubset_directest_chloropleth.png', height = 12, width = 7)
+  #ggsave('../../Figures/05292025_aiansubset_directest_chloropleth.png', height = 12, width = 7)
 }
 
 ### Softmax 
 load('real_data_fit_aiansubset_softmax_pepdensity_alpha0001_noncentered_ID88451_2025_05_22.RData')
 ### Weights.
 {
-  p1 <- plot_real_results(data_list = res$sim_list$data_list,
+  pweights_SM <- plot_real_results(data_list = res$sim_list$data_list,
                           stan_fit = res$sim_list$stan_fit,
                           stan_summary = res$sim_list$stan_summary$summary,
                           models = params$models,
@@ -174,12 +302,12 @@ load('real_data_fit_aiansubset_softmax_pepdensity_alpha0001_noncentered_ID88451_
                           sigma2_estimates = F, theta_estimates = F, phi_estimates = F,
                           pairwise_phi_estimates = F, y_estimates = F, metrics_values = F, beta_estimates = F)
   # inspect plot. How is it?
-  # ggsave(p1, file = '../../Figures/05252025_aiansubset_u_estimates_softmax.png', width = 6, height = 3)
+  # ggsave(pweights_SM, file = '../../Figures/05252025_aiansubset_u_estimates_softmax.png', width = 6, height = 3)
 }
 
 ### Chloropleth.
 {
-  plot_weights_map(
+  p_SM <- plot_weights_map(
     data_list = res$sim_list$data_list,
     stan_summary = res$sim_list$stan_summary$summary,
     facet = TRUE,
@@ -190,7 +318,31 @@ load('real_data_fit_aiansubset_softmax_pepdensity_alpha0001_noncentered_ID88451_
  # ggsave('../../Figures/05292025_aiansubset_softmax_chloropleth.png', height = 12, width = 7)
 }
 
-# temporary testing for weights map function
+### Combining density plots
+{
+  p1 <- pweights_SM + labs(tag = "Softmax")
+  p2 <- pweights_DE + labs(tag = "Direct Estimate")
+  p1/p2
+  ggsave(file = '../../Figures/06102025_aian_u_estimates_combined.png', width = 6, height = 4)
+}
+
+### Combining chloropleths
+{
+  p1 <- p_SM + theme(plot.margin = margin(0, 0, 0, 0)) + labs(tag = "Softmax") + theme(
+    plot.tag.position = c(0.5, 3),  # middle-top
+    plot.tag = element_text(hjust = 0, vjust = -2)
+  )
+  p2 <- p_DE + theme(plot.margin = margin(0, 0, 0, 0)) + labs(tag = "Direct Estimate") + theme(
+    plot.tag.position = c(0.5, 3),  # middle-top
+    plot.tag = element_text(hjust = 0, vjust = -2)
+  )
+  p1 | p2
+  
+  ggsave('../../Figures/06102025_aian_combined_chloropleth.png', height = 10, width = 8)
+}
+
+
+### temporary testing for weights map function
 setwd(root_results)
 setwd('real_data')
 load('Older fits/real_data_fit_directest_cv10_interceptonly_ID81515_2025_01_15.RData')
