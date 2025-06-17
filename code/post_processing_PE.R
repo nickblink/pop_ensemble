@@ -42,6 +42,72 @@ make_table_line <- function(metric, cols = c('dataset','MAPE', 'MAE', 'CP.95', '
 }
 
 #
+#### 6/17/2025: Make raw estimates chloropleths ####
+setwd(root_results)
+setwd('real_data/')
+load('real_data_fit_aiansubset_softmax_pepdensity_alpha0001_noncentered_ID88451_2025_05_22.RData')
+p_AIAN <- plot_pct_diff_from_census_map(data_list = res$sim_list$data_list,
+                              facet = TRUE,
+                              xlim = c(-125, -100),
+                              ylim = c(31, 42))
+
+plot_log_pep_density_map(data_list = res$sim_list$data_list,
+                         
+                         xlim = c(-125, -100),
+                         ylim = c(31, 42))
+
+# Now let's look at these model weights.
+plot_real_results(data_list = res$sim_list$data_list,
+                                 stan_fit = res$sim_list$stan_fit,
+                                 stan_summary = res$sim_list$stan_summary$summary,
+                                 models = params$models,
+                                 CV_pred = res$sim_list$CV_pred, rhats = F,
+                                 alpha_estimates = F,
+                                 ESS = F, rho_estimates = F, tau2_estimates = F, 
+                                 sigma2_estimates = F, theta_estimates = F, phi_estimates = F,
+                                 pairwise_phi_estimates = F, y_estimates = F, metrics_values = F, beta_estimates = T)
+
+#
+#### 6/17/2025: Getting distribution values for data used ####
+### Full
+load('data/census_ACS_PEP_WP_wDensity_and2017_01022025.RData')
+
+values <- df$census
+
+summary_stats <- data.frame(
+  Statistic = c("min", "25%", "50%", "mean", "75%", "max"),
+  Value = c(
+    min(values, na.rm = TRUE),
+    quantile(values, 0.25, na.rm = TRUE),
+    median(values, na.rm = TRUE),
+    mean(values, na.rm = TRUE),
+    quantile(values, 0.75, na.rm = TRUE),
+    max(values, na.rm = TRUE)
+  )
+)
+
+print(summary_stats)
+
+### AIAN
+load('data/census_ACS_PEP_WP_AIANsubset_wDensity_and2018_05212025.RData')
+
+values <- df$census
+
+summary_stats <- data.frame(
+  Statistic = c("min", "25%", "50%", "mean", "75%", "max"),
+  Value = c(
+    min(values, na.rm = TRUE),
+    quantile(values, 0.25, na.rm = TRUE),
+    median(values, na.rm = TRUE),
+    mean(values, na.rm = TRUE),
+    quantile(values, 0.75, na.rm = TRUE),
+    max(values, na.rm = TRUE)
+  )
+)
+
+print(summary_stats)
+
+#
 #### 6/10/2025: Getting full pop HMC diagnostics and results AND plotting SM ####
 setwd(root_results)
 files <- grep('04_22', dir('real_data', full.names = T), value = T)

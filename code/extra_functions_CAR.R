@@ -2397,6 +2397,201 @@ plot_weights_map <- function(data_list,
 
 
 
+### Plot the chloropleth map of raw population percentage differences.
+# models: names of models in results.
+# model_to_plot: Which model to plot. Ignored if facet = TRUE.
+# facet: Whether to facet the model plots.
+# xlim and ylim: Lat/lon dimensions to frame the map.
+plot_pct_diff_from_census_map <- function(data_list,
+                                          models = c("acs", "pep", "wp"),
+                                          model_to_plot = "pep",
+                                          facet = FALSE,
+                                          show_state_abbr = TRUE,
+                                          xlim = NULL,
+                                          ylim = NULL) {
+  message('You should angle the legend text')
+  print('look at the message')
+  
+  library(ggplot2)
+  library(dplyr)
+  library(sf)
+  library(tigris)
+  library(tidyr)
+  library(patchwork)
+  library(viridis)
+  
+  options(tigris_use_cache = TRUE)
+  
+  df <- data_list$data
+  
+  # Calculate percent difference from census
+  for (model in models) {
+    pct_col <- paste0(model, "_pct_diff")
+    df[[pct_col]] <- 100 * (df[[model]] - df$census) / df$census
+  }
+  
+  df$GEOID <- as.character(df$GEOID)  # Ensure merge compatibility
+  
+  # Load counties and states
+  counties <- tigris::counties(cb = TRUE, year = 2020, class = "sf")
+  states_full <- tigris::states(cb = TRUE, year = 2020, class = "sf")
+  
+  # Merge estimates with shapefile
+  counties_merged <- merge(counties, df, by = "GEOID")
+  
+  # Add state abbreviations
+  states_sf_full <- states_full %>%
+    mutate(STATE_ABB = state.abb[match(NAME, state.name)]) %>%
+    filter(!is.na(STATE_ABB))
+  
+  # Filter for states with data
+  states_with_data <- unique(substr(counties_merged$GEOID, 1, 2))
+  state_centroids_with_data <- states_sf_full %>%
+    filter(STATEFP %in% states_with_data) %>%
+    st_centroid()
+  
+  abbr_layer <- if (show_state_abbr) {
+    geom_sf_text(data = state_centroids_with_data, aes(label = STATE_ABB),
+                 size = 3, fontface = "bold")
+  } else {
+    NULL
+  }
+  
+  pct_diff_cols <- paste0(models, "_pct_diff")
+  
+  if (facet) {
+    # Reshape for faceted plotting
+    counties_long <- counties_merged %>%
+      pivot_longer(cols = all_of(pct_diff_cols), names_to = "model", values_to = "outcome") %>%
+      mutate(model = gsub("_pct_diff", "", model))
+    
+    model_plots <- lapply(models, function(m) {
+      df_model <- counties_long %>% filter(model == m)
+      
+      ggplot(df_model) +
+        geom_sf(aes(fill = outcome), color = NA) +
+        geom_sf(data = states_sf_full, fill = NA, color = "black", size = 0.4) +
+        abbr_layer +
+        scale_fill_viridis_c(option = "viridis", na.value = "grey90") +
+        coord_sf(
+          xlim = if (!is.null(xlim)) xlim else c(-130, -65),
+          ylim = if (!is.null(ylim)) ylim else c(24, 50)
+        ) +
+        theme_minimal() +
+        labs(fill = "% diff from census", title = toupper(m)) +
+        theme(
+          legend.position = "bottom",
+          axis.text = element_blank(),
+          axis.ticks = element_blank(),
+          axis.title = element_blank(),
+          panel.grid = element_blank()
+        )
+    })
+    
+    return(patchwork::wrap_plots(model_plots, ncol = 1))
+    
+  } else {
+    if (!(model_to_plot %in% models)) {
+      stop(sprintf("model_to_plot '%s' not found in models list: %s",
+                   model_to_plot, paste(models, collapse = ", ")))
+    }
+    
+    pct_col <- paste0(model_to_plot, "_pct_diff")
+    counties_merged$outcome <- counties_merged[[pct_col]]
+    
+    p <- ggplot(counties_merged) +
+      geom_sf(aes(fill = outcome), color = NA) +
+      geom_sf(data = states_sf_full, fill = NA, color = "black", size = 0.4) +
+      abbr_layer +
+      scale_fill_viridis_c(option = "viridis", na.value = "grey90") +
+      coord_sf(
+        xlim = if (!is.null(xlim)) xlim else c(-130, -65),
+        ylim = if (!is.null(ylim)) ylim else c(24, 50)
+      ) +
+      theme_minimal() +
+      labs(fill = "% diff from census", title = toupper(model_to_plot)) +
+      theme(
+        legend.position = "bottom",
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        axis.title = element_blank(),
+        panel.grid = element_blank()
+      )
+    
+    return(p)
+  }
+}
+
+
+plot_log_pep_density_map <- function(data_list,
+                                     show_state_abbr = TRUE,
+                                     xlim = NULL,
+                                     ylim = NULL) {
+  message('You should angle the legend text')
+  print('look at the message')
+  
+  library(ggplot2)
+  library(dplyr)
+  library(sf)
+  library(tigris)
+  library(viridis)
+  
+  options(tigris_use_cache = TRUE)
+  
+  df <- data_list$data
+  df$GEOID <- as.character(df$GEOID)  # Ensure merge compatibility
+  
+  # Add log-transformed pep_density
+  df$log_pep_density <- log(df$pep_density)
+  
+  # Load counties and states
+  counties <- tigris::counties(cb = TRUE, year = 2020, class = "sf")
+  states_full <- tigris::states(cb = TRUE, year = 2020, class = "sf")
+  
+  # Merge with shapefile
+  counties_merged <- merge(counties, df, by = "GEOID")
+  
+  # Add state abbreviations
+  states_sf_full <- states_full %>%
+    mutate(STATE_ABB = state.abb[match(NAME, state.name)]) %>%
+    filter(!is.na(STATE_ABB))
+  
+  # Identify states with data
+  states_with_data <- unique(substr(counties_merged$GEOID, 1, 2))
+  state_centroids_with_data <- states_sf_full %>%
+    filter(STATEFP %in% states_with_data) %>%
+    st_centroid()
+  
+  abbr_layer <- if (show_state_abbr) {
+    geom_sf_text(data = state_centroids_with_data, aes(label = STATE_ABB),
+                 size = 3, fontface = "bold")
+  } else {
+    NULL
+  }
+  
+  # Plot
+  p <- ggplot(counties_merged) +
+    geom_sf(aes(fill = log_pep_density), color = NA) +
+    geom_sf(data = states_sf_full, fill = NA, color = "black", size = 0.4) +
+    abbr_layer +
+    scale_fill_viridis_c(option = "viridis", na.value = "grey90") +
+    coord_sf(
+      xlim = if (!is.null(xlim)) xlim else c(-130, -65),
+      ylim = if (!is.null(ylim)) ylim else c(24, 50)
+    ) +
+    theme_minimal() +
+    labs(fill = "log(PEP Density)", title = "Log PEP Density by County") +
+    theme(
+      legend.position = "bottom",
+      axis.text = element_blank(),
+      axis.ticks = element_blank(),
+      axis.title = element_blank(),
+      panel.grid = element_blank()
+    )
+  
+  return(p)
+}
+
 
 ### Make results table in latex from prediction metrics. This was created so that I can easily create results from changing simulation runs. 
 # scale_across_all: If true, take the CP and interval width across all simulations and all locations.
