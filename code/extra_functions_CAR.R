@@ -2279,14 +2279,18 @@ plot_weights_map <- function(data_list,
                              models = c("acs", "pep", "wp"),
                              model_to_plot = "pep",
                              facet = FALSE,
+                             show_state_abbr = TRUE,
                              xlim = NULL,
                              ylim = NULL) {
+  message('You should angle the legend text')
+  print('look at the message')
   library(ggplot2)
   library(dplyr)
   library(sf)
   library(tigris)
   library(tidyr)
-  library(patchwork)  # For vertical stacking
+  library(patchwork)
+  library(viridis)  # for viridis color scale
   
   options(tigris_use_cache = TRUE)
   
@@ -2320,32 +2324,37 @@ plot_weights_map <- function(data_list,
     filter(STATEFP %in% states_with_data) %>%
     st_centroid()
   
+  # Text layer (optional)
+  abbr_layer <- if (show_state_abbr) {
+    geom_sf_text(data = state_centroids_with_data, aes(label = STATE_ABB),
+                 size = 3, fontface = "bold")
+  } else {
+    NULL
+  }
+  
   if (facet) {
-    # Reshape data to long format
+    # Reshape to long format
     counties_long <- counties_merged %>%
       pivot_longer(cols = all_of(models), names_to = "model", values_to = "outcome")
     
-    # Build separate plot for each model
+    # One plot per model
     model_plots <- lapply(models, function(m) {
       df_model <- counties_long %>% filter(model == m)
       
       ggplot(df_model) +
         geom_sf(aes(fill = outcome), color = NA) +
         geom_sf(data = states_sf_full, fill = NA, color = "black", size = 0.4) +
-        geom_sf_text(data = state_centroids_with_data, aes(label = STATE_ABB),
-                     size = 3, fontface = "bold") +
-        scale_fill_gradient(
-          low = "blue",
-          high = "red",
-          na.value = "grey90"
-        ) +
+        abbr_layer +
+        scale_fill_viridis_c(option = "viridis", na.value = "grey90") +
         coord_sf(
           xlim = if (!is.null(xlim)) xlim else c(-130, -65),
-          ylim = if (!is.null(ylim)) ylim else c(24, 50)
+          ylim = if (!is.null(ylim)) ylim else c(24, 50) 
+          # expand = F,
         ) +
         theme_minimal() +
         labs(fill = NULL, title = toupper(m)) +
         theme(
+          legend.position = "bottom",
           axis.text = element_blank(),
           axis.ticks = element_blank(),
           axis.title = element_blank(),
@@ -2353,11 +2362,10 @@ plot_weights_map <- function(data_list,
         )
     })
     
-    # Combine vertically
     return(patchwork::wrap_plots(model_plots, ncol = 1))
     
   } else {
-    # Single model check
+    # Single model
     if (!(model_to_plot %in% models)) {
       stop(sprintf("model_to_plot '%s' not found in models list: %s",
                    model_to_plot, paste(models, collapse = ", ")))
@@ -2368,13 +2376,8 @@ plot_weights_map <- function(data_list,
     p <- ggplot(counties_merged) +
       geom_sf(aes(fill = outcome), color = NA) +
       geom_sf(data = states_sf_full, fill = NA, color = "black", size = 0.4) +
-      geom_sf_text(data = state_centroids_with_data, aes(label = STATE_ABB),
-                   size = 3, fontface = "bold") +
-      scale_fill_gradient(
-        low = "blue",
-        high = "red",
-        na.value = "grey90"
-      ) +
+      abbr_layer +
+      scale_fill_viridis_c(option = "viridis", na.value = "grey90") +
       coord_sf(
         xlim = if (!is.null(xlim)) xlim else c(-130, -65),
         ylim = if (!is.null(ylim)) ylim else c(24, 50)
@@ -2391,6 +2394,7 @@ plot_weights_map <- function(data_list,
     return(p)
   }
 }
+
 
 
 
