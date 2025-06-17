@@ -112,6 +112,8 @@ print(summary_stats)
 setwd(root_results)
 files <- grep('04_22', dir('real_data', full.names = T), value = T)
 files <- files[c(2,4)]
+files2 <- grep('06_10', dir('real_data', full.names = T), value = T)
+files <- c(files, files2)
 
 ## Inspecting the convergence diagnostics
 {
@@ -131,6 +133,7 @@ files <- files[c(2,4)]
   )
   
   for (f in files) {
+    print(f)
     load(f)
     fit <- res$sim_list$stan_fit
     
@@ -201,7 +204,17 @@ res_SM <- just_metrics(
 )
 make_table_line(res_SM$metrics)
 
-load("real_data/real_data_fit_full_directest_pepdensity_alpha0001_noncentered_ID44508_2025_04_22.RData")
+# load("real_data/real_data_fit_full_directest_pepdensity_alpha0001_noncentered_ID44508_2025_04_22.RData")
+# res_DE <- just_metrics(
+#   data_list = res$sim_list$data_list,
+#   stan_fit = res$sim_list$stan_fit,
+#   stan_summary = res$sim_list$stan_summary$summary,
+#   models = params$models,
+#   CV_pred = res$sim_list$CV_pred
+# )
+# make_table_line(res_DE$metrics)
+
+load("real_data/real_data_fit_full_directest_intercept_centered_n3k_ID53150_2025_06_10.RData")
 res_DE <- just_metrics(
   data_list = res$sim_list$data_list,
   stan_fit = res$sim_list$stan_fit,
@@ -210,6 +223,7 @@ res_DE <- just_metrics(
   CV_pred = res$sim_list$CV_pred
 )
 make_table_line(res_DE$metrics)
+# results are basically the exact same. Is it even worth changing this in the results? No, I don't think so.
 
 ### Plot weights all together. (couldnt get this version to work)
 {
