@@ -568,7 +568,7 @@ lm.fit.5 <- lm(census ~ acs + wp, data = df_AIAN)
 summary(lm.fit.5)
 # interesting. WP could be negative?
 
-#### 05/21/2025: AIAN plotting for deciding cutoffs and location. ####
+#### 5/21/2025: AIAN plotting for deciding cutoffs and location. ####
 # Load packages
 library(tidyverse)
 library(sf)
@@ -696,6 +696,7 @@ ggplot() +
 #### 5/21/2025: Create new set of AIAN subsetted ####
 load('../../data/census_ACS_PEP_WP_AIAN_wDensity_and2018_01022025.RData')
 
+
 southwest_data <- df %>% 
   filter(state %in% c('California','Nevada','Arizona','New Mexico'),
          census >= 100)
@@ -819,3 +820,46 @@ ggplot() +
 
 
 #
+#### 6/20/2025: Create new set of fullpop subsetted.
+library(tidyverse)
+library(sf)
+library(tigris)
+library(ggplot2)
+
+# Get all counties in the US
+options(tigris_use_cache = TRUE)
+counties_sf <- counties(cb = TRUE, class = "sf")
+states_sf <- states(cb = TRUE, class = "sf")
+
+load('../../data/census_ACS_PEP_WP_wDensity_and2018_01022025.RData')
+
+southwest_data <- df %>% 
+  filter(state %in% c('California','Nevada','Arizona','New Mexico'))
+
+southwest_map <- counties_sf %>%
+  filter(STATEFP %in% c("04", "06", "32", "35")) %>%  # AZ, CA, NV, NM
+  left_join(southwest_data, by = "GEOID")
+
+state_abbrev_lookup <- tibble::tibble(
+  state_name = state.name,
+  state_abbrev = state.abb
+)
+
+# Process the names
+southwest_data2 <- southwest_data %>%
+  mutate(
+    county = str_remove(NAME, ",.*"),
+    state_name = str_trim(str_extract(NAME, "[^,]+$"))
+  ) %>%
+  left_join(state_abbrev_lookup, by = "state_name") %>%
+  mutate(
+    formatted_name = paste0(str_replace_all(county, " ", "."), ".", state_abbrev)
+  )
+
+southwest_adjacency <- adjacency[southwest_data2$NAME, southwest_data2$formatted_name]
+
+df <- southwest_data2
+adjacency <- southwest_adjacency
+
+# save(df, adjacency, file = '../../data/census_ACS_PEP_WP_fullpopsubset_wDensity_and2018_06202025.RData')
+
