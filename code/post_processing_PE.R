@@ -42,6 +42,111 @@ make_table_line <- function(metric, cols = c('dataset','MAPE', 'MAE', 'CP.95', '
 }
 
 #
+#### 6/23/2025: Process Fullpop SW results ####
+setwd(root_results)
+files <- grep('06_20', dir('real_data', full.names = T), value = T)
+
+## Inspecting the convergence diagnostics
+{
+  # Initialize a data frame to hold diagnostics
+  diag_summary <- tibble(
+    file = character(),
+    dataset = character(),
+    softmax = logical(),
+    preprocess = logical(),
+    alpha = logical(),
+    effects = character(),
+    n_divergent = integer(),
+    mean_divergent = numeric(),
+    max_treedepth_hit = logical(),
+    bfmi_low = numeric(),
+    phi_noncentered = logical()
+  )
+  
+  for (f in files) {
+    print(f)
+    load(f)
+    fit <- res$sim_list$stan_fit
+    
+    if (!is.null(fit)) {
+      sampler_params <- tryCatch(get_sampler_params(fit, inc_warmup = FALSE), error = function(e) NULL)
+      
+      if (!is.null(sampler_params) && length(sampler_params) > 0) {
+        n_divergent <- sum(sapply(sampler_params, function(chain) sum(chain[, "divergent__"])))
+        mean_divergent <- mean(sapply(sampler_params, function(chain) mean(chain[, "divergent__"])))
+        #max_treedepth_hit <- any(sapply(sampler_params, function(chain) any(chain[, "treedepth__"] >= 10)))
+        mean_treedepth_hit <- mean(sapply(sampler_params, function(chain) mean(chain[, "treedepth__"] >= 10)))
+        bfmi_by_chain <- sapply(sampler_params, function(chain) {
+          energy <- chain[, "energy__"]
+          numer <- sum(diff(energy)^2) / (length(energy) - 1)
+          denom <- var(energy)
+          bfmi <- numer / denom
+          bfmi
+        })
+        
+        bfmi_low <- mean(bfmi_by_chain < 0.3)
+        
+        diag_summary <- add_row(diag_summary,
+                                file = basename(f),
+                                dataset = params$dataset, 
+                                softmax = ifelse(params$use_softmax, T, F),
+                                preprocess = ifelse(params$preprocess_scale, T, F),
+                                alpha = ifelse(params$alpha_variance_prior == -1, F,T),
+                                effects = params$fixed_effects,
+                                n_divergent = n_divergent,
+                                mean_divergent = mean_divergent,
+                                max_treedepth_hit = mean_treedepth_hit,
+                                bfmi_low = bfmi_low,
+                                phi_noncentered = (params$phi_noncentered == 1)
+        )
+      } else {
+        diag_summary <- add_row(diag_summary,
+                                file = basename(f),
+                                dataset = NA,
+                                softmax = NA,
+                                preprocess = NA,
+                                alpha = NA,
+                                effects = NA,
+                                n_divergent = NA_integer_,
+                                mean_divergent = NA,
+                                max_treedepth_hit = NA,
+                                bfmi_low = NA,
+                                phi_noncentere = NA
+        )
+        warning(paste("No sampler params in", f, "- likely due to 0 samples"))
+      }
+    } else {
+      warning(paste("Failed to load stan_fit in", f))
+    }
+  }
+  
+  save(diag_summary, file = 'processed_results/real_data_fullpop_SW_06202025.RData')
+  
+  # tt <- diag_summary[,c(2, 10, 7, 8, 9)]
+}
+
+load('real_data/real_data_fit_full_softmax_pepdensity_alpha0001_noncentered_ID80630_2025_06_20.RData')
+res_SM <- just_metrics(
+  data_list = res$sim_list$data_list,
+  stan_fit = res$sim_list$stan_fit,
+  stan_summary = res$sim_list$stan_summary$summary,
+  models = params$models,
+  CV_pred = res$sim_list$CV_pred
+)
+make_table_line(res_SM$metrics)
+
+load('real_data/real_data_fit_full_directest_pepdensity_alpha0001_noncentered_ID6493_2025_06_20.RData')
+res_DE <- just_metrics(
+  data_list = res$sim_list$data_list,
+  stan_fit = res$sim_list$stan_fit,
+  stan_summary = res$sim_list$stan_summary$summary,
+  models = params$models,
+  CV_pred = res$sim_list$CV_pred
+)
+make_table_line(res_DE$metrics)
+
+
+#
 #### 6/17/2025: Make raw estimates chloropleths ####
 setwd(root_results)
 setwd('real_data/')

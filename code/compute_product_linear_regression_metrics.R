@@ -210,13 +210,25 @@ print_model_metrics <- function(metrics, return_df = FALSE) {
   print_model_metrics(metrics_raw, T)
 }
 
-### AIAN data.
+### AIAN data subset in SW.
 {
   #load('../data/census_ACS_PEP_WP_AIAN_wDensity_and2018_01022024.RData')
   load('../data/census_ACS_PEP_WP_AIANsubset_wDensity_and2018_05212025.RData')
+  
   metrics <- compute_regression_metrics(df, models_all_noPC, outcome = 'census', family = 'normal')
   print_model_metrics(metrics, T)
   
   metrics_raw <- compute_regression_metrics(df, models_all_noPC, outcome = 'census', family = 'none')
+  print_model_metrics(metrics_raw, T)
+}
+
+### Census data subset
+{
+  load('../data/census_ACS')
+  
+  metrics <- compute_regression_metrics(df, models_all, outcome = 'census', family = 'normal')
+  print_model_metrics(metrics, T)
+  
+  metrics_raw <- compute_regression_metrics(df, models_all, outcome = 'census', family = 'none')
   print_model_metrics(metrics_raw, T)
 }
