@@ -179,16 +179,16 @@ print_model_metrics <- function(metrics, return_df = FALSE) {
 {
   model_formulas <- list(
     FULL = census ~ acs + pep + wp, 
-    ACS = census ~ acs, 
     PEP = census ~ pep,
+    ACS = census ~ acs, 
     WP = census ~ wp,
     ACS_WP = census ~ acs + wp
   )
   
   model_formulas2 <- list(
     FULL_2018 = census ~ acs_2018 + pep_2018 + wp, 
-    ACS_2018 = census ~ acs_2018, 
     PEP_2018 = census ~ pep_2018,
+    ACS_2018 = census ~ acs_2018, 
     ACS_WP_2018 = census ~ acs_2018 + wp,
     FULL_2018_2019 = census ~ acs_2018 + pep_2018 + acs + pep + wp, 
     PEP_2018_2019 = census ~ pep_2018 + pep,
@@ -224,11 +224,11 @@ print_model_metrics <- function(metrics, return_df = FALSE) {
 
 ### Census data subset
 {
-  load('../data/census_ACS')
+  load('../data/census_ACS_PEP_WP_fullpopsubset_wDensity_and2018_06202025.RData')
   
-  metrics <- compute_regression_metrics(df, models_all, outcome = 'census', family = 'normal')
+  metrics <- compute_regression_metrics(df, model_formulas, outcome = 'census', family = 'normal')
   print_model_metrics(metrics, T)
   
-  metrics_raw <- compute_regression_metrics(df, models_all, outcome = 'census', family = 'none')
+  metrics_raw <- compute_regression_metrics(df, model_formulas, outcome = 'census', family = 'none')
   print_model_metrics(metrics_raw, T)
 }
