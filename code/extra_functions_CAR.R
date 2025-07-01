@@ -950,7 +950,7 @@ fit_model_real <- function(raw_data, models=c('acs','pep','wp'), family = 'poiss
 # folder: name of folder containing results files.
 # root: directory where this folder is located.
 # debug_mode: pauses the code right after loading results.
-generate_metrics_list <- function(folder = NULL, root = NULL, hmc_diag = F, debug_mode = F){
+generate_metrics_list <- function(folder = NULL, root = NULL, hmc_diag = F, debug_mode = F, rhats = F){
   
   # get the root if necessary
   if(is.null(root)){
@@ -1091,6 +1091,19 @@ generate_metrics_list <- function(folder = NULL, root = NULL, hmc_diag = F, debu
                                     res
                                   }),
                                   median_rhoX = rho_medianX)
+      
+      if(rhats){
+        monitor_vals <- rstan::monitor(tmp$stan_fit, probs = 0.5, print = F)
+        ind_phi <- grep('^phi\\[', rownames(monitor_vals))
+        ind_u <- grep('^u\\[', rownames(monitor_vals))
+        ind_y <- grep('y_pred', rownames(monitor_vals))
+        
+        metrics_lst[[iter]] <- c(metrics_lst[[iter]], 
+                                 phi_convergence = monitor_vals[ind_phi, c('n_eff','Rhat')],
+                                 u_convergence = monitor_vals[ind_u, c('n_eff','Rhat')],
+                                 y_convergence = monitor_vals[ind_y, c('n_eff','Rhat')])
+      }
+      
       
       if(hmc_diag){
         fit <- tmp$stan_fit

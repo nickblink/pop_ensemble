@@ -42,6 +42,27 @@ make_table_line <- function(metric, cols = c('dataset','MAPE', 'MAE', 'CP.95', '
 }
 
 #
+#### 7/1/2025: Making simulation MCMC convergence plots ####
+setwd(root_results)
+setwd('simulated_results/')
+
+# this might take a while.
+res_DE_rho03 <- generate_metrics_list(folder = "simulation_rho_03_theta_100_direct_est_negbin_3models_CV10_ID28206_2025_05_22", hmc_diag = T, rhats = T)
+
+res_SM_rho03 <- generate_metrics_list(folder = "simulation_rho_03_theta_100_softmax_negbin_3models_CV10_ID823748_2025_05_22", hmc_diag = T, rhats = T)
+
+res_DE_rho099 <- generate_metrics_list(folder = "simulation_rho_099_theta_100_direct_est_negbin_3models_CV10_ID641351_2025_05_22/", hmc_diag = T, rhats = T)
+
+res_SM_rho099 <- generate_metrics_list(folder = "simulation_rho_099_theta_100_softmax_negbin_3models_CV10_ID290522_2025_05_22/", hmc_diag = T, rhats = T)
+
+res_all <- list(res_DE_rho03 = res_DE_rho03, 
+                res_SM_rho03 = res_SM_rho03, 
+                res_DE_rho099 = res_DE_rho099, 
+                res_SM_rho099 = res_SM_rho099)
+
+save(res_all, file = '../processed_results/simulation_results_07012025.RData')
+
+#
 #### 6/23/2025: Process Fullpop SW results ####
 setwd(root_results)
 files <- grep('06_20', dir('real_data', full.names = T), value = T)
@@ -1287,7 +1308,7 @@ for (f in files) {
 setwd(root_results)
 setwd('simulated_results/')
 
-res_gamma <- generate_metrics_list(folder = 'simulation_rho_099_theta_100_softmax_negbin_3models_CV10_ID29995_2025_04_01', hmc_diag = T)
+res_gamma <- generate_metrics_list(folder = 'simulation_rho_099_theta_100_softmax_negbin_3models_CV10_ID29995_2025_04_01/', hmc_diag = T)
 
 res_invqui <- generate_metrics_list(folder = 'simulation_rho_099_theta_100_softmax_negbin_3models_CV10_invchi_2025_04_01', hmc_diag = T)
 
