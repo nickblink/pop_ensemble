@@ -42,6 +42,11 @@ make_table_line <- function(metric, cols = c('dataset','MAPE', 'MAE', 'CP.95', '
 }
 
 #
+#### 7/1/2025: Making full population convergence plots #### 
+
+# Do a similar thing to the simulation ones. taking a break though.
+
+#
 #### 7/1/2025: Making simulation MCMC convergence plots ####
 setwd(root_results)
 setwd('simulated_results/')
@@ -60,7 +65,55 @@ res_all <- list(res_DE_rho03 = res_DE_rho03,
                 res_DE_rho099 = res_DE_rho099, 
                 res_SM_rho099 = res_SM_rho099)
 
-save(res_all, file = '../processed_results/simulation_results_07012025.RData')
+# save(res_all, file = '../processed_results/simulation_results_07012025.RData')
+
+## Make the rhat plot
+{
+  library(dplyr)
+  library(tidyr)
+  library(purrr)
+  library(ggplot2)
+  
+  # Extract phi, u, and y Rhat values into a long-format dataframe
+  rhat_df <- imap_dfr(res_all, function(model, model_name) {
+    metric_list <- model$metrics_list
+    
+    list(
+      phi = map(metric_list, "phi_convergence.Rhat") %>% unlist(),
+      u   = map(metric_list, "u_convergence.Rhat")   %>% unlist(),
+      y   = map(metric_list, "y_convergence.Rhat")   %>% unlist()
+    ) %>%
+      enframe(name = "parameter", value = "Rhat") %>%
+      unnest(Rhat) %>%
+      mutate(model = model_name)
+  })
+  
+  group_labels <- c(
+    "res_SM_rho03" = expression(SM ~ rho == 0.3),
+    "res_SM_rho099" = expression(SM ~ rho == 0.99),
+    "res_DE_rho03" = expression(DE ~ rho == 0.3),
+    "res_DE_rho099" = expression(DE ~ rho == 0.99)
+  )
+  
+  rhat_df$model <- factor(rhat_df$model, levels = names(group_labels))
+  
+  ggplot(rhat_df, aes(x = model, y = Rhat, fill = parameter)) +
+    geom_boxplot(outlier.shape = NA, alpha = 0.8, position = position_dodge(width = 0.8)) +
+    geom_hline(yintercept = 1, linetype = "dashed", color = "red") +  # <-- This line added
+    coord_cartesian(ylim = c(0.997, 1.01)) +
+    scale_x_discrete(labels = group_labels) +
+    scale_fill_brewer(palette = "Set2") +
+    theme_minimal(base_size = 14) +
+    labs(
+      x = NULL,
+      y = "Rhat",
+      fill = NULL
+    ) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  
+  ggsave('../../Figures/07012025_simulation_rhats.png', height = 5, width = 10)
+}
+
 
 #
 #### 6/23/2025: Process Fullpop SW results ####
@@ -690,7 +743,7 @@ make_table_line(res_SM$metrics)
 
 # ggsave(p1, file = '../Figures/05292025_real_data_fit_aiansubset_noncentered_directest.png', height = 12, width = 7)
 #
-#### 5/28/2025: Update simulation results figures and tables ####
+#### 5/28/2025: Update simulation results tables ####
 setwd(root_results)
 setwd('simulated_results/')
 files1 <- grep('2025_05_22', dir(), value = T)
@@ -772,7 +825,7 @@ names(results_list) <- c('DE_rho03', 'SM_rho03', 'DE_rho099', 'SM_rho099')
 
 
 #
-#### 5/28/2025: Getting simulated metrics and diagnostics (again) ####
+#### 5/28/2025: Getting simulated metrics and diagnostics and figures (again) ####
 setwd(root_results)
 setwd('simulated_results/')
 
