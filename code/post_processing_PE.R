@@ -6,6 +6,7 @@ library(cowplot)
 library(reshape2)
 library(GGally)
 library(posterior)
+library(patchwork)
 
 # set working directory
 if(file.exists('C:/Users/Admin-Dell')){
@@ -42,9 +43,147 @@ make_table_line <- function(metric, cols = c('dataset','MAPE', 'MAE', 'CP.95', '
 }
 
 #
-#### 7/1/2025: Making full population convergence plots #### 
+#### 7/7/2025: Making raw product percentage off plots for paper appendix ####
+setwd(root_results)
+setwd('real_data/')
+load('real_data_fit_aiansubset_softmax_pepdensity_alpha0001_noncentered_ID88451_2025_05_22.RData')
+p_AIAN <- plot_pct_diff_from_census_map(data_list = res$sim_list$data_list,
+                                        facet = TRUE,
+                                        xlim = c(-125, -100),
+                                        ylim = c(31, 42)) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
 
-# Do a similar thing to the simulation ones. taking a break though.
+load('real_data_fit_full_directest_intercept_alpha0001_noncentered_ID44508_2025_04_22.RData')
+p_full <- plot_pct_diff_from_census_map(data_list = res$sim_list$data_list,
+                                        facet = TRUE,
+                                        show_state_abbr = F) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
+
+combined_plot <- (p_full | p_AIAN) +
+  plot_layout(guides = "collect") &
+  theme(
+    legend.position = "bottom"
+  )
+ggsave(combined_plot, file = '../../Figures/07072025_rawproduct_percentage_off.png', width = 6.5, height = 7)
+
+#
+#### 7/7/2025: Making beta plots for the real data analysis ####
+setwd(root_results)
+
+load('real_data/real_data_fit_full_softmax_pepdensity_alpha0001_noncentered_ID73323_2025_04_22.RData')
+ptotal_SM <- plot_just_betas(res, params)
+
+load('real_data/real_data_fit_full_directest_intercept_alpha0001_noncentered_ID44508_2025_04_22.RData')
+ptotal_DE <- plot_just_betas(res, params, varnames = 'intercept')
+
+load('real_data/real_data_fit_aiansubset_softmax_pepdensity_alpha0001_noncentered_ID88451_2025_05_22.RData')
+pAIAN_SM <- plot_just_betas(res, params)
+
+load('real_data/real_data_fit_aiansubset_directest_intercept_noncentered_ID32362_2025_05_22.RData')
+pAIAN_DE <- plot_just_betas(res, params, varnames = 'intercept')
+
+
+y_range <- c(-4, 4)
+ptotal_SM  <- ptotal_SM  + coord_cartesian(ylim = y_range) + labs(title = "SM, total pop")
+ptotal_DE  <- ptotal_DE  + coord_cartesian(ylim = y_range) + labs(title = "DE, total pop")
+pAIAN_SM   <- pAIAN_SM   + coord_cartesian(ylim = y_range) + labs(title = "SM, AIAN")
+pAIAN_DE   <- pAIAN_DE   + coord_cartesian(ylim = y_range) + labs(title = "DE, AIAN")
+
+# Define the rows
+top_row <- ptotal_SM + ptotal_DE + plot_layout(widths = c(2, 1))
+bottom_row <- pAIAN_SM + pAIAN_DE + plot_layout(widths = c(2, 1))
+
+# Combine with shared legend
+(top_row) / (bottom_row) +
+  plot_layout(guides = "collect") &
+  theme(legend.position = "right")
+
+ggsave(file = '../Figures/07072025_realdata_beta_estimates.png', 
+       width = 6.5, height = 3)
+
+#
+#### 7/7/2025: Making real_data convergence plots #### 
+setwd(root_results)
+
+files <- c('real_data/real_data_fit_full_directest_intercept_alpha0001_noncentered_ID44508_2025_04_22.RData',
+           'real_data/real_data_fit_full_softmax_pepdensity_alpha0001_noncentered_ID73323_2025_04_22.RData',
+           'real_data/real_data_fit_aiansubset_directest_intercept_noncentered_ID32362_2025_05_22.RData',
+           'real_data/real_data_fit_aiansubset_softmax_pepdensity_alpha0001_noncentered_ID88451_2025_05_22.RData')
+
+real_data_metrics <- list()
+# Cycle through each file and create. 
+for(i in seq_along(files)){
+  load(files[i])
+  monitor_vals <- rstan::monitor(res$sim_list$stan_fit, probs = 0.5, print = F)
+  ind_phi <- grep('^phi\\[', rownames(monitor_vals))
+  ind_u <- grep('^u\\[', rownames(monitor_vals))
+  ind_y <- grep('y_pred', rownames(monitor_vals))
+  
+  real_data_metrics[[i]] <- c(phi_convergence = monitor_vals[ind_phi, c('n_eff','Rhat')],
+                           u_convergence = monitor_vals[ind_u, c('n_eff','Rhat')],
+                           y_convergence = monitor_vals[ind_y, c('n_eff','Rhat')])
+}
+
+save(real_data_metrics, file = 'processed_results/real_data_metrics_07_07_2025.RData')
+
+names(real_data_metrics) <- c('DE_full', 'SM_full', 'DE_AIAN', 'SM_AIAN')
+
+# Create the Rhat dataframe using lapply
+rhat_list <- lapply(seq_along(real_data_metrics), function(i) {
+  metric <- real_data_metrics[[i]]
+  model_name <- names(real_data_metrics)[i]
+  
+  data.frame(
+    parameter = rep(c("phi", "u", "y"), times = c(
+      length(metric$phi_convergence.Rhat),
+      length(metric$u_convergence.Rhat),
+      length(metric$y_convergence.Rhat)
+    )),
+    Rhat = c(
+      metric$phi_convergence.Rhat,
+      metric$u_convergence.Rhat,
+      metric$y_convergence.Rhat
+    ),
+    model = model_name
+  )
+})
+
+rhat_df <- do.call(rbind, rhat_list)
+
+group_labels <- c(
+  "SM_full" = "SM (total)",
+  "DE_full" = "DE (total)",
+  "SM_AIAN" = "SM (AIAN)",
+  "DE_AIAN" = "DE (AIAN)"
+)
+
+rhat_df$model <- factor(rhat_df$model, levels = names(group_labels))
+
+loglog_trans <- scales::trans_new(
+  name = "loglog",
+  transform = function(x) log(log(x + 0.02)),
+  inverse = function(x) exp(exp(x)) - 0.02,
+  domain = c(1.00001, 2)
+)
+
+ggplot(rhat_df, aes(x = model, y = Rhat, fill = parameter)) +
+  geom_boxplot(outlier.shape = NA, alpha = 0.8, position = position_dodge(width = 0.8)) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "red") +
+  scale_y_continuous(
+    trans = loglog_trans,
+    breaks = c(1, 1.01, 1.1, 2),
+    labels = scales::label_number(accuracy = 0.001)
+  ) +
+  scale_x_discrete(labels = group_labels) +
+  scale_fill_brewer(palette = "Set2") +
+  theme_minimal(base_size = 11) +
+  labs(
+    x = NULL,
+    y = 'Rhat',
+    fill = NULL
+  ) # +
+  # theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# ggsave('../Figures/07072025_realdata_rhats.png', height = 5, width = 10)
+ggsave('../Figures/07072025_realdata_rhats.png', width = 6.5, height = 3)
 
 #
 #### 7/1/2025: Making simulation MCMC convergence plots ####
@@ -103,15 +242,15 @@ res_all <- list(res_DE_rho03 = res_DE_rho03,
     coord_cartesian(ylim = c(0.997, 1.01)) +
     scale_x_discrete(labels = group_labels) +
     scale_fill_brewer(palette = "Set2") +
-    theme_minimal(base_size = 14) +
+    theme_minimal(base_size = 11) +
     labs(
       x = NULL,
       y = "Rhat",
       fill = NULL
-    ) +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+    )#  +
+    # theme(axis.text.x = element_text(angle = 45, hjust = 1))
   
-  ggsave('../../Figures/07012025_simulation_rhats.png', height = 5, width = 10)
+  ggsave('../Figures/07012025_simulation_rhats.png', height = 3, width = 6.5)
 }
 
 
@@ -228,10 +367,15 @@ load('real_data_fit_aiansubset_softmax_pepdensity_alpha0001_noncentered_ID88451_
 p_AIAN <- plot_pct_diff_from_census_map(data_list = res$sim_list$data_list,
                               facet = TRUE,
                               xlim = c(-125, -100),
-                              ylim = c(31, 42))
+                              ylim = c(31, 42)) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
+
+load('real_data_fit_full_directest_intercept_alpha0001_noncentered_ID44508_2025_04_22.RData')
+p_full <- plot_pct_diff_from_census_map(data_list = res$sim_list$data_list,
+                                        facet = TRUE,
+                                        show_state_abbr = F) + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
+
 
 plot_log_pep_density_map(data_list = res$sim_list$data_list,
-                         
                          xlim = c(-125, -100),
                          ylim = c(31, 42))
 
@@ -290,7 +434,7 @@ print(summary_stats)
 #### 6/10/2025: Getting full pop HMC diagnostics and results AND plotting SM ####
 setwd(root_results)
 files <- grep('04_22', dir('real_data', full.names = T), value = T)
-files <- files[c(2,4)]
+files <- files[c(1,4)]
 files2 <- grep('06_10', dir('real_data', full.names = T), value = T)
 files <- c(files, files2)
 
@@ -383,7 +527,7 @@ res_SM <- just_metrics(
 )
 make_table_line(res_SM$metrics)
 
-# load("real_data/real_data_fit_full_directest_pepdensity_alpha0001_noncentered_ID44508_2025_04_22.RData")
+# load("real_data/real_data_fit_full_directest_intercept_alpha0001_noncentered_ID44508_2025_04_22.RData")
 # res_DE <- just_metrics(
 #   data_list = res$sim_list$data_list,
 #   stan_fit = res$sim_list$stan_fit,
@@ -409,7 +553,7 @@ make_table_line(res_DE$metrics)
   load("real_data/real_data_fit_full_softmax_pepdensity_alpha0001_noncentered_ID73323_2025_04_22.RData")
   SM_summary <- res$sim_list$stan_summary$summary
   
-  load("real_data/real_data_fit_full_directest_pepdensity_alpha0001_noncentered_ID44508_2025_04_22.RData")
+  load("real_data/real_data_fit_full_directest_intercept_alpha0001_noncentered_ID44508_2025_04_22.RData")
   DE_summary <- res$sim_list$stan_summary$summary
   
   N = nrow(res$sim_list$data_list$data)
@@ -461,7 +605,7 @@ make_table_line(res_DE$metrics)
                           pairwise_phi_estimates = F, y_estimates = F, metrics_values = F, beta_estimates = F)
   ggsave(pweights_SM, file = '../Figures/06102025_fullpop_u_estimates_softmax.png', width = 6, height = 2)
   
-  load("real_data/real_data_fit_full_directest_pepdensity_alpha0001_noncentered_ID44508_2025_04_22.RData")
+  load("real_data/real_data_fit_full_directest_intercept_alpha0001_noncentered_ID44508_2025_04_22.RData")
   pweights_DE <- plot_real_results(data_list = res$sim_list$data_list,
                                    stan_fit = res$sim_list$stan_fit,
                                    stan_summary = res$sim_list$stan_summary$summary,
@@ -491,7 +635,7 @@ make_table_line(res_DE$metrics)
     show_state_abbr = F
   )
   
-  load("real_data/real_data_fit_full_directest_pepdensity_alpha0001_noncentered_ID44508_2025_04_22.RData")
+  load("real_data/real_data_fit_full_directest_intercept_alpha0001_noncentered_ID44508_2025_04_22.RData")
   p_DE <- plot_weights_map(
     data_list = res$sim_list$data_list,
     stan_summary = res$sim_list$stan_summary$summary,

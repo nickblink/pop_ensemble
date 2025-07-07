@@ -1887,13 +1887,24 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, stan_
       }
     }
     
+    beta$var <- factor(beta$var, levels = beta_varnames)
+    
     # plot the beta param
     p_beta <- ggplot(data = beta, aes(x = var, y = value, fill = model)) + 
-      geom_boxplot(position = position_dodge(width = 0.75)) + 
+      geom_boxplot(position = position_dodge(width = 0.75), outlier.shape = NA, alpha = 0.8) + 
       geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
-      ggtitle('Beta Estimates') + 
-      theme(legend.position = 'right') + 
-      scale_fill_brewer(palette = "Set2")
+      scale_fill_brewer(palette = "Dark2") + 
+      theme_minimal(base_size = 14) +
+      labs(
+        title = NULL,#"Beta Estimates",
+        x = NULL,
+        y = NULL, #"Estimate",
+        fill = NULL
+      ) +
+      theme(
+        legend.position = "right",
+        axis.text.x = element_text(angle = 45, hjust = 1)
+      )
     
     # update the most recent CP_RMSE plot list and rel heights
     plot_list <- append(plot_list, list(p_beta))
@@ -1983,6 +1994,57 @@ plot_real_results <- function(data_list, stan_fit, stan_fit_quantiles = F, stan_
   }
 }
 
+# plot_just_betas <- function(res, params, varnames = c('intercept','density')){
+#   p1 <- plot_real_results(data_list = res$sim_list$data_list,
+#                           stan_fit = res$sim_list$stan_fit,
+#                           stan_summary = res$sim_list$stan_summary$summary,
+#                           models = params$models,
+#                           CV_pred = res$sim_list$CV_pred, rhats = F,
+#                           alpha_estimates = F,
+#                           ESS = F, rho_estimates = F, tau2_estimates = F, 
+#                           sigma2_estimates = F, theta_estimates = F, phi_estimates = F, u_estimates = F,
+#                           pairwise_phi_estimates = F, y_estimates = F, metrics_values = F, beta_estimates = T, beta_varnames = varnames)
+# }
+
+plot_just_betas <- function(res, params, varnames = c('intercept','density')){
+  beta <- NULL
+  
+  # get number of variables and their names.
+  n_vars <- length(res$sim_list$stan_out$beta[1,,1])
+  if(is.null(varnames)){
+    varnames <- paste0('var',1:n_vars)
+  }
+  
+  # cycle through models and variables.
+  for(m in 1:length(params$models)){
+    for(ivar in 1:n_vars){
+      beta <- rbind(beta, 
+                    data.frame(value = res$sim_list$stan_out$beta[,ivar,m], 
+                               model = params$models[m],
+                               var = varnames[ivar]))
+    }
+  }
+  
+  beta$var <- factor(beta$var, levels = varnames)
+  
+  # plot the beta param
+  p_beta <- ggplot(data = beta, aes(x = var, y = value, fill = model)) + 
+    geom_boxplot(position = position_dodge(width = 0.75), outlier.shape = NA, alpha = 0.8) + 
+    geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
+    scale_fill_brewer(palette = "Dark2") + 
+    theme_minimal(base_size = 11) +
+    labs(
+      title = NULL,#"Beta Estimates",
+      x = NULL,
+      y = NULL, #"Estimate",
+      fill = NULL
+    ) +
+    theme(
+      legend.position = "right"
+    )
+  
+  return(p_beta)
+}
 
 ### Plot the results for multiple simulations. Currently just plots the spatial parameters, but that will likely be adjusted.
 # sim_lst: simulation list from s, containing a list with "data_list" and "stan_fit" for each simulation run.
@@ -2419,11 +2481,10 @@ plot_pct_diff_from_census_map <- function(data_list,
                                           models = c("acs", "pep", "wp"),
                                           model_to_plot = "pep",
                                           facet = FALSE,
+                                          global_scale = TRUE,
                                           show_state_abbr = TRUE,
                                           xlim = NULL,
                                           ylim = NULL) {
-  message('You should angle the legend text')
-  print('look at the message')
   
   library(ggplot2)
   library(dplyr)
@@ -2443,7 +2504,7 @@ plot_pct_diff_from_census_map <- function(data_list,
     df[[pct_col]] <- 100 * (df[[model]] - df$census) / df$census
   }
   
-  df$GEOID <- as.character(df$GEOID)  # Ensure merge compatibility
+  df$GEOID <- as.character(df$GEOID)
   
   # Load counties and states
   counties <- tigris::counties(cb = TRUE, year = 2020, class = "sf")
@@ -2457,7 +2518,6 @@ plot_pct_diff_from_census_map <- function(data_list,
     mutate(STATE_ABB = state.abb[match(NAME, state.name)]) %>%
     filter(!is.na(STATE_ABB))
   
-  # Filter for states with data
   states_with_data <- unique(substr(counties_merged$GEOID, 1, 2))
   state_centroids_with_data <- states_sf_full %>%
     filter(STATEFP %in% states_with_data) %>%
@@ -2473,24 +2533,27 @@ plot_pct_diff_from_census_map <- function(data_list,
   pct_diff_cols <- paste0(models, "_pct_diff")
   
   if (facet) {
-    # Reshape for faceted plotting
     counties_long <- counties_merged %>%
       pivot_longer(cols = all_of(pct_diff_cols), names_to = "model", values_to = "outcome") %>%
       mutate(model = gsub("_pct_diff", "", model))
     
+    # Compute global scale range if needed
+    if (global_scale) {
+      global_range <- range(counties_long$outcome, na.rm = TRUE)
+    }
+    
     model_plots <- lapply(models, function(m) {
       df_model <- counties_long %>% filter(model == m)
       
-      ggplot(df_model) +
+      p <- ggplot(df_model) +
         geom_sf(aes(fill = outcome), color = NA) +
         geom_sf(data = states_sf_full, fill = NA, color = "black", size = 0.4) +
         abbr_layer +
-        scale_fill_viridis_c(option = "viridis", na.value = "grey90") +
         coord_sf(
           xlim = if (!is.null(xlim)) xlim else c(-130, -65),
           ylim = if (!is.null(ylim)) ylim else c(24, 50)
         ) +
-        theme_minimal() +
+        theme_minimal(base_size = 11) +
         labs(fill = "% diff from census", title = toupper(m)) +
         theme(
           legend.position = "bottom",
@@ -2499,6 +2562,33 @@ plot_pct_diff_from_census_map <- function(data_list,
           axis.title = element_blank(),
           panel.grid = element_blank()
         )
+      
+      signed_sqrt_trans <- scales::trans_new(
+        name = "signed_sqrt",
+        transform = function(x) sign(x) * sqrt(abs(x)),
+        inverse = function(x) sign(x) * (x^2)
+      )
+      
+      if (global_scale) {
+        p <- p + scale_fill_gradient2(
+          low = "#238b45",     # teal or blue
+          mid = "white",       # neutral midpoint
+          high = "#d95f0e",    # orange/red
+          midpoint = 0,
+          na.value = "grey90",
+          limits = global_range,
+          oob = scales::squish,
+          trans = signed_sqrt_trans,
+          breaks = c(-50, -10, 0, 10, 50, 100),
+          labels = c("-50", "-10", "0", "10", "50", "100"),
+          name = "% diff from census"
+        )
+        
+      } else {
+        p <- p + scale_fill_viridis_c(option =  "cividis", na.value = "grey90")
+      }
+      
+      return(p)
     })
     
     return(patchwork::wrap_plots(model_plots, ncol = 1))
@@ -2516,7 +2606,6 @@ plot_pct_diff_from_census_map <- function(data_list,
       geom_sf(aes(fill = outcome), color = NA) +
       geom_sf(data = states_sf_full, fill = NA, color = "black", size = 0.4) +
       abbr_layer +
-      scale_fill_viridis_c(option = "viridis", na.value = "grey90") +
       coord_sf(
         xlim = if (!is.null(xlim)) xlim else c(-130, -65),
         ylim = if (!is.null(ylim)) ylim else c(24, 50)
@@ -2529,11 +2618,13 @@ plot_pct_diff_from_census_map <- function(data_list,
         axis.ticks = element_blank(),
         axis.title = element_blank(),
         panel.grid = element_blank()
-      )
+      ) +
+      scale_fill_viridis_c(option = "viridis", na.value = "grey90")
     
     return(p)
   }
 }
+
 
 
 plot_log_pep_density_map <- function(data_list,
