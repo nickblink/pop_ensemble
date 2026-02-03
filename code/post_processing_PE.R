@@ -14,7 +14,7 @@ if(file.exists('C:/Users/Admin-Dell')){
 }else{
   root_dir = 'C:/Users/nickl'
 }
-root_results <- sprintf('%s/Dropbox/Academic/HSPH/Research/Population Estimation/Results/',
+root_results <- sprintf('%s/Dropbox/Academic/Research/Population Estimation/Results/',
                         root_dir)
 
 root_git <- sprintf('%s/Documents/github_projects/pop_ensemble/', 
