@@ -2428,6 +2428,7 @@ plot_weights_map <- function(data_list,
         labs(fill = NULL, title = toupper(m)) +
         theme(
           legend.position = "bottom",
+          legend.text = element_text(angle = 45),
           axis.text = element_blank(),
           axis.ticks = element_blank(),
           axis.title = element_blank(),
@@ -2458,6 +2459,7 @@ plot_weights_map <- function(data_list,
       theme_minimal() +
       labs(fill = NULL, title = toupper(model_to_plot)) +
       theme(
+        legend.text = element_text(angle = 45),
         axis.text = element_blank(),
         axis.ticks = element_blank(),
         axis.title = element_blank(),

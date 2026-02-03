@@ -431,7 +431,7 @@ summary_stats <- data.frame(
 print(summary_stats)
 
 #
-#### 6/10/2025: Getting full pop HMC diagnostics and results AND plotting SM ####
+#### 6/10/2025 (Updated 2/3/2026): Getting full pop HMC diagnostics and results AND plotting SM ####
 setwd(root_results)
 files <- grep('04_22', dir('real_data', full.names = T), value = T)
 files <- files[c(1,4)]
@@ -653,14 +653,13 @@ make_table_line(res_DE$metrics)
   )
   p1 | p2
   
-  ggsave('../Figures/06102025_fullpop_combined_chloropleth.png', height = 10, width = 8)
+  ggsave('../Figures/02032026_fullpop_combined_chloropleth.png', height = 10, width = 8)
 }
 
 #
 #### 5/29/2025: Making AIAN u-weight and chloropleth plots ####
 setwd(root_results)
-setwd('real_data/')
-load('real_data_fit_aiansubset_directest_intercept_noncentered_ID32362_2025_05_22.RData')
+load('real_data/real_data_fit_aiansubset_directest_intercept_noncentered_ID32362_2025_05_22.RData')
 
 ### Direct est first.
 ### Weights.
@@ -692,7 +691,7 @@ load('real_data_fit_aiansubset_directest_intercept_noncentered_ID32362_2025_05_2
 }
 
 ### Softmax 
-load('real_data_fit_aiansubset_softmax_pepdensity_alpha0001_noncentered_ID88451_2025_05_22.RData')
+load('real_data/real_data_fit_aiansubset_softmax_pepdensity_alpha0001_noncentered_ID88451_2025_05_22.RData')
 ### Weights.
 {
   pweights_SM <- plot_real_results(data_list = res$sim_list$data_list,
@@ -718,7 +717,7 @@ load('real_data_fit_aiansubset_softmax_pepdensity_alpha0001_noncentered_ID88451_
     ylim = c(31, 42)
   )
   
- # ggsave('../../Figures/05292025_aiansubset_softmax_chloropleth.png', height = 12, width = 7)
+  # ggsave('../Figures/02032026_aiansubset_softmax_chloropleth.png', height = 12, width = 7)
 }
 
 ### Combining density plots
@@ -741,7 +740,7 @@ load('real_data_fit_aiansubset_softmax_pepdensity_alpha0001_noncentered_ID88451_
   )
   p1 | p2
   
-  ggsave('../../Figures/06102025_aian_combined_chloropleth.png', height = 10, width = 8)
+  ggsave('../Figures/02032026_aian_combined_chloropleth.png', height = 10, width = 8)
 }
 
 
