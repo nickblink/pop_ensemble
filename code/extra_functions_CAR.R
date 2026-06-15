@@ -2357,8 +2357,6 @@ plot_weights_map <- function(data_list,
                              show_state_abbr = TRUE,
                              xlim = NULL,
                              ylim = NULL) {
-  message('You should angle the legend text')
-  print('look at the message')
   library(ggplot2)
   library(dplyr)
   library(sf)
