@@ -9,4 +9,4 @@
 
 module load R/4.3.3-fasrc01
 export R_LIBS_USER=$HOME/apps/R-4.3.3:$R_LIBS_USER
-Rscript code/real_data_main_CAR.R $1
+Rscript --vanilla code/real_data_main_CAR.R $1
