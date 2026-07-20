@@ -2784,3 +2784,191 @@ generate_latex_values <- function(data_list, coverage = 95, scale_across_all = F
   return(output_lines)
 }
 
+
+### Transfer a fitted decade's posterior (county phi + beta/alpha/theta) onto a later decade's ACS/PEP.
+# res, params: saved objects from fit_model_real / real_data_main_CAR.R
+# data_2020: data.frame with GEOID, census, models (acs/pep), and pep_density if needed for FE
+# thin: keep every thin-th posterior draw
+# max_print_geoids: truncate printed only-2010 / only-2020 GEOID lists
+# seed: RNG seed for NB predictive draws
+# Returns list(metrics, overlap, pred_summary) where metrics matches just_metrics columns.
+predict_transfer_decade <- function(res, params, data_2020, thin = 10,
+                                    max_print_geoids = 50, seed = 1) {
+  models <- params$models
+  use_softmax <- isTRUE(params$use_softmax)
+  fixed_effects <- params$fixed_effects
+  train_df <- res$sim_list$data_list$data
+
+  if (is.null(models) || length(models) < 1) {
+    stop('params$models is missing.')
+  }
+  if (!all(models %in% colnames(data_2020))) {
+    stop('data_2020 is missing model columns: ', paste(setdiff(models, colnames(data_2020)), collapse = ', '))
+  }
+  if (!('census' %in% colnames(data_2020))) {
+    stop('data_2020 needs a census column (2020 outcome).')
+  }
+  if (!('GEOID' %in% colnames(train_df)) || !('GEOID' %in% colnames(data_2020))) {
+    stop('Both training data and data_2020 need GEOID.')
+  }
+
+  geoid_2010 <- sprintf('%05d', as.integer(as.character(unlist(train_df$GEOID))))
+  geoid_2020 <- sprintf('%05d', as.integer(as.character(unlist(data_2020$GEOID))))
+  both <- intersect(geoid_2010, geoid_2020)
+  only_2010 <- setdiff(geoid_2010, geoid_2020)
+  only_2020 <- setdiff(geoid_2020, geoid_2010)
+
+  overlap <- list(
+    n_2010 = length(geoid_2010),
+    n_2020 = length(geoid_2020),
+    n_both = length(both),
+    n_only_2010 = length(only_2010),
+    n_only_2020 = length(only_2020),
+    only_2010 = only_2010,
+    only_2020 = only_2020
+  )
+
+  cat('\n==== County GEOID overlap (transfer) ====\n')
+  cat('n_2010:', overlap$n_2010, '\n')
+  cat('n_2020:', overlap$n_2020, '\n')
+  cat('n_both:', overlap$n_both, '\n')
+  cat('n_only_2010:', overlap$n_only_2010, '\n')
+  if (length(only_2010) > 0) {
+    show <- only_2010[seq_len(min(length(only_2010), max_print_geoids))]
+    cat('only_2010:', paste(show, collapse = ', '),
+        if (length(only_2010) > max_print_geoids) ' ...' else '', '\n')
+  }
+  cat('n_only_2020:', overlap$n_only_2020, '\n')
+  if (length(only_2020) > 0) {
+    show <- only_2020[seq_len(min(length(only_2020), max_print_geoids))]
+    cat('only_2020:', paste(show, collapse = ', '),
+        if (length(only_2020) > max_print_geoids) ' ...' else '', '\n')
+  }
+  if (overlap$n_both == 0) {
+    stop('No overlapping GEOIDs between training fit and data_2020.')
+  }
+
+  # Match order: use 2010 fit row order restricted to overlap, then align 2020 rows.
+  idx_2010 <- which(geoid_2010 %in% both)
+  # Preserve training order for phi indexing
+  geoid_matched <- geoid_2010[idx_2010]
+  idx_2020 <- match(geoid_matched, geoid_2020)
+  if (anyNA(idx_2020)) stop('Failed to align GEOIDs.')
+
+  N <- length(idx_2010)
+  M <- length(models)
+  X_new <- as.matrix(data_2020[idx_2020, models, drop = FALSE])
+  y_2020 <- as.numeric(data_2020$census[idx_2020])
+
+  # Build Z_new with training (2010) mean/sd for non-intercept covariates
+  if (is.null(fixed_effects) || identical(fixed_effects, 'intercept') || identical(fixed_effects, 'none')) {
+    Z_new <- matrix(1, nrow = N, ncol = 1)
+  } else if (fixed_effects == 'pep_density') {
+    train_x <- log(0.01 + as.numeric(train_df$pep_density))
+    m_x <- mean(train_x)
+    s_x <- sd(train_x)
+    new_x <- log(0.01 + as.numeric(data_2020$pep_density[idx_2020]))
+    Z_new <- cbind(1, (new_x - m_x) / s_x)
+  } else if (fixed_effects == 'pep_fulldensity') {
+    train_x <- log(0.01 + as.numeric(train_df$pep_density_full))
+    m_x <- mean(train_x)
+    s_x <- sd(train_x)
+    new_x <- log(0.01 + as.numeric(data_2020$pep_density_full[idx_2020]))
+    Z_new <- cbind(1, (new_x - m_x) / s_x)
+  } else {
+    stop('predict_transfer_decade: unsupported fixed_effects = ', fixed_effects)
+  }
+
+  # Posterior draws
+  so <- res$sim_list$stan_out
+  if (is.null(so) || is.null(so$phi) || is.null(so$beta) || is.null(so$theta)) {
+    pars <- c('phi', 'beta', 'theta')
+    if (use_softmax && !is.null(params$alpha_variance_prior) && params$alpha_variance_prior > 0) {
+      pars <- c(pars, 'alpha')
+    }
+    so <- rstan::extract(res$sim_list$stan_fit, pars = pars)
+  }
+
+  # phi: [S, N_train, M]; beta: [S, P, M]; theta: [S]; alpha: [S, M] optional
+  S_all <- dim(so$phi)[1]
+  keep <- seq(1, S_all, by = thin)
+  S <- length(keep)
+  cat(sprintf('Using %s / %s posterior draws (thin=%s)\n', S, S_all, thin))
+
+  phi_keep <- so$phi[keep, idx_2010, , drop = FALSE]
+  beta_keep <- so$beta[keep, , , drop = FALSE]
+  theta_keep <- so$theta[keep]
+  use_alpha <- use_softmax && !is.null(so$alpha) && !is.null(params$alpha_variance_prior) &&
+    params$alpha_variance_prior > 0
+  if (use_alpha) {
+    alpha_keep <- so$alpha[keep, , drop = FALSE]
+  }
+
+  set.seed(seed)
+  y_draws <- matrix(NA_real_, nrow = N, ncol = S)
+  mu_draws <- matrix(NA_real_, nrow = N, ncol = S)
+
+  for (s in seq_len(S)) {
+    # zeta = Z * beta + phi ; beta[, , m] is P-vector for model m
+    zeta <- matrix(0, nrow = N, ncol = M)
+    for (m in seq_len(M)) {
+      zeta[, m] <- as.numeric(Z_new %*% beta_keep[s, , m]) + phi_keep[s, , m]
+    }
+
+    if (use_softmax) {
+      exp_z <- exp(zeta)
+      u <- exp_z / rowSums(exp_z)
+    } else {
+      u <- 1 / M + zeta
+    }
+    if (use_alpha) {
+      for (m in seq_len(M)) {
+        u[, m] <- u[, m] * alpha_keep[s, m]
+      }
+    }
+
+    mu <- rowSums(X_new * u)
+    mu_bounded <- pmax(mu, 0.01)
+    mu_draws[, s] <- mu_bounded
+    y_draws[, s] <- stats::rnbinom(N, size = theta_keep[s], mu = mu_bounded)
+  }
+
+  median_y <- apply(y_draws, 1, median)
+  lower_y <- apply(y_draws, 1, quantile, probs = 0.025, names = FALSE)
+  upper_y <- apply(y_draws, 1, quantile, probs = 0.975, names = FALSE)
+  int_widths <- upper_y - lower_y
+
+  nonzero_ind <- which(y_2020 > 0)
+  MAPE <- 100 * mean(abs((median_y[nonzero_ind] - y_2020[nonzero_ind]) / y_2020[nonzero_ind]))
+  MAE <- mean(abs(y_2020 - median_y))
+  CP <- mean(y_2020 >= lower_y & y_2020 <= upper_y)
+  med_int <- median(int_widths)
+  mean_p_int <- mean(int_widths / y_2020)
+
+  metrics <- data.frame(
+    dataset = 'transfer_2020',
+    RMSE = sqrt(mean((median_y - y_2020)^2)),
+    rRMSE = sqrt(mean(((median_y[nonzero_ind] - y_2020[nonzero_ind]) / y_2020[nonzero_ind])^2)),
+    logRMSE = sqrt(mean((log1p(median_y[nonzero_ind]) - log1p(y_2020[nonzero_ind]))^2)),
+    MAPE = MAPE,
+    MAE = MAE,
+    CP.95 = CP,
+    med_int = med_int,
+    mean_p_int = mean_p_int,
+    stringsAsFactors = FALSE
+  )
+  metrics[, 2:9] <- round(metrics[, 2:9], 3)
+
+  pred_summary <- data.frame(
+    GEOID = geoid_matched,
+    census_2020 = y_2020,
+    y_median = median_y,
+    y_2.5 = lower_y,
+    y_97.5 = upper_y,
+    mu_median = apply(mu_draws, 1, median),
+    stringsAsFactors = FALSE
+  )
+
+  list(metrics = metrics, overlap = overlap, pred_summary = pred_summary)
+}
+

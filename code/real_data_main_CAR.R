@@ -116,6 +116,11 @@ if(params[['dataset']] == 'aian'){
   load('data/census_ACS_PEP_AIAN_2010era_wDensity.RData')
   params[['raw_data']] <- list(data = df, adjacency = adjacency)
 
+  # 2010-era AIAN SW subset (matches 2020 AIANsubset counties, no WP)
+}else if(params[['dataset']] %in% c('aiansubset2010', 'aiansub2010')){
+  load('data/census_ACS_PEP_AIANsubset_2010era_wDensity.RData')
+  params[['raw_data']] <- list(data = df, adjacency = adjacency)
+
   # full data elsewhere
 }else{
   load('data/census_ACS_PEP_WP_wDensity_and2017_01022025.RData')

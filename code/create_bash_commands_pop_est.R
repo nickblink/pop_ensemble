@@ -62,7 +62,7 @@ bash_command_real <- function(dataset='all', models='acs,pep,wp', n.sample=2000,
     }
   }
   
-  if(!(tolower(dataset) %in% c('all','aian', 'aiansubset', 'all2010', 'full2010', 'aian2010'))){
+  if(!(tolower(dataset) %in% c('all','aian', 'aiansubset', 'all2010', 'full2010', 'aian2010', 'aiansubset2010', 'aiansub2010'))){
     stop('Incorrect dataset')
   }
   

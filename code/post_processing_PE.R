@@ -43,6 +43,261 @@ make_table_line <- function(metric, cols = c('dataset','MAPE', 'MAE', 'CP.95', '
 }
 
 #
+#### 7/20/2026: Running 2010 analysis ####
+# 2010 train/CV metrics + transfer of 2010 phi/beta/alpha onto 2019 ACS/PEP vs 2020 census.
+{
+  setwd(root_results)
+  setwd(root_git)
+
+  files_2010 <- list(
+    all_SM = file.path(root_results, 'real_data/real_data_fit_all2010_softmax_pepdensity_alpha0001_noncentered_ID43952_2026_07_13.RData'),
+    all_DE = file.path(root_results, 'real_data/real_data_fit_all2010_directest_intercept_noncentered_ID8898_2026_07_13.RData'),
+    aian_SM = file.path(root_results, 'real_data/real_data_fit_aiansubset2010_softmax_pepdensity_alpha0001_noncentered_ID83323_2026_07_20.RData'),
+    aian_DE = file.path(root_results, 'real_data/real_data_fit_aiansubset2010_directest_intercept_noncentered_ID75712_2026_07_20.RData')
+  )
+
+  load(file.path(root_git, 'data/census_ACS_PEP_WP_wDensity_and2017_01022025.RData'))
+  data_2020_full <- df
+  # AIAN 2020 SW subset (same 111 counties the 2010 aiansubset fit was trained on)
+  load(file.path(root_git, 'data/census_ACS_PEP_WP_AIANsubset_wDensity_and2018_05212025.RData'))
+  data_2020_aian <- df
+  rm(df, adjacency)
+  gc()
+
+  metrics_2010 <- list()
+  overlap_2010 <- list()
+  transfer_pred <- list()
+
+  for (nm in names(files_2010)) {
+    cat('\n##############################\n')
+    cat('Processing:', nm, '\n')
+    cat(files_2010[[nm]], '\n')
+    load(files_2010[[nm]])
+
+    # 2010 train + CV metrics
+    res_m <- just_metrics(
+      data_list = res$sim_list$data_list,
+      stan_fit = res$sim_list$stan_fit,
+      stan_summary = res$sim_list$stan_summary$summary,
+      models = params$models,
+      CV_pred = res$sim_list$CV_pred
+    )
+    cat('2010 train/CV:\n')
+    print(make_table_line(res_m$metrics))
+
+    data_2020 <- if (grepl('^aian', nm)) data_2020_aian else data_2020_full
+    transfer <- predict_transfer_decade(
+      res = res,
+      params = params,
+      data_2020 = data_2020,
+      thin = 10,
+      seed = 1
+    )
+    cat('2020 transfer:\n')
+    print(make_table_line(transfer$metrics))
+
+    metrics_2010[[nm]] <- rbind(res_m$metrics, transfer$metrics)
+    overlap_2010[[nm]] <- transfer$overlap
+    transfer_pred[[nm]] <- transfer$pred_summary
+
+    rm(res, params, res_m, transfer)
+    gc()
+  }
+
+  # Combined metrics table
+  combined_metrics <- do.call(rbind, lapply(names(metrics_2010), function(nm) {
+    tmp <- metrics_2010[[nm]]
+    tmp$model <- nm
+    tmp[, c('model', setdiff(names(tmp), 'model'))]
+  }))
+  rownames(combined_metrics) <- NULL
+  cat('\n==== Combined 2010 + transfer_2020 metrics ====\n')
+  print(combined_metrics)
+  cat('\nLaTeX lines:\n')
+  print(make_table_line(combined_metrics, cols = c('model', 'dataset', 'MAPE', 'MAE', 'CP.95', 'med_int')))
+
+  # Overlap summary (same for SM/DE within population; print once per pop)
+  overlap_summary <- data.frame(
+    population = c('full', 'AIAN_subset'),
+    n_2010 = c(overlap_2010$all_SM$n_2010, overlap_2010$aian_SM$n_2010),
+    n_2020 = c(overlap_2010$all_SM$n_2020, overlap_2010$aian_SM$n_2020),
+    n_both = c(overlap_2010$all_SM$n_both, overlap_2010$aian_SM$n_both),
+    n_only_2010 = c(overlap_2010$all_SM$n_only_2010, overlap_2010$aian_SM$n_only_2010),
+    n_only_2020 = c(overlap_2010$all_SM$n_only_2020, overlap_2010$aian_SM$n_only_2020),
+    stringsAsFactors = FALSE
+  )
+  cat('\n==== County overlap summary (transfer vs 2020 self-fit county set) ====\n')
+  print(overlap_summary)
+
+  dir.create(file.path(root_results, 'processed_results'), showWarnings = FALSE, recursive = TRUE)
+  save(combined_metrics, metrics_2010, overlap_2010, overlap_summary, transfer_pred,
+       file = file.path(root_results, 'processed_results/real_data_2010_transfer_07202026.RData'))
+
+  ## ---- Formatted LaTeX tables (full pop + AIAN subset) ----
+  # Load the 2010 training data (for raw-product + lm baselines vs 2010 census).
+  data_2010_full <- local({ e <- new.env(); load(file.path(root_git, 'data/census_ACS_PEP_2010era_wDensity.RData'), envir = e); e$df })
+  data_2010_aian <- local({ e <- new.env(); load(file.path(root_git, 'data/census_ACS_PEP_AIANsubset_2010era_wDensity.RData'), envir = e); e$df })
+
+  fmt_num <- function(x, kind) {
+    if (is.na(x)) return('--')
+    switch(kind,
+           MAPE  = formatC(x, format = 'f', digits = 2),
+           MAE   = formatC(round(x), format = 'd'),
+           CP    = formatC(x, format = 'f', digits = 3),
+           width = formatC(round(x), format = 'd'),
+           as.character(x))
+  }
+
+  # Raw product point metrics (no intervals): MAPE on positive census, MAE on all.
+  raw_metrics_row <- function(pred, y) {
+    ok <- y > 0
+    c(MAPE = 100 * mean(abs(pred[ok] - y[ok]) / y[ok]),
+      MAE = mean(abs(pred - y)),
+      CP.95 = NA_real_, med_int = NA_real_)
+  }
+
+  # lm with 10-fold CV and 95% prediction intervals.
+  lm_cv_metrics <- function(data, formula, outcome = 'census', k = 10, seed = 123) {
+    y <- data[[outcome]]; ok <- y > 0
+    fit <- lm(formula, data = data)
+    pit <- predict(fit, data, interval = 'prediction', level = 0.95)
+    train <- c(MAPE = 100 * mean(abs(pit[ok, 'fit'] - y[ok]) / y[ok]),
+               MAE = mean(abs(pit[, 'fit'] - y)),
+               CP.95 = mean(y >= pit[, 'lwr'] & y <= pit[, 'upr']),
+               med_int = median(pit[, 'upr'] - pit[, 'lwr']))
+    set.seed(seed)
+    n <- nrow(data); folds <- sample(rep(1:k, length.out = n))
+    pr <- lo <- up <- numeric(n)
+    for (f in 1:k) {
+      te <- which(folds == f)
+      m <- lm(formula, data = data[-te, , drop = FALSE])
+      p <- predict(m, data[te, , drop = FALSE], interval = 'prediction', level = 0.95)
+      pr[te] <- p[, 'fit']; lo[te] <- p[, 'lwr']; up[te] <- p[, 'upr']
+    }
+    cv <- c(MAPE = 100 * mean(abs(pr[ok] - y[ok]) / y[ok]),
+            MAE = mean(abs(pr - y)),
+            CP.95 = mean(y >= lo & y <= up),
+            med_int = median(up - lo))
+    rbind(train = train, CV = cv)
+  }
+
+  get_row <- function(nm, ds) {
+    m <- metrics_2010[[nm]]; r <- m[m$dataset == ds, ]
+    c(MAPE = r$MAPE, MAE = r$MAE, CP.95 = r$CP.95, med_int = r$med_int)
+  }
+
+  emit_latex_table <- function(sections, caption, label,
+                               colspec = 'p{2.5cm}p{2.7cm}p{1.1cm}ccp{1.8cm}p{1.9cm}') {
+    L <- c('\\begin{table}[ht]', '    \\centering',
+           sprintf('\\begin{tabular}{%s}', colspec),
+           '        \\toprule',
+           '        \\textbf{Category} & \\textbf{Model} & \\textbf{Dataset} & \\textbf{MAPE (\\%)} & \\textbf{MAE} & \\textbf{Coverage (95\\%)} & \\textbf{Median interval width} \\\\',
+           '        \\midrule')
+    for (si in seq_along(sections)) {
+      sec <- sections[[si]]; rows <- sec$rows; nsec <- nrow(rows)
+      cat_cell <- sprintf('\\multirow{%d}{*}{\\makecell{%s}}', nsec, sec$category)
+      dash_after <- if (is.null(sec$dash_after)) character(0) else sec$dash_after
+      models_order <- unique(rows$model)
+      first_in_sec <- TRUE
+      for (mi in seq_along(models_order)) {
+        mdl <- models_order[mi]; idx <- which(rows$model == mdl); nmr <- length(idx)
+        model_cell <- if (nmr > 1) sprintf('\\multirow{%d}{*}{\\makecell{%s}}', nmr, mdl) else mdl
+        for (j in seq_along(idx)) {
+          r <- rows[idx[j], ]
+          c1 <- if (first_in_sec) cat_cell else ''
+          c2 <- if (j == 1) model_cell else ''
+          L <- c(L, sprintf('        %s & %s & %s & %s & %s & %s & %s \\\\',
+                            c1, c2, r$dataset,
+                            fmt_num(r$MAPE, 'MAPE'), fmt_num(r$MAE, 'MAE'),
+                            fmt_num(r$CP.95, 'CP'), fmt_num(r$med_int, 'width')))
+          first_in_sec <- FALSE
+        }
+        if (mdl %in% dash_after) L <- c(L, '        \\cdashline{2-7}')
+      }
+      if (si < length(sections)) L <- c(L, '        \\midrule')
+    }
+    L <- c(L, '        \\bottomrule', '    \\end{tabular}',
+           sprintf('    \\caption{%s}', caption),
+           sprintf('    \\label{%s}', label),
+           '\\end{table}')
+    paste(L, collapse = '\n')
+  }
+
+  SM_lab <- 'SM + $\\alpha$ + dens'
+  DE_lab <- 'DE + intercept'
+  lm_lab <- 'lm(census $\\sim$ \\\\ ACS + PEP)'
+
+  mkrow <- function(model, dataset, v) data.frame(
+    model = model, dataset = dataset,
+    MAPE = unname(v['MAPE']), MAE = unname(v['MAE']),
+    CP.95 = unname(v['CP.95']), med_int = unname(v['med_int']),
+    stringsAsFactors = FALSE)
+
+  build_table <- function(sm_nm, de_nm, data_2010, data_2020, has_wp, caption, label, file) {
+    y10 <- data_2010$census; y20 <- data_2020$census
+    lm10 <- lm_cv_metrics(data_2010, census ~ acs + pep)
+
+    ref <- rbind(
+      mkrow('PEP', 'raw', raw_metrics_row(data_2010$pep, y10)),
+      mkrow('ACS', 'raw', raw_metrics_row(data_2010$acs, y10)),
+      mkrow(lm_lab, 'train', lm10['train', ]),
+      mkrow(lm_lab, 'CV', lm10['CV', ])
+    )
+    sweep <- rbind(
+      mkrow(SM_lab, 'train', get_row(sm_nm, 'train')),
+      mkrow(SM_lab, 'CV', get_row(sm_nm, 'CV')),
+      mkrow(DE_lab, 'train', get_row(de_nm, 'train')),
+      mkrow(DE_lab, 'CV', get_row(de_nm, 'CV'))
+    )
+    fc <- rbind(
+      mkrow('PEP', 'raw', raw_metrics_row(data_2020$pep, y20)),
+      mkrow('ACS', 'raw', raw_metrics_row(data_2020$acs, y20))
+    )
+    if (has_wp) fc <- rbind(fc, mkrow('WP', 'raw', raw_metrics_row(data_2020$wp, y20)))
+    fc <- rbind(fc,
+      mkrow(SM_lab, 'predict', get_row(sm_nm, 'transfer_2020')),
+      mkrow(DE_lab, 'predict', get_row(de_nm, 'transfer_2020'))
+    )
+    last_raw <- if (has_wp) 'WP' else 'ACS'
+
+    sections <- list(
+      list(category = 'Reference \\\\ Models (2010)', rows = ref),
+      list(category = 'SWEEP \\\\ Models (2010)', rows = sweep, dash_after = SM_lab),
+      list(category = '2020 Prediction \\\\ (2019 $\\rightarrow$ 2020)', rows = fc, dash_after = last_raw)
+    )
+    tex <- emit_latex_table(sections, caption, label)
+    writeLines(tex, file)
+    cat('\n===== LaTeX table:', basename(file), '=====\n')
+    cat(tex, '\n')
+    invisible(tex)
+  }
+
+  build_table(
+    'all_SM', 'all_DE', data_2010_full, data_2020_full, has_wp = TRUE,
+    caption = paste('Full-population performance metrics. Reference models are baseline products',
+                    '(raw 2009 values, and lm on ACS + PEP); SWEEP models are the ensemble approaches',
+                    '(SM = softmax with $\\alpha$ + density fixed effect, DE = direct estimate with intercept).',
+                    '\\textit{train} and \\textit{CV} evaluate against the 2010 census; the 2020 Prediction section',
+                    'transfers the 2010 model (county $\\phi$, $\\beta$, $\\alpha$) onto 2019 ACS/PEP to estimate the 2020 census,',
+                    'alongside raw 2019 products used directly.'),
+    label = 'tab:fullpop_2010_metrics',
+    file = file.path(root_results, 'processed_results', 'fullpop_2010_metrics.tex')
+  )
+
+  build_table(
+    'aian_SM', 'aian_DE', data_2010_aian, data_2020_aian, has_wp = TRUE,
+    caption = paste('American Indian Alaska Native (Southwestern U.S. counties with Census counts of at least 100)',
+                    'performance metrics. Reference models are baseline products (raw 2009 values, and lm on ACS + PEP);',
+                    'SWEEP models are the ensemble approaches (SM = softmax with $\\alpha$ + density fixed effect,',
+                    'DE = direct estimate with intercept). \\textit{train} and \\textit{CV} evaluate against the 2010 census;',
+                    'the 2020 Prediction section transfers the 2010 model (county $\\phi$, $\\beta$, $\\alpha$) onto 2019 ACS/PEP',
+                    'to estimate the 2020 census, alongside raw 2019 products used directly.'),
+    label = 'tab:aian_2010_metrics',
+    file = file.path(root_results, 'processed_results', 'aian_2010_metrics.tex')
+  )
+}
+
+#
 #### 7/7/2025: Making raw product percentage off plots for paper appendix ####
 setwd(root_results)
 setwd('real_data/')

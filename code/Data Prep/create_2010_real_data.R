@@ -359,12 +359,28 @@ df <- df_AIAN %>%
     acs_density_full, pep_density_full
   )
 
+# Restrict to the same SW subset counties used in the 2020 AIAN analysis (111 counties).
+# Reuse the exact GEOID universe from the saved 2020 subset so the panel matches across decades.
+subset_env <- new.env()
+load(file.path(data_dir, "census_ACS_PEP_WP_AIANsubset_wDensity_and2018_05212025.RData"),
+     envir = subset_env)
+subset_geoids <- pad_geoid(subset_env$df$GEOID)
+cat("2020 AIAN subset GEOIDs:", length(subset_geoids), "\n")
+
+df <- df %>% filter(GEOID %in% subset_geoids)
+cat("2010 AIAN rows kept after SW subset filter:", nrow(df), "\n")
+missing_geoids <- setdiff(subset_geoids, df$GEOID)
+if (length(missing_geoids) > 0) {
+  cat("WARNING: subset GEOIDs not present in 2010 AIAN data:",
+      paste(missing_geoids, collapse = ", "), "\n")
+}
+
 adj_aian <- build_adjacency_for_df(df)
 df <- adj_aian$df
 adjacency <- adj_aian$adjacency
 
-save(df, adjacency, file = file.path(data_dir, "census_ACS_PEP_AIAN_2010era_wDensity.RData"))
-cat("Saved AIAN:", file.path(data_dir, "census_ACS_PEP_AIAN_2010era_wDensity.RData"),
+save(df, adjacency, file = file.path(data_dir, "census_ACS_PEP_AIANsubset_2010era_wDensity.RData"))
+cat("Saved AIAN subset:", file.path(data_dir, "census_ACS_PEP_AIANsubset_2010era_wDensity.RData"),
     " nrow=", nrow(df), "\n")
 
 df_2010_aian <- df
