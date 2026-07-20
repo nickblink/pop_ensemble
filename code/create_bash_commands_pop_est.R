@@ -62,7 +62,7 @@ bash_command_real <- function(dataset='all', models='acs,pep,wp', n.sample=2000,
     }
   }
   
-  if(!(tolower(dataset) %in% c('all','aian', 'aiansubset'))){
+  if(!(tolower(dataset) %in% c('all','aian', 'aiansubset', 'all2010', 'full2010', 'aian2010'))){
     stop('Incorrect dataset')
   }
   
@@ -79,7 +79,7 @@ bash_command_real <- function(dataset='all', models='acs,pep,wp', n.sample=2000,
     gsub('TRUE','T',.) %>%
     gsub('FALSE','F',.)
 
-    command_str = sprintf('sbatch -J %s run_real_data_pop_est.bash %s', job_name, param_str)
+    command_str = sprintf('sbatch -J %s code/run_real_data_pop_est.bash %s', job_name, param_str)
   
   return(command_str)
 }

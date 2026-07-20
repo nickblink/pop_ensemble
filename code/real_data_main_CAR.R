@@ -106,6 +106,16 @@ if(params[['dataset']] == 'aian'){
   load('data/census_ACS_PEP_WP_fullpopsubset_wDensity_and2018_06202025.RData')
   params[['raw_data']] <- list(data = df, adjacency = adjacency)
 
+  # 2010-era full population (ACS/PEP only, no WP)
+}else if(params[['dataset']] %in% c('all2010', 'full2010')){
+  load('data/census_ACS_PEP_2010era_wDensity.RData')
+  params[['raw_data']] <- list(data = df, adjacency = adjacency)
+
+  # 2010-era AIAN (ACS/PEP only, no WP)
+}else if(params[['dataset']] == 'aian2010'){
+  load('data/census_ACS_PEP_AIAN_2010era_wDensity.RData')
+  params[['raw_data']] <- list(data = df, adjacency = adjacency)
+
   # full data elsewhere
 }else{
   load('data/census_ACS_PEP_WP_wDensity_and2017_01022025.RData')

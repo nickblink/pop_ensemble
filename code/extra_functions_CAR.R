@@ -2428,13 +2428,8 @@ plot_weights_map <- function(data_list,
         labs(fill = NULL, title = toupper(m)) +
         theme(
           legend.position = "bottom",
-<<<<<<< HEAD
           legend.text = element_text(angle = 45),
           axis.text = element_blank(),
-=======
-          axis.text.x = element_text(angle = 45, hjust = 1),
-          axis.text.y = element_text(angle = 0),
->>>>>>> f825de244121fee9a2e94d86ac9684635c5c1de3
           axis.ticks = element_blank(),
           axis.title = element_blank(),
           panel.grid = element_blank()
@@ -2464,13 +2459,8 @@ plot_weights_map <- function(data_list,
       theme_minimal() +
       labs(fill = NULL, title = toupper(model_to_plot)) +
       theme(
-<<<<<<< HEAD
         legend.text = element_text(angle = 45),
         axis.text = element_blank(),
-=======
-        axis.text.x = element_text(angle = 45, hjust = 1),
-        axis.text.y = element_text(angle = 0),
->>>>>>> f825de244121fee9a2e94d86ac9684635c5c1de3
         axis.ticks = element_blank(),
         axis.title = element_blank(),
         panel.grid = element_blank()
