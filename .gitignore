@@ -17,6 +17,7 @@
 usa_ppp_2010.tif
 usa_ppp_2010_1km_Aggregated.tif
 wp_1km_county_aggregate_2010.RData
+pep_2000_2010_vintage_precensus_demographics.csv
 
 # tif and vrt and pickle
 .pickle
